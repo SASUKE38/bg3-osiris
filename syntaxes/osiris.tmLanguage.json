@@ -1,0 +1,103 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Osiris",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#entities"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#variables"
+		},
+		{
+			"include": "#constants"
+		},
+		{
+			"include": "#strings"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.block.osiris",
+					"begin": "/\\*",
+					"end": "\\*/"
+				},
+				{
+					"name": "comment.block.documentation.osiris",
+					"match": "^//\\s*(REGION|END_REGION).*"
+				},
+				{
+					"name": "comment.line.double-slash",
+					"match": "//.*"
+				}
+			]
+		},
+		"entities": {
+			"patterns": [
+				{
+					"name": "entity.name.function.osiris",
+					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\("
+				},
+				{
+					"name": "entity.name.section",
+					"match": "^(INITSECTION|KBSECTION|EXITSECTION|ENDEXITSECTION)$"
+				},
+				{
+					"name": "entity.other.osiris",
+					"match": "^(SubGoalCombiner|Version|ParentTargetEdge).*$"
+				},
+				{
+					"name": "entity.name.type.osiris",
+					"match": "\\([A-Z]+\\)"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.osiris",
+					"match": "\\b(IF|AND|THEN|PROC|QRY|NOT)\\b"
+				}
+			]
+		},
+		"variables": {
+			"patterns": [
+				{
+					"name": "variable.name.osiris",
+					"match": "\\b_[A-Za-z0-9_]*\\b"
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.numeric.osiris",
+					"match": "\\b-?[0-9]+(\\.[0-9]+)?\\b"
+				},
+				{
+					"name": "constant.character.osiris",
+					"match": "\\b[A-Za-z0-9][A-Za-z0-9_-]*\\b"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.osiris",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.osiris",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.osiris"
+}

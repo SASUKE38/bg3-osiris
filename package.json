@@ -1,0 +1,25 @@
+{
+  "name": "bg3-osiris",
+  "displayName": "BG3 Osiris",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.103.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "osiris",
+      "aliases": ["Osiris", "osiris"],
+      "extensions": [".txt"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "osiris",
+      "scopeName": "source.osiris",
+      "path": "./syntaxes/osiris.tmLanguage.json"
+    }]
+  }
+}
