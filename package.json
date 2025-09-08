@@ -11,21 +11,32 @@
     "Snippets"
   ],
   "contributes": {
-    "languages": [{
-      "id": "osiris",
-      "aliases": ["Osiris", "osiris"],
-      "extensions": [".txt"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "osiris",
-      "scopeName": "source.osiris",
-      "path": "./syntaxes/osiris.tmLanguage.json"
-    }],
+    "languages": [
+      {
+        "id": "osiris",
+        "aliases": ["Osiris", "osiris"],
+        "extensions": [".txt"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "osiris",
+        "scopeName": "source.osiris",
+        "path": "./syntaxes/osiris.tmLanguage.json"
+      }
+    ],
     "snippets": [
       {
         "language": "osiris",
         "path": "./syntaxes/osiris.tmSnippet.json"
+      }
+    ],
+    "themes": [
+      {
+        "id": "osiris.theme",
+        "label": "Osiris",
+        "path": "./syntaxes/osiris.tmTheme.json"
       }
     ]
   }

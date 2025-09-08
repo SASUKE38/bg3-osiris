@@ -42,6 +42,18 @@
 		"entities": {
 			"patterns": [
 				{
+					"name": "entity.name.db.osiris",
+					"match": "\\bDB_([A-Za-z_][A-Za-z0-9_]*)\\("
+				},
+				{
+					"name": "entity.name.proc.osiris",
+					"match": "\\bPROC_([A-Za-z_][A-Za-z0-9_]*)\\("
+				},
+				{
+					"name": "entity.name.qry.osiris",
+					"match": "\\bQRY_([A-Za-z_][A-Za-z0-9_]*)\\("
+				},
+				{
 					"name": "entity.name.function.osiris",
 					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\("
 				},
@@ -50,7 +62,7 @@
 					"match": "^(INITSECTION|KBSECTION|EXITSECTION|ENDEXITSECTION)$"
 				},
 				{
-					"name": "entity.other.osiris",
+					"name": "entity.other.structure.osiris",
 					"match": "^(SubGoalCombiner|Version|ParentTargetEdge).*$"
 				},
 				{
