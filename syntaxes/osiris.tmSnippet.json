@@ -1,0 +1,32 @@
+{
+    "Region": {
+        "prefix": ["region"],
+        "body": ["//REGION ${1:Name}", "\n$0\n", "//END_REGION"],
+        "description": "An Osiris region."
+    },
+    "PROC": {
+        "prefix": ["proc"],
+        "body": ["PROC","PROC_${1:Name}()", "THEN", "${2:Result};"],
+        "description": "An Osiris PROC."
+    },
+    "QRY": {
+        "prefix": ["qry"],
+        "body": ["QRY","QRY_${1:Name}()", "THEN", "DB_NOOP(1);"],
+        "description": "An Osiris QRY."
+    },
+    "IF": {
+        "prefix": ["if"],
+        "body": ["IF","${1:Event}()", "THEN", "${2:Result};"],
+        "description": "An Osiris IF statement."
+    },
+    "AND": {
+        "prefix": ["and"],
+        "body": ["AND","${1:Condition}"],
+        "description": "An Osiris AND."
+    },
+    "NULL": {
+        "prefix": ["null"],
+        "body": ["NULL_00000000-0000-0000-0000-000000000000"],
+        "description": "A null GUID."
+    }
+}
