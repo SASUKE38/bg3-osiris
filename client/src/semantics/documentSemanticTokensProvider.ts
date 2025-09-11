@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ComponentBase } from '../componentBase';
 
 const tokenTypes = new Map<string, number>();
 
@@ -26,7 +27,13 @@ interface ParsedToken {
     tokenModifiers: string[];
 }
 
-export class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
+export class DocumentSemanticTokensProvider extends ComponentBase implements vscode.DocumentSemanticTokensProvider {
+
+    constructor(context: vscode.ExtensionContext) {
+        super(context);
+        context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider({ language: 'osiris' }, this, legend));
+    }
+
     async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
         const tokens = this.parseText(document.getText());
         const builder = new vscode.SemanticTokensBuilder();

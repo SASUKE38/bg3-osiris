@@ -1,0 +1,19 @@
+{
+	"name": "bg3-osiris-server",
+	"description": "Language server for the BG3 Osiris extension.",
+	"version": "1.0.0",
+	"author": "",
+	"license": "MIT",
+	"engines": {
+		"node": "*"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SASUKE38/bg3-osiris"
+	},
+	"dependencies": {
+		"vscode-languageserver": "^9.0.1",
+		"vscode-languageserver-textdocument": "^1.0.11"
+	},
+	"scripts": {}
+}
