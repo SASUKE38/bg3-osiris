@@ -1,1 +1,1 @@
-{"root":["./src/server.ts"],"version":"5.9.2"}
+{"root":["./src/server.ts","./src/parser/lexer.ts","./src/parser/tokens.ts"],"version":"5.9.2"}
