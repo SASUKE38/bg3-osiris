@@ -1,5 +1,6 @@
 export enum TokenType {
 	EOF,
+	SKIP,
 
 	// General
 	COMMA,
@@ -48,6 +49,26 @@ export enum TokenType {
 	PARENT_TARGET_EDGE,
 	SUBGOAL_COMBINER
 }
+
+export const reservedSymbolsMapping: Map<string, TokenType> = new Map<string, TokenType>([
+	["IF", TokenType.IF],
+	["AND", TokenType.AND],
+	["THEN", TokenType.THEN],
+	["NOT", TokenType.NOT],
+	["PROC", TokenType.PROC],
+	["QRY", TokenType.QRY],
+	["GoalCompleted", TokenType.GOAL_COMPLETED],
+	["INIT", TokenType.INIT],
+	["INITSECTION", TokenType.INITSECTION],
+	["KB", TokenType.KB],
+	["KBSECTION", TokenType.KBSECTION],
+	["EXIT", TokenType.EXIT],
+	["EXITSECTION", TokenType.EXITSECTION],
+	["ENDEXITSECTION", TokenType.ENDEXITSECTION],
+	["Version", TokenType.VERSION],
+	["ParentTargetEdge", TokenType.PARENT_TARGET_EDGE],
+	["SubGoalCombiner", TokenType.SUBGOAL_COMBINER]
+]);
 
 export interface Token {
 	type: TokenType,

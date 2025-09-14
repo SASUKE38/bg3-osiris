@@ -18,7 +18,6 @@ import {
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
-import { Lexer } from './parser/lexer';
 
 const connection = createConnection(ProposedFeatures.all);
 
@@ -146,8 +145,6 @@ connection.languages.diagnostics.on(async (params) => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
-	const test = new Lexer(change.document.getText());
-	test.tokenize();
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {

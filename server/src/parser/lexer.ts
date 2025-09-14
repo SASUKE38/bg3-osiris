@@ -1,34 +1,79 @@
-import { Token, TokenType } from './tokens';
+import { reservedSymbolsMapping, Token, TokenType } from './tokens';
 
 interface RegexHandler {
-	(regex: RegExp): void
+	(regexMatch: RegExpMatchArray): void
 }
 
 interface RegexHandlerFactory {
-	(token: TokenType, value: string): RegexHandler
+	(token: TokenType): RegexHandler
+}
+
+interface PositionRegex {
+	(): RegExp
+}
+
+interface RegexFactory {
+	(regex: RegExp): PositionRegex
 }
 
 interface RegexPattern {
-	regex: RegExp
+	regex: PositionRegex
 	handler: RegexHandler
 }
 
 export class Lexer {
 	private pos: number = 0;
-	private tokens: Array<Token> = [];
+	tokens: Array<Token> = [];
 	private source: string;
 
-	private defaultHandlerFactory: RegexHandlerFactory = (tokenType, string) => {
-		return (regex: RegExp) => {
-			this.advance(string.length);
-			this.push({type: tokenType, value: string});
+	private handlerFactory: RegexHandlerFactory = (tokenType) => {
+		return (regexMatch: RegExpMatchArray) => {
+			const content = tokenType == TokenType.STRING ? regexMatch[0].substring(1, regexMatch[0].length - 1) : regexMatch[0];
+			this.advance(regexMatch[0].length);
+			if (tokenType != TokenType.SKIP) {
+				if (tokenType == TokenType.IDENTIFIER && reservedSymbolsMapping.has(content)) {
+					this.push({type: reservedSymbolsMapping.get(content) as TokenType, value: content});
+				} else {
+					this.push({type: tokenType, value: content});
+				}
+			}
 		}
 	};
 
-	private patterns: Array<RegexPattern> = [
-		{regex: /\./, handler: this.defaultHandlerFactory(TokenType.PERIOD, ".")}
-	]
+	private regexFactory: RegexFactory = (regex) => {
+		return () => {
+			let res = new RegExp(regex);
+			res.lastIndex = this.pos;
+			return res;
+		}
+	}
 
+	private patterns: Array<RegexPattern> = [
+		{regex: this.regexFactory(/\s+/y), handler: this.handlerFactory(TokenType.SKIP)},
+		{regex: this.regexFactory(/\/\/.*/y), handler: this.handlerFactory(TokenType.SKIP)},
+		{regex: this.regexFactory(/\/\*([^*]|(\*[^/]))*\*+\//sy), handler: this.handlerFactory(TokenType.SKIP)},
+		{regex: this.regexFactory(/([A-Za-z0-9_-]+)?[A-Fa-f0-9]{8}-([A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}/y), handler: this.handlerFactory(TokenType.GUID)},
+		{regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER)},
+		{regex: this.regexFactory(/[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
+		{regex: this.regexFactory(/[0-9]+\.[0-9]+/y), handler: this.handlerFactory(TokenType.FLOAT)},
+		{regex: this.regexFactory(/\"[^"]*\"/y), handler: this.handlerFactory(TokenType.STRING)},
+		{regex: this.regexFactory(/\,/y), handler: this.handlerFactory(TokenType.COMMA)},
+		{regex: this.regexFactory(/\;/y), handler: this.handlerFactory(TokenType.SEMICOLON)},
+		{regex: this.regexFactory(/\./y), handler: this.handlerFactory(TokenType.PERIOD)},
+		{regex: this.regexFactory(/\[/y), handler: this.handlerFactory(TokenType.OPEN_BRACKET)},
+		{regex: this.regexFactory(/\]/y), handler: this.handlerFactory(TokenType.CLOSE_BRACKET)},
+		{regex: this.regexFactory(/\{/y), handler: this.handlerFactory(TokenType.OPEN_BRACE)},
+		{regex: this.regexFactory(/\}/y), handler: this.handlerFactory(TokenType.CLOSE_BRACE)},
+		{regex: this.regexFactory(/\(/y), handler: this.handlerFactory(TokenType.OPEN_PARENTHESIS)},
+		{regex: this.regexFactory(/\)/y), handler: this.handlerFactory(TokenType.CLOSE_PARENTHESIS)},
+		{regex: this.regexFactory(/==/y), handler: this.handlerFactory(TokenType.EQUAL)},
+		{regex: this.regexFactory(/!=/y), handler: this.handlerFactory(TokenType.NOT_EQUAL)},
+		{regex: this.regexFactory(/<=/y), handler: this.handlerFactory(TokenType.LESS_THAN_OR_EQUAL)},
+		{regex: this.regexFactory(/</y), handler: this.handlerFactory(TokenType.LESS_THAN)},
+		{regex: this.regexFactory(/>=/y), handler: this.handlerFactory(TokenType.GREATER_THAN_OR_EQUAL)},
+		{regex: this.regexFactory(/>/y), handler: this.handlerFactory(TokenType.GREATER_THAN)}
+	]
+	
 	constructor(source: string) {
 		this.source = source;
 	}
@@ -41,25 +86,17 @@ export class Lexer {
 		this.tokens.push(token);
 	}
 
-	at(): string {
-		return this.source[this.pos];
-	}
-
 	at_eof(): boolean {
 		return this.pos >= this.source.length;
-	}
-
-	remainder(): string {
-		return this.source.substring(this.pos);
 	}
 
 	tokenize() {
 		while (!this.at_eof()) {
 			let matched = false;
 			for (var pattern of this.patterns) {
-				var match = this.remainder().match(pattern.regex);
-				if (match != null && match.index == 0) {
-					pattern.handler(pattern.regex);
+				var match = this.source.match(pattern.regex());
+				if (match != null) {
+					pattern.handler(match);
 					matched = true;
 					break;
 				}
