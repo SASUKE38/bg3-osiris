@@ -72,9 +72,11 @@ export const reservedSymbolsMapping: Map<string, TokenType> = new Map<string, To
 
 export interface Token {
 	type: TokenType,
-	value: string
+	value: string,
+	line: number,
+	col: number
 }
 
 export function printTokenAndType(token: Token) {
-	console.log(`${TokenType[token.type]} : ${token.value}`)
+	console.log(`${TokenType[token.type]} : ${token.value} : line ${token.line}, col ${token.col}`)
 }

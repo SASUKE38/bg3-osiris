@@ -23,20 +23,22 @@ interface RegexPattern {
 
 export class Lexer {
 	private pos: number = 0;
+	private line: number = 1;
+	private col: number = 1;
 	tokens: Array<Token> = [];
 	private source: string;
 
 	private handlerFactory: RegexHandlerFactory = (tokenType) => {
 		return (regexMatch: RegExpMatchArray) => {
 			const content = tokenType == TokenType.STRING ? regexMatch[0].substring(1, regexMatch[0].length - 1) : regexMatch[0];
-			this.advance(regexMatch[0].length);
 			if (tokenType != TokenType.SKIP) {
 				if (tokenType == TokenType.IDENTIFIER && reservedSymbolsMapping.has(content)) {
-					this.push({type: reservedSymbolsMapping.get(content) as TokenType, value: content});
+					this.push({type: reservedSymbolsMapping.get(content) as TokenType, value: content, line: this.line, col: this.col});
 				} else {
-					this.push({type: tokenType, value: content});
+					this.push({type: tokenType, value: content, line: this.line, col: this.col});
 				}
 			}
+			this.advance(regexMatch[0].length, regexMatch[0]);
 		}
 	};
 
@@ -53,9 +55,9 @@ export class Lexer {
 		{regex: this.regexFactory(/\/\/.*/y), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/\/\*([^*]|(\*[^/]))*\*+\//sy), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/([A-Za-z0-9_-]+)?[A-Fa-f0-9]{8}-([A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}/y), handler: this.handlerFactory(TokenType.GUID)},
-		{regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER)},
-		{regex: this.regexFactory(/[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
 		{regex: this.regexFactory(/[0-9]+\.[0-9]+/y), handler: this.handlerFactory(TokenType.FLOAT)},
+		{regex: this.regexFactory(/[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
+		{regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER)},
 		{regex: this.regexFactory(/\"[^"]*\"/y), handler: this.handlerFactory(TokenType.STRING)},
 		{regex: this.regexFactory(/\,/y), handler: this.handlerFactory(TokenType.COMMA)},
 		{regex: this.regexFactory(/\;/y), handler: this.handlerFactory(TokenType.SEMICOLON)},
@@ -78,7 +80,13 @@ export class Lexer {
 		this.source = source;
 	}
 
-	advance(n: number) {
+	advance(n: number, token: string) {
+		if (token[token.length - 1] === "\n") {
+			this.col = 1;
+		} else {
+			this.col += token.length;
+		}
+		this.line += token.split("\n").length - 1;
 		this.pos += n;
 	}
 
@@ -101,12 +109,12 @@ export class Lexer {
 					break;
 				}
 			}
-
+			
 			if (!matched) {
-				console.log(`Lexer error: encountered unknown token at position ${this.pos}`);
-				this.advance(1);
+				console.log(`Lexer error: encountered unknown token at line ${this.line}, ${this.col}`);
+				this.advance(1, "a");
 			}
 		}
-		this.push({type: TokenType.EOF, value: "EOF"});
+		this.push({type: TokenType.EOF, value: "EOF", line: this.line, col: this.col});
 	}
 }
