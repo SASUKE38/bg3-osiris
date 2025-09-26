@@ -1,20 +1,9 @@
 import { reservedSymbolsMapping, Token, TokenType } from './tokens';
 
-interface RegexHandler {
-	(regexMatch: RegExpMatchArray): void
-}
-
-interface RegexHandlerFactory {
-	(token: TokenType): RegexHandler
-}
-
-interface PositionRegex {
-	(): RegExp
-}
-
-interface RegexFactory {
-	(regex: RegExp): PositionRegex
-}
+type RegexHandler = (regexMatch: RegExpMatchArray) => void;
+type RegexHandlerFactory = (token: TokenType) => RegexHandler;
+type PositionRegex = () => RegExp;
+type RegexFactory = (regex: RegExp) => PositionRegex;
 
 interface RegexPattern {
 	regex: PositionRegex
@@ -25,8 +14,8 @@ export class Lexer {
 	private pos: number = 0;
 	private line: number = 1;
 	private col: number = 1;
-	tokens: Array<Token> = [];
 	private source: string;
+	tokens: Array<Token> = [];
 
 	private handlerFactory: RegexHandlerFactory = (tokenType) => {
 		return (regexMatch: RegExpMatchArray) => {
@@ -55,8 +44,8 @@ export class Lexer {
 		{regex: this.regexFactory(/\/\/.*/y), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/\/\*([^*]|(\*[^/]))*\*+\//sy), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/([A-Za-z0-9_-]+)?[A-Fa-f0-9]{8}-([A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}/y), handler: this.handlerFactory(TokenType.GUID)},
-		{regex: this.regexFactory(/[0-9]+\.[0-9]+/y), handler: this.handlerFactory(TokenType.FLOAT)},
-		{regex: this.regexFactory(/[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
+		{regex: this.regexFactory(/-?[0-9]+\.[0-9]+/y), handler: this.handlerFactory(TokenType.FLOAT)},
+		{regex: this.regexFactory(/-?[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
 		{regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER)},
 		{regex: this.regexFactory(/\"[^"]*\"/y), handler: this.handlerFactory(TokenType.STRING)},
 		{regex: this.regexFactory(/\,/y), handler: this.handlerFactory(TokenType.COMMA)},
@@ -111,7 +100,7 @@ export class Lexer {
 			}
 			
 			if (!matched) {
-				console.log(`Lexer error: encountered unknown token at line ${this.line}, ${this.col}`);
+				console.log(`Lexer encountered unknown token at line ${this.line}, col ${this.col}`);
 				this.advance(1, "a");
 			}
 		}
