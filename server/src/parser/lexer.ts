@@ -1,3 +1,4 @@
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { reservedSymbolsMapping, Token, TokenType } from './tokens';
 
 type RegexHandler = (regexMatch: RegExpMatchArray) => void;
@@ -12,22 +13,24 @@ interface RegexPattern {
 
 export class Lexer {
 	private pos: number = 0;
-	private line: number = 1;
-	private col: number = 1;
 	private source: string;
-	tokens: Array<Token> = [];
+	private document: TextDocument;
+	private tokens: Array<Token> = [];
 
 	private handlerFactory: RegexHandlerFactory = (tokenType) => {
 		return (regexMatch: RegExpMatchArray) => {
 			const content = tokenType == TokenType.STRING ? regexMatch[0].substring(1, regexMatch[0].length - 1) : regexMatch[0];
 			if (tokenType != TokenType.SKIP) {
-				if (tokenType == TokenType.IDENTIFIER && reservedSymbolsMapping.has(content)) {
-					this.push({type: reservedSymbolsMapping.get(content) as TokenType, value: content, line: this.line, col: this.col});
-				} else {
-					this.push({type: tokenType, value: content, line: this.line, col: this.col});
-				}
+				this.push({
+					type: tokenType == TokenType.IDENTIFIER && reservedSymbolsMapping.has(content) ? reservedSymbolsMapping.get(content) as TokenType : tokenType,
+					value: content,
+					range: {
+						start: this.document.positionAt(regexMatch.index as number),
+						end: this.document.positionAt(regexMatch.index as number + regexMatch[0].length)
+					}
+				});
 			}
-			this.advance(regexMatch[0].length, regexMatch[0]);
+			this.advance(regexMatch[0].length);
 		}
 	};
 
@@ -44,7 +47,7 @@ export class Lexer {
 		{regex: this.regexFactory(/\/\/.*/y), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/\/\*([^*]|(\*[^/]))*\*+\//sy), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/([A-Za-z0-9_-]+)?[A-Fa-f0-9]{8}-([A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}/y), handler: this.handlerFactory(TokenType.GUID)},
-		{regex: this.regexFactory(/-?[0-9]+\.[0-9]+/y), handler: this.handlerFactory(TokenType.FLOAT)},
+		{regex: this.regexFactory(/-?[0-9]+\.[0-9]*/y), handler: this.handlerFactory(TokenType.FLOAT)},
 		{regex: this.regexFactory(/-?[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
 		{regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER)},
 		{regex: this.regexFactory(/\"[^"]*\"/y), handler: this.handlerFactory(TokenType.STRING)},
@@ -62,33 +65,33 @@ export class Lexer {
 		{regex: this.regexFactory(/<=/y), handler: this.handlerFactory(TokenType.LESS_THAN_OR_EQUAL)},
 		{regex: this.regexFactory(/</y), handler: this.handlerFactory(TokenType.LESS_THAN)},
 		{regex: this.regexFactory(/>=/y), handler: this.handlerFactory(TokenType.GREATER_THAN_OR_EQUAL)},
-		{regex: this.regexFactory(/>/y), handler: this.handlerFactory(TokenType.GREATER_THAN)}
+		{regex: this.regexFactory(/>/y), handler: this.handlerFactory(TokenType.GREATER_THAN)},
+		{regex: this.regexFactory(/./y), handler: this.handlerFactory(TokenType.UNKNOWN)}
 	]
 	
-	constructor(source: string) {
-		this.source = source;
+	constructor(document: TextDocument) {
+		this.document = document;
+		this.source = document.getText();
 	}
 
-	advance(n: number, token: string) {
-		if (token[token.length - 1] === "\n") {
-			this.col = 1;
-		} else {
-			this.col += token.length;
-		}
-		this.line += token.split("\n").length - 1;
+	private advance(n: number) {
 		this.pos += n;
 	}
 
-	push(token: Token) {
+	private push(token: Token) {
 		this.tokens.push(token);
 	}
 
-	at_eof(): boolean {
+	private atEOF(): boolean {
 		return this.pos >= this.source.length;
 	}
 
+	getTokens() {
+		return this.tokens;
+	}
+
 	tokenize() {
-		while (!this.at_eof()) {
+		while (!this.atEOF()) {
 			let matched = false;
 			for (var pattern of this.patterns) {
 				var match = this.source.match(pattern.regex());
@@ -100,10 +103,17 @@ export class Lexer {
 			}
 			
 			if (!matched) {
-				console.log(`Lexer encountered unknown token at line ${this.line}, col ${this.col}`);
-				this.advance(1, "a");
+				console.log(`Lexer encountered unknown token at ${this.document.positionAt(this.pos)}`);
+				this.advance(1);
 			}
 		}
-		this.push({type: TokenType.EOF, value: "EOF", line: this.line, col: this.col});
+		this.push({
+			type: TokenType.EOF,
+			value: "EOF",
+			range: {
+				start: this.document.positionAt(this.pos),
+				end: this.document.positionAt(this.pos),
+			}
+		});
 	}
 }

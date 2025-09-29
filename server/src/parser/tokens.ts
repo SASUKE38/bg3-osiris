@@ -1,6 +1,9 @@
+import { Range } from 'vscode-languageserver';
+
 export enum TokenType {
 	EOF,
 	SKIP,
+	UNKNOWN,
 
 	// General
 	COMMA,
@@ -73,10 +76,9 @@ export const reservedSymbolsMapping: Map<string, TokenType> = new Map<string, To
 export interface Token {
 	type: TokenType,
 	value: string,
-	line: number,
-	col: number
+	range: Range
 }
 
 export function printTokenAndType(token: Token) {
-	console.log(`${TokenType[token.type]} : ${token.value} : line ${token.line}, col ${token.col}`)
+	console.log(`${TokenType[token.type]} : ${token.value} : range ${token.range}}`)
 }

@@ -1,4 +1,16 @@
-import { SignatureNode, ParameterNode, IdentifierNode, StringNode, NumberNode, TypeNode, RuleNode, ComparisonNode, OperatorNode, ASTNode, RootNode } from '../ast/nodes';
+import { 
+	SignatureNode,
+	ParameterNode,
+	IdentifierNode,
+	StringNode,
+	NumberNode,
+	TypeNode,
+	RuleNode,
+	ComparisonNode,
+	OperatorNode,
+	ASTNode,
+	RootNode
+} from '../ast/nodes';
 import { Token, TokenType } from '../tokens';
 
 export class Parser {
@@ -58,31 +70,23 @@ export class Parser {
 		this.expect(TokenType.SUBGOAL_COMBINER);
 		this.expect(TokenType.IDENTIFIER);
 		this.expect(TokenType.INITSECTION);
-		const init = this.parseInit();
+		const init = this.parseSignatureRegion(TokenType.KBSECTION);
 		this.expect(TokenType.KBSECTION);
 		const kb = this.parseKB();
-		// this.expect(TokenType.EXITSECTION);
-		// body.push(this.parseExit());
-		// this.expect(TokenType.ENDEXITSECTION);
-		// this.expect(TokenType.PARENT_TARGET_EDGE);
-		// this.expect(TokenType.STRING);
+		this.expect(TokenType.EXITSECTION);
+		const exit = this.parseSignatureRegion(TokenType.ENDEXITSECTION);
+		this.expect(TokenType.ENDEXITSECTION);
+		this.expect(TokenType.PARENT_TARGET_EDGE);
+		this.expect(TokenType.STRING);
 		return {
 			init: init,
 			kb: kb,
-			exit: [],
-			line: 0,
-			col: 0
+			exit: exit,
+			range: {
+				start: {line: 0, character: 0},
+				end: {line: Number.MAX_VALUE, character: Number.MAX_VALUE}
+			}
 		}
-	}
-
-	parseInit(): Array<SignatureNode> {
-		const body: Array<SignatureNode> = [];
-		while (!this.atTokenType(TokenType.KBSECTION)) {
-			this.expectSkipUnexpected(TokenType.IDENTIFIER);
-			body.push(this.parseSignature());
-			this.expect(TokenType.SEMICOLON);
-		}
-		return body;
 	}
 
 	parseKB(): Array<RuleNode> {
@@ -94,8 +98,17 @@ export class Parser {
 		return body;
 	}
 
-	parseExit() {
-
+	parseSignatureRegion(endType: TokenType): Array<SignatureNode> {
+		const body: Array<SignatureNode> = [];
+		while (!this.atTokenType(endType)) {
+			this.expectSkipUnexpected(TokenType.IDENTIFIER, TokenType.NOT);
+			if (this.peek().type == TokenType.NOT) {
+				this.pop();
+			}
+			body.push(this.parseSignature());
+			this.expect(TokenType.SEMICOLON);
+		}
+		return body;
 	}
 
 	parseRule(): RuleNode {
@@ -127,8 +140,10 @@ export class Parser {
 			call: call,
 			conditions: conditions,
 			actions: actions,
-			line: ruleStart.line,
-			col: ruleStart.col
+			range: {
+				start: ruleStart.range.start,
+				end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
+			}
 		}
 	}
 
@@ -140,8 +155,10 @@ export class Parser {
 			left: left,
 			operator: operator,
 			right: right,
-			line: left.line,
-			col: left.col
+			range: {
+				start: left.range.start,
+				end: right.range.end
+			}
 		}
 	}
 
@@ -175,32 +192,32 @@ export class Parser {
 					type = this.parseType();
 					continue;
 				case TokenType.IDENTIFIER:
-					parameters.push({content: this.parseIdentifier(), type: type, line: parameter.line, col: parameter.col});
+					parameters.push({content: this.parseIdentifier(), type: type, range: parameter.range});
 					if (type != null) type = null;
 					break;
 				case TokenType.STRING:
 					if (type != null) {
 						// invalid type
 					}
-					parameters.push({content: this.parseString(), type: null, line: parameter.line, col: parameter.col});
+					parameters.push({content: this.parseString(), type: null, range: parameter.range});
 					if (type != null) type = null;
 					break;
 				case TokenType.INTEGER:
 					if (type != null) {
 						// invalid type
 					}
-					parameters.push({content: this.parseInteger(), type: null, line: parameter.line, col: parameter.col});
+					parameters.push({content: this.parseInteger(), type: null, range: parameter.range});
 					if (type != null) type = null;
 					break;
 				case TokenType.FLOAT:
 					if (type != null) {
 						// invalid type
 					}
-					parameters.push({content: this.parseFloat(), type: null, line: parameter.line, col: parameter.col});
+					parameters.push({content: this.parseFloat(), type: null, range: parameter.range});
 					if (type != null) type = null;
 					break;
 				case TokenType.GUID:
-					parameters.push({content: this.parseGUID(), type: type, line: parameter.line, col: parameter.col});
+					parameters.push({content: this.parseGUID(), type: type, range: parameter.range});
 					if (type != null) type = null;
 					break;
 				default:
@@ -211,48 +228,53 @@ export class Parser {
 			}
 		}
 		this.expect(TokenType.CLOSE_PARENTHESIS);
+
+		const endRange = parameters.length == 0 ? name.range.end : parameters[parameters.length - 1].range.end;
+		endRange.character + 1;
 		return {
 			name: name.value,
 			parameters: parameters,
-			line: name.line,
-			col: name.col
+			range: {
+				start: name.range.start,
+				end: endRange
+			}
 		}
 	}
 
 	parseIdentifier(): IdentifierNode {
 		const token = this.pop();
-		return {symbol: token.value, line: token.line, col: token.col};
+		return {symbol: token.value, range: token.range};
 	}
 
 	parseString(): StringNode {
 		const token = this.pop();
-		return {value: token.value, line: token.line, col: token.col}
+		return {value: token.value, range: token.range}
 	}
 
 	parseInteger(): NumberNode {
 		const token = this.pop();
-		return {value: parseInt(token.value), line: token.line, col: token.col};
+		return {value: parseInt(token.value), range: token.range};
 	}
 
 	parseFloat(): NumberNode {
 		const token = this.pop();
-		return {value: parseFloat(token.value), line: token.line, col: token.col};
+		return {value: parseFloat(token.value), range: token.range};
 	}
 
 	parseGUID(): IdentifierNode {
 		const token = this.pop();
-		return {symbol: token.value, line: token.line, col: token.col};
+		return {symbol: token.value, range: token.range};
 	}
 	
 	parseOperator(): OperatorNode {
 		const token = this.pop();
-		return {operator: token.value, line: token.line, col: token.col};
+		return {operator: token.value, range: token.range};
 	}
 
 	parseType(): TypeNode {
 		this.expectPeek(TokenType.IDENTIFIER);
 		const token = this.pop();
 		this.expect(TokenType.CLOSE_PARENTHESIS)
-		return {value: token.value, line: token.line, col: token.col}
+		return {value: token.value, range: token.range}
 	}
 }
