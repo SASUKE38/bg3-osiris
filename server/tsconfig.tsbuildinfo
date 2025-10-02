@@ -1,1 +1,1 @@
-{"root":["./src/server.ts","./src/diagnostics/message.ts","./src/parser/lexer.ts","./src/parser/tokens.ts","./src/parser/ast/nodes.ts","./src/parser/parser/parser.ts"],"version":"5.9.2"}
+{"root":["./src/componentbase.ts","./src/server.ts","./src/diagnostics/diagnosticsprovider.ts","./src/diagnostics/message.ts","./src/parser/lexer.ts","./src/parser/tokens.ts","./src/parser/ast/nodes.ts","./src/parser/parser/parser.ts"],"version":"5.9.2"}

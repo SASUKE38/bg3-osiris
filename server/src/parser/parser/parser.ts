@@ -1,3 +1,4 @@
+import { Diagnostic } from 'vscode-languageserver';
 import { 
 	SignatureNode,
 	ParameterNode,
@@ -12,10 +13,12 @@ import {
 	RootNode
 } from '../ast/nodes';
 import { Token, TokenType } from '../tokens';
+import { unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
 
 export class Parser {
 	private tokens: Array<Token>;
 	private pos: number = 0;
+	readonly diagnostics: Array<Diagnostic> = [];
 
 	constructor(tokens: Array<Token>) {
 		this.tokens = tokens;
@@ -35,12 +38,23 @@ export class Parser {
 		return this.pos >= this.tokens.length || this.peek().type == TokenType.EOF;
 	}
 
-	expect(...expected: TokenType[]): Token {
+	consume(expected: TokenType): Token {
 		const token = this.peek();
-		if (expected.indexOf(token.type) == -1) {
-			console.log(`Expected ${expected} but received ${token.value}.`);
+		if (token.type != expected) {
+			console.log(`Expected ${TokenType[expected]} but received ${token.value}.`);
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, expected));
 		}
 		return this.pop();
+	}
+
+	consumeIf(...expected: TokenType[]): Token {
+		const token = this.peek();
+		if (expected.indexOf(token.type) == -1) {
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, expected));
+			return token;
+		} else {
+			return this.pop();
+		}
 	}
 
 	expectPeek(...expected: TokenType[]): boolean {
@@ -61,30 +75,33 @@ export class Parser {
 	}
 
 	atTokenType(type: TokenType) {
-		return this.peek().type == type || this.empty();
+		return this.empty() || this.peek().type == type;
 	}
 
 	parseGoal(): RootNode {
-		this.expect(TokenType.VERSION);
-		this.expect(TokenType.INTEGER);
-		this.expect(TokenType.SUBGOAL_COMBINER);
-		this.expect(TokenType.IDENTIFIER);
-		this.expect(TokenType.INITSECTION);
+		this.consume(TokenType.VERSION);
+		this.consume(TokenType.INTEGER);
+		this.consume(TokenType.SUBGOAL_COMBINER);
+		this.consume(TokenType.IDENTIFIER);
+		this.consume(TokenType.INITSECTION);
 		const init = this.parseSignatureRegion(TokenType.KBSECTION);
-		this.expect(TokenType.KBSECTION);
+		this.consume(TokenType.KBSECTION);
 		const kb = this.parseKB();
-		this.expect(TokenType.EXITSECTION);
+		this.consume(TokenType.EXITSECTION);
 		const exit = this.parseSignatureRegion(TokenType.ENDEXITSECTION);
-		this.expect(TokenType.ENDEXITSECTION);
-		this.expect(TokenType.PARENT_TARGET_EDGE);
-		this.expect(TokenType.STRING);
+		this.consume(TokenType.ENDEXITSECTION);
+		this.consume(TokenType.PARENT_TARGET_EDGE);
+		this.consume(TokenType.STRING);
 		return {
 			init: init,
 			kb: kb,
 			exit: exit,
 			range: {
 				start: {line: 0, character: 0},
-				end: {line: Number.MAX_VALUE, character: Number.MAX_VALUE}
+				end: {
+					line: this.tokens.length == 0 ? 0 : this.tokens[this.tokens.length - 1].range.end.line,
+					character: this.tokens.length == 0 ? 0 : this.tokens[this.tokens.length - 1].range.end.character
+				}
 			}
 		}
 	}
@@ -106,7 +123,7 @@ export class Parser {
 				this.pop();
 			}
 			body.push(this.parseSignature());
-			this.expect(TokenType.SEMICOLON);
+			this.consumeIf(TokenType.SEMICOLON);
 		}
 		return body;
 	}
@@ -117,7 +134,7 @@ export class Parser {
 		const conditions: Array<SignatureNode | ComparisonNode> = [];
 		const actions: Array<SignatureNode> = [];
 		while (!this.atTokenType(TokenType.THEN)) {
-			this.expect(TokenType.AND);
+			this.consumeIf(TokenType.AND);
 			const currentType = this.peek().type;
 			if (currentType == TokenType.NOT) {
 				this.pop();
@@ -129,10 +146,10 @@ export class Parser {
 			}
 		}
 
-		this.expect(TokenType.THEN);
+		this.consume(TokenType.THEN);
 			while (this.peek().type == TokenType.IDENTIFIER) {
 				actions.push(this.parseSignature());
-				this.expect(TokenType.SEMICOLON);
+				this.consumeIf(TokenType.SEMICOLON);
 			}
 
 		return {
@@ -178,7 +195,7 @@ export class Parser {
 
 	parseSignature(): SignatureNode {
 		const name = this.pop();
-		this.expect(TokenType.OPEN_PARENTHESIS);
+		this.consume(TokenType.OPEN_PARENTHESIS);
 		const parameters: Array<ParameterNode> = []
 		let type = null;
 		while (!this.atTokenType(TokenType.CLOSE_PARENTHESIS)) {
@@ -224,10 +241,10 @@ export class Parser {
 					break;
 			}
 			if (this.peek().type != TokenType.CLOSE_PARENTHESIS) {
-				this.expect(TokenType.COMMA);
+				this.consumeIf(TokenType.COMMA);
 			}
 		}
-		this.expect(TokenType.CLOSE_PARENTHESIS);
+		this.consume(TokenType.CLOSE_PARENTHESIS);
 
 		const endRange = parameters.length == 0 ? name.range.end : parameters[parameters.length - 1].range.end;
 		endRange.character + 1;
@@ -274,7 +291,7 @@ export class Parser {
 	parseType(): TypeNode {
 		this.expectPeek(TokenType.IDENTIFIER);
 		const token = this.pop();
-		this.expect(TokenType.CLOSE_PARENTHESIS)
+		this.consume(TokenType.CLOSE_PARENTHESIS)
 		return {value: token.value, range: token.range}
 	}
 }

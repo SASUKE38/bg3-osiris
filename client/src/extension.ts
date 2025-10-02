@@ -1,8 +1,5 @@
-import * as vscode from 'vscode';
-import { DocumentSemanticTokensProvider, legend } from './semantics/documentSemanticTokensProvider';
-import * as path from 'path';
+import { DocumentSemanticTokensProvider } from './semantics/documentSemanticTokensProvider';
 import { workspace, ExtensionContext } from 'vscode';
-
 import {
 	LanguageClient,
 	LanguageClientOptions,
@@ -11,8 +8,9 @@ import {
 } from 'vscode-languageclient/node';
 import { ComponentBase } from './componentBase';
 import { StoryOutlineProvider } from './storyOutline/storyOutline';
+import { join } from 'path';
 
-let client: LanguageClient;
+let client: Client;
 
 interface ComponentContainer {
 	new (context: ExtensionContext): ComponentBase;
@@ -20,34 +18,55 @@ interface ComponentContainer {
 
 const components: Array<ComponentContainer> = [StoryOutlineProvider, DocumentSemanticTokensProvider];
 
-export function activate(context: vscode.ExtensionContext) {
+export class Client {
+	readonly id: string = 'bg3-osiris-language-client';
+	readonly name: string = 'BG3 Osiris';
+	readonly serverPath: string = join('server', 'out', 'server.js');
+	context: ExtensionContext;
+	components: Array<ComponentContainer>;
+	connection: LanguageClient;
 
-	components.map(component => new component(context));
+	constructor(context: ExtensionContext, components: Array<ComponentContainer>) {
+		this.context = context;
+		this.components = components;
+		this.components.map(component => new component(this.context));
 
-	const serverModule = context.asAbsolutePath(
-		path.join('server', 'out', 'server.js')
-	);
-	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: {
-			module: serverModule,
-			transport: TransportKind.ipc,
-		}
-	};
-	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: 'file', language: 'osiris' }],
-		synchronize: {
-			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		}
-	};
-	client = new LanguageClient(
-		'bg3-osiris-language-client',
-		'BG3 Osiris',
-		serverOptions,
-		clientOptions
-	);
+		this.connection = this.createConnection();
+	}
 
-	client.start();
+	createConnection(): LanguageClient {
+		const serverModule = this.context.asAbsolutePath(this.serverPath);
+		const serverOptions: ServerOptions = {
+			run: { module: serverModule, transport: TransportKind.ipc },
+			debug: {
+				module: serverModule,
+				transport: TransportKind.ipc,
+			}
+		};
+		const clientOptions: LanguageClientOptions = {
+			documentSelector: [{ scheme: 'file', language: 'osiris' }],
+			synchronize: {
+				fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
+			}
+		};
+		const client = new LanguageClient(
+			this.id,
+			this.name,
+			serverOptions,
+			clientOptions
+		);
+
+		client.start();
+		return client;
+	}
+
+	stop() {
+		this.connection.stop();
+	}
+}
+
+export function activate(context: ExtensionContext) {
+	client = new Client(context, components);
     
     console.log('Activated BG3 Osiris extension');
 }

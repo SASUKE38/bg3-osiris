@@ -15,7 +15,7 @@ export class Lexer {
 	private pos: number = 0;
 	private source: string;
 	private document: TextDocument;
-	private tokens: Array<Token> = [];
+	readonly tokens: Array<Token> = [];
 
 	private handlerFactory: RegexHandlerFactory = (tokenType) => {
 		return (regexMatch: RegExpMatchArray) => {
