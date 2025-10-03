@@ -50,7 +50,7 @@ export class Parser {
 	consumeIf(...expected: TokenType[]): Token {
 		const token = this.peek();
 		if (expected.indexOf(token.type) == -1) {
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, expected));
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, ...expected));
 			return token;
 		} else {
 			return this.pop();
