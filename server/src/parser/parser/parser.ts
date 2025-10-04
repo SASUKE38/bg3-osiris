@@ -38,11 +38,10 @@ export class Parser {
 		return this.pos >= this.tokens.length || this.peek().type == TokenType.EOF;
 	}
 
-	consume(expected: TokenType): Token {
+	consume(...expected: TokenType[]): Token {
 		const token = this.peek();
-		if (token.type != expected) {
-			console.log(`Expected ${TokenType[expected]} but received ${token.value}.`);
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, expected));
+		if (expected.indexOf(token.type) == -1) {
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, ...expected));
 		}
 		return this.pop();
 	}
@@ -188,8 +187,21 @@ export class Parser {
 				return this.parseInteger();
 			case TokenType.FLOAT:
 				return this.parseFloat();
-			default:
+			case TokenType.IDENTIFIER:
 				return this.parseIdentifier();
+			case TokenType.GUID:
+				return this.parseGUID();
+			default:
+				this.diagnostics.push(unexpectedTokenDiagnosticFactory(
+					token, 
+					TokenType.STRING,
+					TokenType.INTEGER,
+					TokenType.FLOAT,
+					TokenType.IDENTIFIER,
+					TokenType.GUID
+				));
+				this.pop();
+				return {range: token.range};
 		}
 	}
 
@@ -284,14 +296,24 @@ export class Parser {
 	}
 	
 	parseOperator(): OperatorNode {
-		const token = this.pop();
+		const token = this.consume(
+			TokenType.EQUAL,
+			TokenType.NOT_EQUAL,
+			TokenType.LESS_THAN,
+			TokenType.LESS_THAN_OR_EQUAL,
+			TokenType.GREATER_THAN,
+			TokenType.GREATER_THAN_OR_EQUAL
+		);
 		return {operator: token.value, range: token.range};
 	}
 
-	parseType(): TypeNode {
-		this.expectPeek(TokenType.IDENTIFIER);
+	parseType(): TypeNode | null {
 		const token = this.pop();
-		this.consume(TokenType.CLOSE_PARENTHESIS)
-		return {value: token.value, range: token.range}
+		if (token.type != TokenType.IDENTIFIER) {
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, TokenType.IDENTIFIER));
+			if (token.type == TokenType.CLOSE_PARENTHESIS) return null;
+		}
+		this.consume(TokenType.CLOSE_PARENTHESIS);
+		return token.type == TokenType.IDENTIFIER ? {value: token.value, range: token.range} : null;
 	}
 }

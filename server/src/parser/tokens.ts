@@ -97,14 +97,12 @@ export const typeReadableMapping: Map<TokenType, string> = new Map<TokenType, st
 	[TokenType.CLOSE_PARENTHESIS, "\')\'"],
 
 	// Equivalency
-	[
-		TokenType.EQUAL | 
-		TokenType.NOT_EQUAL | 
-		TokenType.LESS_THAN | 
-		TokenType.LESS_THAN_OR_EQUAL | 
-		TokenType.GREATER_THAN | 
-		TokenType.GREATER_THAN_OR_EQUAL, "operator"
-	],
+	[TokenType.EQUAL, "=="],
+	[TokenType.NOT_EQUAL, "!="],
+	[TokenType.LESS_THAN, "<"],
+	[TokenType.LESS_THAN_OR_EQUAL, "<="],
+	[TokenType.GREATER_THAN, ">"],
+	[TokenType.GREATER_THAN_OR_EQUAL, ">="],
 
 	// Keywords
 	[TokenType.IF, "IF"],
