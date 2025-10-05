@@ -13,7 +13,17 @@ import {
 	RootNode
 } from '../ast/nodes';
 import { Token, TokenType } from '../tokens';
-import { unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
+import { expectedMessage, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
+
+type ConsumeParams = {
+	expectedType: Array<TokenType>
+	expectedMessage?: string
+}
+
+type ConsumeResult = {
+	token: Token
+	matched?: boolean
+}
 
 export class Parser {
 	private tokens: Array<Token>;
@@ -25,7 +35,14 @@ export class Parser {
 	}
 
 	peek(): Token {
-		return this.tokens[this.pos];
+		return this.pos >= this.tokens.length ? {
+			type: TokenType.EOF,
+			value: "EOF",
+			range: this.tokens.length > 0 ? this.tokens[this.tokens.length - 1].range : {
+				start: {line: 0, character: 0},
+				end: {line: 0, character: 0}
+			}
+		} : this.tokens[this.pos];
 	}
 
 	pop(): Token {
@@ -38,22 +55,37 @@ export class Parser {
 		return this.pos >= this.tokens.length || this.peek().type == TokenType.EOF;
 	}
 
-	consume(...expected: TokenType[]): Token {
+	consume({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
 		const token = this.peek();
-		if (expected.indexOf(token.type) == -1) {
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, ...expected));
+		let matched = true;
+		if (expectedType.indexOf(token.type) == -1) {
+			matched = false;
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage, expectedType}));
 		}
-		return this.pop();
+		return {matched, token: this.pop()};
 	}
 
-	consumeIf(...expected: TokenType[]): Token {
+	consumeIf({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
 		const token = this.peek();
-		if (expected.indexOf(token.type) == -1) {
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, ...expected));
-			return token;
+		let matched = true;
+		if (expectedType.indexOf(token.type) == -1) {
+			matched = false;
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage, expectedType}));
+			return {matched, token};
 		} else {
-			return this.pop();
+			return {matched, token: this.pop()};
 		}
+	}
+
+	consumeUnexpected({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
+		const token = this.peek();
+		let matched = true;
+		if (expectedType.indexOf(token.type) == -1) {
+			matched = false;
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage, expectedType}));
+			this.pop();
+		}
+		return {matched, token};
 	}
 
 	expectPeek(...expected: TokenType[]): boolean {
@@ -65,32 +97,24 @@ export class Parser {
 		return true;
 	}
 
-	expectSkipUnexpected(...expected: TokenType[]) {
-		const token = this.peek();
-		if (expected.indexOf(token.type) == -1) {
-			this.pop();
-			console.log(`Expected ${expected} but received ${token.value}.`);
-		}
-	}
-
 	atTokenType(type: TokenType) {
 		return this.empty() || this.peek().type == type;
 	}
 
 	parseGoal(): RootNode {
-		this.consume(TokenType.VERSION);
-		this.consume(TokenType.INTEGER);
-		this.consume(TokenType.SUBGOAL_COMBINER);
-		this.consume(TokenType.IDENTIFIER);
-		this.consume(TokenType.INITSECTION);
+		this.consume({expectedType: [TokenType.VERSION]});
+		this.consume({expectedType: [TokenType.INTEGER]});
+		this.consume({expectedType: [TokenType.SUBGOAL_COMBINER]});
+		this.consume({expectedType: [TokenType.IDENTIFIER]});
+		this.consume({expectedType: [TokenType.INITSECTION]});
 		const init = this.parseSignatureRegion(TokenType.KBSECTION);
-		this.consume(TokenType.KBSECTION);
+		this.consume({expectedType: [TokenType.KBSECTION]});
 		const kb = this.parseKB();
-		this.consume(TokenType.EXITSECTION);
+		this.consume({expectedType: [TokenType.EXITSECTION]});
 		const exit = this.parseSignatureRegion(TokenType.ENDEXITSECTION);
-		this.consume(TokenType.ENDEXITSECTION);
-		this.consume(TokenType.PARENT_TARGET_EDGE);
-		this.consume(TokenType.STRING);
+		this.consume({expectedType: [TokenType.ENDEXITSECTION]});
+		this.consume({expectedType: [TokenType.PARENT_TARGET_EDGE]});
+		this.consume({expectedType: [TokenType.STRING]});
 		return {
 			init: init,
 			kb: kb,
@@ -108,8 +132,9 @@ export class Parser {
 	parseKB(): Array<RuleNode> {
 		const body: Array<RuleNode> = [];
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
-			if (this.expectPeek(TokenType.PROC, TokenType.QRY, TokenType.IF))
-			body.push(this.parseRule());
+			if (this.consumeUnexpected({expectedType: [TokenType.PROC, TokenType.QRY, TokenType.IF]}).matched) {
+				body.push(this.parseRule());
+			}
 		}
 		return body;
 	}
@@ -117,12 +142,12 @@ export class Parser {
 	parseSignatureRegion(endType: TokenType): Array<SignatureNode> {
 		const body: Array<SignatureNode> = [];
 		while (!this.atTokenType(endType)) {
-			this.expectSkipUnexpected(TokenType.IDENTIFIER, TokenType.NOT);
+			this.consumeUnexpected({expectedType: [TokenType.IDENTIFIER, TokenType.NOT]});
 			if (this.peek().type == TokenType.NOT) {
 				this.pop();
 			}
 			body.push(this.parseSignature());
-			this.consumeIf(TokenType.SEMICOLON);
+			this.consumeIf({expectedType: [TokenType.SEMICOLON]});
 		}
 		return body;
 	}
@@ -133,7 +158,7 @@ export class Parser {
 		const conditions: Array<SignatureNode | ComparisonNode> = [];
 		const actions: Array<SignatureNode> = [];
 		while (!this.atTokenType(TokenType.THEN)) {
-			this.consumeIf(TokenType.AND);
+			this.consumeIf({expectedType: [TokenType.AND]});
 			const currentType = this.peek().type;
 			if (currentType == TokenType.NOT) {
 				this.pop();
@@ -145,10 +170,10 @@ export class Parser {
 			}
 		}
 
-		this.consume(TokenType.THEN);
+		this.consume({expectedType: [TokenType.THEN]});
 			while (this.peek().type == TokenType.IDENTIFIER) {
 				actions.push(this.parseSignature());
-				this.consumeIf(TokenType.SEMICOLON);
+				this.consumeIf({expectedType: [TokenType.SEMICOLON]});
 			}
 
 		return {
@@ -192,13 +217,15 @@ export class Parser {
 			case TokenType.GUID:
 				return this.parseGUID();
 			default:
-				this.diagnostics.push(unexpectedTokenDiagnosticFactory(
-					token, 
-					TokenType.STRING,
-					TokenType.INTEGER,
-					TokenType.FLOAT,
-					TokenType.IDENTIFIER,
-					TokenType.GUID
+				this.diagnostics.push(unexpectedTokenDiagnosticFactory({
+					actualToken: token,
+					expectedType: [
+						TokenType.STRING,
+						TokenType.INTEGER,
+						TokenType.FLOAT,
+						TokenType.IDENTIFIER,
+						TokenType.GUID
+					]}
 				));
 				this.pop();
 				return {range: token.range};
@@ -207,7 +234,7 @@ export class Parser {
 
 	parseSignature(): SignatureNode {
 		const name = this.pop();
-		this.consume(TokenType.OPEN_PARENTHESIS);
+		this.consume({expectedType: [TokenType.OPEN_PARENTHESIS]});
 		const parameters: Array<ParameterNode> = []
 		let type = null;
 		while (!this.atTokenType(TokenType.CLOSE_PARENTHESIS)) {
@@ -253,10 +280,10 @@ export class Parser {
 					break;
 			}
 			if (this.peek().type != TokenType.CLOSE_PARENTHESIS) {
-				this.consumeIf(TokenType.COMMA);
+				this.consumeIf({expectedType: [TokenType.COMMA]});
 			}
 		}
-		this.consume(TokenType.CLOSE_PARENTHESIS);
+		this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
 
 		const endRange = parameters.length == 0 ? name.range.end : parameters[parameters.length - 1].range.end;
 		endRange.character + 1;
@@ -296,24 +323,27 @@ export class Parser {
 	}
 	
 	parseOperator(): OperatorNode {
-		const token = this.consume(
-			TokenType.EQUAL,
-			TokenType.NOT_EQUAL,
-			TokenType.LESS_THAN,
-			TokenType.LESS_THAN_OR_EQUAL,
-			TokenType.GREATER_THAN,
-			TokenType.GREATER_THAN_OR_EQUAL
-		);
+		const token = this.consume({
+			expectedMessage: expectedMessage.operator,
+			expectedType: [
+				TokenType.EQUAL,
+				TokenType.NOT_EQUAL,
+				TokenType.LESS_THAN,
+				TokenType.LESS_THAN_OR_EQUAL,
+				TokenType.GREATER_THAN,
+				TokenType.GREATER_THAN_OR_EQUAL
+			]
+		}).token;
 		return {operator: token.value, range: token.range};
 	}
 
 	parseType(): TypeNode | null {
 		const token = this.pop();
 		if (token.type != TokenType.IDENTIFIER) {
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory(token, TokenType.IDENTIFIER));
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage: expectedMessage.type}));
 			if (token.type == TokenType.CLOSE_PARENTHESIS) return null;
 		}
-		this.consume(TokenType.CLOSE_PARENTHESIS);
+		this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
 		return token.type == TokenType.IDENTIFIER ? {value: token.value, range: token.range} : null;
 	}
 }

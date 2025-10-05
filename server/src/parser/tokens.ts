@@ -53,7 +53,7 @@ export enum TokenType {
 	SUBGOAL_COMBINER
 }
 
-export const reservedSymbolsMapping: Map<string, TokenType> = new Map<string, TokenType>([
+export const reservedSymbolsMapping = new Map<string, TokenType>([
 	["IF", TokenType.IF],
 	["AND", TokenType.AND],
 	["THEN", TokenType.THEN],
@@ -73,7 +73,7 @@ export const reservedSymbolsMapping: Map<string, TokenType> = new Map<string, To
 	["SubGoalCombiner", TokenType.SUBGOAL_COMBINER]
 ]);
 
-export const typeReadableMapping: Map<TokenType, string> = new Map<TokenType, string>([
+export const typeReadableMapping = new Map<TokenType, string>([
 	[TokenType.EOF, "end of file"],
 	[TokenType.SKIP, "none"],
 	[TokenType.UNKNOWN, "unknown"],
