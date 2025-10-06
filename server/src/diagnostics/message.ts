@@ -1,9 +1,24 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { Token, TokenType, typeReadableMapping } from '../parser/tokens';
 
+type RuleMissingActionsParams = {
+	rule: Token
+}
+
+export function ruleMissingActionsDiagnosticFactory({rule}: RuleMissingActionsParams): Diagnostic {
+	return {
+		source: "Osiris",
+		range: rule.range,
+		message: "Rule must contain at least one signature in THEN clause",
+		severity: DiagnosticSeverity.Error
+	}
+}
+
 export const expectedMessage = {
 	type: "a type",
-	operator: "an operator"
+	operator: "an operator",
+	signatureOrComparison: "a signature or comparison",
+	andOrThen: "AND or THEN",
 }
 
 type unexpectedTokenDiagnosticParams = {

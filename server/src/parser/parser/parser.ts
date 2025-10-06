@@ -13,7 +13,7 @@ import {
 	RootNode
 } from '../ast/nodes';
 import { Token, TokenType } from '../tokens';
-import { expectedMessage, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
+import { expectedMessage, ruleMissingActionsDiagnosticFactory, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
 
 type ConsumeParams = {
 	expectedType: Array<TokenType>
@@ -47,7 +47,7 @@ export class Parser {
 
 	pop(): Token {
 		const token = this.peek();
-		this.pos++;
+		if (!this.empty()) this.pos++;
 		return token;
 	}
 
@@ -91,7 +91,7 @@ export class Parser {
 	expectPeek(...expected: TokenType[]): boolean {
 		const token = this.peek();
 		if (expected.indexOf(token.type) == -1) {
-			console.log(`Expected ${expected} but received ${token.value}.`);
+			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedType: expected}));
 			return false;
 		}
 		return true;
@@ -116,9 +116,9 @@ export class Parser {
 		this.consume({expectedType: [TokenType.PARENT_TARGET_EDGE]});
 		this.consume({expectedType: [TokenType.STRING]});
 		return {
-			init: init,
-			kb: kb,
-			exit: exit,
+			init,
+			kb,
+			exit,
 			range: {
 				start: {line: 0, character: 0},
 				end: {
@@ -158,29 +158,36 @@ export class Parser {
 		const conditions: Array<SignatureNode | ComparisonNode> = [];
 		const actions: Array<SignatureNode> = [];
 		while (!this.atTokenType(TokenType.THEN)) {
-			this.consumeIf({expectedType: [TokenType.AND]});
+			if (!this.consume({expectedMessage: expectedMessage.andOrThen, expectedType: [TokenType.AND]}).matched) continue;
 			const currentType = this.peek().type;
 			if (currentType == TokenType.NOT) {
 				this.pop();
 				conditions.push(this.parseSignature());
 			} else if (currentType == TokenType.IDENTIFIER && this.peek().value[0] != "_") {
 				conditions.push(this.parseSignature());
-			} else {
+			} else if (([TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID].indexOf(currentType) != -1)) {
 				conditions.push(this.parseComparison());
+			} else {
+				const token = this.pop();
+				this.diagnostics.push(unexpectedTokenDiagnosticFactory({
+					actualToken: token,
+					expectedMessage: expectedMessage.signatureOrComparison
+				}));
 			}
 		}
 
 		this.consume({expectedType: [TokenType.THEN]});
-			while (this.peek().type == TokenType.IDENTIFIER) {
-				actions.push(this.parseSignature());
-				this.consumeIf({expectedType: [TokenType.SEMICOLON]});
-			}
+		while (this.peek().type == TokenType.IDENTIFIER) {
+			actions.push(this.parseSignature());
+			this.consumeIf({expectedType: [TokenType.SEMICOLON]});
+		}
+		if (actions.length == 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({rule: ruleStart}));
 
 		return {
 			type: ruleStart.value,
-			call: call,
-			conditions: conditions,
-			actions: actions,
+			call,
+			conditions,
+			actions,
 			range: {
 				start: ruleStart.range.start,
 				end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
@@ -193,9 +200,9 @@ export class Parser {
 		const operator = this.parseOperator();
 		const right = this.parseComparisonOperand();
 		return {
-			left: left,
-			operator: operator,
-			right: right,
+			left,
+			operator,
+			right,
 			range: {
 				start: left.range.start,
 				end: right.range.end
@@ -225,8 +232,8 @@ export class Parser {
 						TokenType.FLOAT,
 						TokenType.IDENTIFIER,
 						TokenType.GUID
-					]}
-				));
+					]
+				}));
 				this.pop();
 				return {range: token.range};
 		}

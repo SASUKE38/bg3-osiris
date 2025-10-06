@@ -24,6 +24,7 @@ export class DiagnosticProvider extends ComponentBase {
 		lexer.tokenize();
 		const parser = new Parser(lexer.tokens);
 		const node = parser.parseGoal();
+		console.log(node);
 		
 		// In this simple example we get the settings for every validate run.
 		const settings = await this.server.getDocumentSettings(textDocument.uri);
