@@ -22,7 +22,6 @@ export interface ParameterNode extends ASTNode {
 
 export interface StringNode extends ASTNode {
 	value: string;
-
 }
 
 export interface IdentifierNode extends ASTNode {

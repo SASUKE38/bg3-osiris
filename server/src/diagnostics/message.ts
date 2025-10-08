@@ -19,6 +19,7 @@ export const expectedMessage = {
 	operator: "an operator",
 	signatureOrComparison: "a signature or comparison",
 	andOrThen: "AND or THEN",
+	parameter: "a parameter"
 }
 
 type unexpectedTokenDiagnosticParams = {
