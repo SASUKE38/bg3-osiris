@@ -10,7 +10,8 @@ import {
 	ComparisonNode,
 	OperatorNode,
 	ASTNode,
-	RootNode
+	RootNode,
+	TypeEnumMemberNode
 } from '../ast/nodes';
 import { Token, TokenType } from '../tokens';
 import { expectedMessage, ruleMissingActionsDiagnosticFactory, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
@@ -28,7 +29,7 @@ type ConsumeResult = {
 export class Parser {
 	private tokens: Array<Token>;
 	private pos: number = 0;
-	private parameterTypes: Array<TokenType> = [TokenType.OPEN_PARENTHESIS, TokenType.IDENTIFIER, TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.GUID];
+	private parameterTypes: Array<TokenType> = [TokenType.OPEN_PARENTHESIS, TokenType.IDENTIFIER, TokenType.ENUM_MEMBER, TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.GUID];
 	private comparisonTypes: Array<TokenType> = [TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID];
 	private headerTypes: Array<TokenType> = [TokenType.VERSION, TokenType.INTEGER, TokenType.SUBGOAL_COMBINER, TokenType.IDENTIFIER, TokenType.INITSECTION];
 	private footerTypes: Array<TokenType> = [TokenType.ENDEXITSECTION, TokenType.PARENT_TARGET_EDGE, TokenType.STRING];
@@ -253,31 +254,30 @@ export class Parser {
 						}
 						parameters.push({content: this.parseIdentifier(), type: type, range: parameter.range});
 						if (type != null) type = null;
-						break;
+					break;
+					case TokenType.ENUM_MEMBER:
+						this.verifyNoType(parameter, type, allowIdentifiers);
+						parameters.push({content: this.parseTypeEnumMember(), type: null, range: parameter.range})
+					break;
 					case TokenType.STRING:
 						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameters.push({content: this.parseString(), type: null, range: parameter.range});
 						if (type != null) type = null;
-						break;
+					break;
 					case TokenType.INTEGER:
 						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameters.push({content: this.parseInteger(), type: null, range: parameter.range});
 						if (type != null) type = null;
-						break;
+					break;
 					case TokenType.FLOAT:
 						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameters.push({content: this.parseFloat(), type: null, range: parameter.range});
 						if (type != null) type = null;
-						break;
+					break;
 					case TokenType.GUID:
 						parameters.push({content: this.parseGUID(), type: type, range: parameter.range});
 						if (type != null) type = null;
-						break;
-					default:
-						this.diagnostics.push(unexpectedTokenDiagnosticFactory({
-							actualToken: parameter
-						}));
-						break;
+					break;
 				}
 				requireParameter = false;
 				if (this.peek().type != TokenType.CLOSE_PARENTHESIS) {
@@ -322,7 +322,7 @@ export class Parser {
 
 	parseString(): StringNode {
 		const token = this.pop();
-		return {value: token.value, range: token.range}
+		return {value: token.value, range: token.range};
 	}
 
 	parseInteger(): NumberNode {
@@ -356,5 +356,11 @@ export class Parser {
 		}
 		this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
 		return token.type == TokenType.IDENTIFIER ? {value: token.value, range: token.range} : null;
+	}
+
+	parseTypeEnumMember(): TypeEnumMemberNode {
+		const token = this.pop();
+		const parts = token.value.split(".", 2);
+		return {type: parts[0], member: parts[1], range: token.range};
 	}
 }

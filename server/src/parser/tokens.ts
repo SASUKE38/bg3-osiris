@@ -14,6 +14,7 @@ export enum TokenType {
 	IDENTIFIER,
 	INTEGER,
 	FLOAT,
+	ENUM_MEMBER,
 
 	// Groups
 	OPEN_BRACKET,

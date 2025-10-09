@@ -52,3 +52,8 @@ export interface ComparisonNode extends ASTNode {
 export interface OperatorNode extends ASTNode {
 	operator: string;
 }
+
+export interface TypeEnumMemberNode extends ASTNode {
+	type: string,
+	member: string
+}
