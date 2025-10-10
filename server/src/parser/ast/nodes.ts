@@ -4,7 +4,7 @@ export interface ASTNode {
 	range: Range;
 }
 
-export interface RootNode extends ASTNode {
+export interface GoalNode extends ASTNode {
 	init: Array<SignatureNode>;
 	kb: Array<RuleNode>;
 	exit: Array<SignatureNode>;

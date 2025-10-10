@@ -2,33 +2,17 @@ import { Diagnostic } from 'vscode-languageserver';
 import { 
 	SignatureNode,
 	ParameterNode,
-	IdentifierNode,
-	StringNode,
-	NumberNode,
 	TypeNode,
 	RuleNode,
 	ComparisonNode,
-	OperatorNode,
 	ASTNode,
-	RootNode,
-	TypeEnumMemberNode
+	GoalNode
 } from '../ast/nodes';
 import { Token, TokenType } from '../tokens';
 import { expectedMessage, ruleMissingActionsDiagnosticFactory, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
+import { ParserBase } from './parserBase';
 
-type ConsumeParams = {
-	expectedType: Array<TokenType>
-	expectedMessage?: string
-}
-
-type ConsumeResult = {
-	token: Token
-	matched?: boolean
-}
-
-export class Parser {
-	private tokens: Array<Token>;
-	private pos: number = 0;
+export class GoalParser extends ParserBase<GoalNode> {
 	private parameterTypes: Array<TokenType> = [TokenType.OPEN_PARENTHESIS, TokenType.IDENTIFIER, TokenType.ENUM_MEMBER, TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.GUID];
 	private comparisonTypes: Array<TokenType> = [TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID];
 	private headerTypes: Array<TokenType> = [TokenType.VERSION, TokenType.INTEGER, TokenType.SUBGOAL_COMBINER, TokenType.IDENTIFIER, TokenType.INITSECTION];
@@ -37,74 +21,10 @@ export class Parser {
 	readonly diagnostics: Array<Diagnostic> = [];
 
 	constructor(tokens: Array<Token>) {
-		this.tokens = tokens;
+		super(tokens);
 	}
 
-	peek(): Token {
-		return this.pos >= this.tokens.length ? {
-			type: TokenType.EOF,
-			value: "EOF",
-			range: this.tokens.length > 0 ? this.tokens[this.tokens.length - 1].range : {
-				start: {line: 0, character: 0},
-				end: {line: 0, character: 0}
-			}
-		} : this.tokens[this.pos];
-	}
-
-	pop(): Token {
-		const token = this.peek();
-		if (!this.empty()) this.pos++;
-		return token;
-	}
-
-	empty(): boolean {
-		return this.pos >= this.tokens.length || this.peek().type == TokenType.EOF;
-	}
-
-	atTokenType(type: TokenType) {
-		return this.empty() || this.peek().type == type;
-	}
-
-	consume({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
-		const token = this.peek();
-		let matched = true;
-		if (expectedType.indexOf(token.type) == -1) {
-			matched = false;
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage, expectedType}));
-		}
-		return {matched, token: this.pop()};
-	}
-
-	consumeIf({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
-		const token = this.peek();
-		let matched = true;
-		if (expectedType.indexOf(token.type) == -1) {
-			matched = false;
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage, expectedType}));
-			return {matched, token};
-		} else {
-			return {matched, token: this.pop()};
-		}
-	}
-
-	consumeUnexpected({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
-		const token = this.peek();
-		let matched = true;
-		if (expectedType.indexOf(token.type) == -1) {
-			matched = false;
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage, expectedType}));
-			this.pop();
-		}
-		return {matched, token};
-	}
-
-	consumeSequence({expectedMessage, expectedType}: ConsumeParams) {
-		for (const type of expectedType) {
-			this.consume({expectedMessage, expectedType: [type]});
-		} 
-	}
-
-	parseGoal(): RootNode {
+	parse(): GoalNode {
 		this.consumeSequence({expectedType: this.headerTypes});
 		const init = this.parseSignatureRegion(TokenType.KBSECTION);
 		this.consume({expectedType: [TokenType.KBSECTION]});
@@ -195,7 +115,7 @@ export class Parser {
 
 	parseComparison(): ComparisonNode {
 		const left = this.parseComparisonOperand();
-		const operator = this.parseOperator();
+		const operator = this.parseOperator(this.operatorTypes);
 		const right = this.parseComparisonOperand();
 		return {
 			left,
@@ -313,54 +233,5 @@ export class Parser {
 				expectedType: allowIdentifiers ? [TokenType.GUID, TokenType.IDENTIFIER] : [TokenType.GUID]
 			}));
 		}
-	}
-
-	parseIdentifier(): IdentifierNode {
-		const token = this.pop();
-		return {symbol: token.value, range: token.range};
-	}
-
-	parseString(): StringNode {
-		const token = this.pop();
-		return {value: token.value, range: token.range};
-	}
-
-	parseInteger(): NumberNode {
-		const token = this.pop();
-		return {value: parseInt(token.value), range: token.range};
-	}
-
-	parseFloat(): NumberNode {
-		const token = this.pop();
-		return {value: parseFloat(token.value), range: token.range};
-	}
-
-	parseGUID(): IdentifierNode {
-		const token = this.pop();
-		return {symbol: token.value, range: token.range};
-	}
-	
-	parseOperator(): OperatorNode {
-		const token = this.consume({
-			expectedMessage: expectedMessage.operator,
-			expectedType: this.operatorTypes
-		}).token;
-		return {operator: token.value, range: token.range};
-	}
-
-	parseType(): TypeNode | null {
-		const token = this.pop();
-		if (token.type != TokenType.IDENTIFIER) {
-			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage: expectedMessage.type}));
-			if (token.type == TokenType.CLOSE_PARENTHESIS) return null;
-		}
-		this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
-		return token.type == TokenType.IDENTIFIER ? {value: token.value, range: token.range} : null;
-	}
-
-	parseTypeEnumMember(): TypeEnumMemberNode {
-		const token = this.pop();
-		const parts = token.value.split(".", 2);
-		return {type: parts[0], member: parts[1], range: token.range};
 	}
 }

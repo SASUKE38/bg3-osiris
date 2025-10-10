@@ -3,7 +3,7 @@ import { ComponentBase } from '../ComponentBase';
 import { Server } from '../server';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from '../parser/lexer';
-import { Parser } from '../parser/parser/parser';
+import { GoalParser } from '../parser/parser/goalParser';
 
 export class DiagnosticProvider extends ComponentBase {
 
@@ -22,8 +22,8 @@ export class DiagnosticProvider extends ComponentBase {
 
 		const lexer = new Lexer(textDocument);
 		lexer.tokenize();
-		const parser = new Parser(lexer.tokens);
-		const node = parser.parseGoal();
+		const parser = new GoalParser(lexer.tokens);
+		const node = parser.parse();
 		console.log(node);
 		
 		// In this simple example we get the settings for every validate run.

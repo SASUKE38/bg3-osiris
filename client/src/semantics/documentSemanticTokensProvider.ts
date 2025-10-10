@@ -28,7 +28,11 @@ interface ParsedToken {
     tokenModifiers?: string[];
 }
 
+type SemanticHandler = (line: number, content: string, res: ParsedToken[]) => void;
+
 export class DocumentSemanticTokensProvider extends ComponentBase implements vscode.DocumentSemanticTokensProvider {
+
+    private semanticFunctions: Array<SemanticHandler> = [this.parseBuiltins, this.parseEnums];
 
     constructor(context: vscode.ExtensionContext) {
         super(context);
@@ -49,8 +53,9 @@ export class DocumentSemanticTokensProvider extends ComponentBase implements vsc
         const lines = text.split(/\r\n|\r|\n/);
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            this.parseBuiltins(i, line, res);
-            this.parseEnums(i, line, res);
+            for (const handler of this.semanticFunctions) {
+                handler(i, line, res);
+            }
         }
         return res;
     }
