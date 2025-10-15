@@ -15,6 +15,7 @@ export enum TokenType {
 	INTEGER,
 	FLOAT,
 	ENUM_MEMBER,
+	ENUM_ASSIGNMENT,
 
 	// Groups
 	OPEN_BRACKET,
@@ -88,6 +89,8 @@ export const typeReadableMapping = new Map<TokenType, string>([
 	[TokenType.IDENTIFIER, "identifier"],
 	[TokenType.INTEGER, "integer"],
 	[TokenType.FLOAT, "float"],
+	[TokenType.ENUM_MEMBER, "type enum member"],
+	[TokenType.ENUM_ASSIGNMENT, "="],
 
 	// Groups
 	[TokenType.OPEN_BRACKET, "\'[\'"],

@@ -2,8 +2,8 @@ import { Connection, Diagnostic, DiagnosticSeverity, DocumentDiagnosticReport, D
 import { ComponentBase } from '../ComponentBase';
 import { Server } from '../server';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Lexer } from '../parser/lexer';
-import { GoalParser } from '../parser/parser/goalParser';
+import { HeaderParser } from '../parser/parser/headerParser';
+import { HeaderLexer } from '../parser/lexer/headerLexer';
 
 export class DiagnosticProvider extends ComponentBase {
 
@@ -20,9 +20,9 @@ export class DiagnosticProvider extends ComponentBase {
 	async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 		const {hasDiagnosticRelatedInformationCapability} = this.server;
 
-		const lexer = new Lexer(textDocument);
+		const lexer = new HeaderLexer(textDocument);
 		lexer.tokenize();
-		const parser = new GoalParser(lexer.tokens);
+		const parser = new HeaderParser(lexer.tokens);
 		const node = parser.parse();
 		console.log(node);
 		

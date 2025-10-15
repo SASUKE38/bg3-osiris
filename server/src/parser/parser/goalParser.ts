@@ -1,4 +1,3 @@
-import { Diagnostic } from 'vscode-languageserver';
 import { 
 	SignatureNode,
 	ParameterNode,
@@ -18,7 +17,6 @@ export class GoalParser extends ParserBase<GoalNode> {
 	private headerTypes: Array<TokenType> = [TokenType.VERSION, TokenType.INTEGER, TokenType.SUBGOAL_COMBINER, TokenType.IDENTIFIER, TokenType.INITSECTION];
 	private footerTypes: Array<TokenType> = [TokenType.ENDEXITSECTION, TokenType.PARENT_TARGET_EDGE, TokenType.STRING];
 	private operatorTypes: Array<TokenType> = [TokenType.EQUAL, TokenType.NOT_EQUAL, TokenType.LESS_THAN, TokenType.LESS_THAN_OR_EQUAL, TokenType.GREATER_THAN, TokenType.GREATER_THAN_OR_EQUAL];
-	readonly diagnostics: Array<Diagnostic> = [];
 
 	constructor(tokens: Array<Token>) {
 		super(tokens);
@@ -36,17 +34,11 @@ export class GoalParser extends ParserBase<GoalNode> {
 			init,
 			kb,
 			exit,
-			range: {
-				start: {line: 0, character: 0},
-				end: {
-					line: this.tokens.length == 0 ? 0 : this.tokens[this.tokens.length - 1].range.end.line,
-					character: this.tokens.length == 0 ? 0 : this.tokens[this.tokens.length - 1].range.end.character
-				}
-			}
+			range: this.getTokenRange()
 		}
 	}
 
-	parseKB(): Array<RuleNode> {
+	private parseKB(): Array<RuleNode> {
 		const body: Array<RuleNode> = [];
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
 			if (this.consumeUnexpected({expectedType: [TokenType.PROC, TokenType.QRY, TokenType.IF]}).matched) {
@@ -56,7 +48,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		return body;
 	}
 
-	parseSignatureRegion(endType: TokenType): Array<SignatureNode> {
+	private parseSignatureRegion(endType: TokenType): Array<SignatureNode> {
 		const body: Array<SignatureNode> = [];
 		while (!this.atTokenType(endType)) {
 			if (this.consumeUnexpected({expectedType: [TokenType.IDENTIFIER, TokenType.NOT]}).matched) {
@@ -70,7 +62,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		return body;
 	}
 
-	parseRule(): RuleNode {
+	private parseRule(): RuleNode {
 		const ruleStart = this.pop();
 		const call = this.parseSignature();
 		const conditions: Array<SignatureNode | ComparisonNode> = [];
@@ -113,7 +105,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 	}
 
-	parseComparison(): ComparisonNode {
+	private parseComparison(): ComparisonNode {
 		const left = this.parseComparisonOperand();
 		const operator = this.parseOperator(this.operatorTypes);
 		const right = this.parseComparisonOperand();
@@ -128,7 +120,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 	}
 
-	parseComparisonOperand(): ASTNode {
+	private parseComparisonOperand(): ASTNode {
 		const token = this.peek();
 		switch (token.type) {
 			case TokenType.STRING:
@@ -151,7 +143,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 	}
 	
-	parseSignature(allowIdentifiers=true): SignatureNode {
+	private parseSignature(allowIdentifiers=true): SignatureNode {
 		const name = this.pop();
 		this.consume({expectedType: [TokenType.OPEN_PARENTHESIS]});
 		const parameters: Array<ParameterNode> = [];
@@ -226,7 +218,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 	}
 
-	verifyNoType(parameter: Token, type: TypeNode | null, allowIdentifiers=true) {
+	private verifyNoType(parameter: Token, type: TypeNode | null, allowIdentifiers=true) {
 		if (type != null) {
 			this.diagnostics.push(unexpectedTokenDiagnosticFactory({
 				actualToken: parameter,

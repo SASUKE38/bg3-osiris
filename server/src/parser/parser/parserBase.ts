@@ -1,4 +1,4 @@
-import { Diagnostic } from 'vscode-languageserver';
+import { Diagnostic, Range } from 'vscode-languageserver';
 import {
 	IdentifierNode,
 	StringNode,
@@ -29,7 +29,7 @@ export abstract class ParserBase<T> {
 		this.tokens = tokens;
 	}
 
-	peek(): Token {
+	protected peek(): Token {
 		return this.pos >= this.tokens.length ? {
 			type: TokenType.EOF,
 			value: "EOF",
@@ -40,21 +40,21 @@ export abstract class ParserBase<T> {
 		} : this.tokens[this.pos];
 	}
 
-	pop(): Token {
+	protected pop(): Token {
 		const token = this.peek();
 		if (!this.empty()) this.pos++;
 		return token;
 	}
 
-	empty(): boolean {
+	protected empty(): boolean {
 		return this.pos >= this.tokens.length || this.peek().type == TokenType.EOF;
 	}
 
-	atTokenType(type: TokenType) {
+	protected atTokenType(type: TokenType) {
 		return this.empty() || this.peek().type == type;
 	}
 
-	consume({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
+	protected consume({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
 		const token = this.peek();
 		let matched = true;
 		if (expectedType.indexOf(token.type) == -1) {
@@ -64,7 +64,7 @@ export abstract class ParserBase<T> {
 		return {matched, token: this.pop()};
 	}
 
-	consumeIf({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
+	protected consumeIf({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
 		const token = this.peek();
 		let matched = true;
 		if (expectedType.indexOf(token.type) == -1) {
@@ -76,7 +76,7 @@ export abstract class ParserBase<T> {
 		}
 	}
 
-	consumeUnexpected({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
+	protected consumeUnexpected({expectedMessage, expectedType}: ConsumeParams): ConsumeResult {
 		const token = this.peek();
 		let matched = true;
 		if (expectedType.indexOf(token.type) == -1) {
@@ -87,38 +87,38 @@ export abstract class ParserBase<T> {
 		return {matched, token};
 	}
 
-	consumeSequence({expectedMessage, expectedType}: ConsumeParams) {
+	protected consumeSequence({expectedMessage, expectedType}: ConsumeParams) {
 		for (const type of expectedType) {
 			this.consume({expectedMessage, expectedType: [type]});
 		} 
 	}
 
-	parseIdentifier(): IdentifierNode {
+	protected parseIdentifier(): IdentifierNode {
 		const token = this.pop();
 		return {symbol: token.value, range: token.range};
 	}
 
-	parseString(): StringNode {
+	protected parseString(): StringNode {
 		const token = this.pop();
 		return {value: token.value, range: token.range};
 	}
 
-	parseInteger(): NumberNode {
+	protected parseInteger(): NumberNode {
 		const token = this.pop();
 		return {value: parseInt(token.value), range: token.range};
 	}
 
-	parseFloat(): NumberNode {
+	protected parseFloat(): NumberNode {
 		const token = this.pop();
 		return {value: parseFloat(token.value), range: token.range};
 	}
 
-	parseGUID(): IdentifierNode {
+	protected parseGUID(): IdentifierNode {
 		const token = this.pop();
 		return {symbol: token.value, range: token.range};
 	}
 	
-	parseOperator(expectedTypes: Array<TokenType>): OperatorNode {
+	protected parseOperator(expectedTypes: Array<TokenType>): OperatorNode {
 		const token = this.consume({
 			expectedMessage: expectedMessage.operator,
 			expectedType: expectedTypes
@@ -126,7 +126,7 @@ export abstract class ParserBase<T> {
 		return {operator: token.value, range: token.range};
 	}
 
-	parseType(): TypeNode | null {
+	protected parseType(): TypeNode | null {
 		const token = this.pop();
 		if (token.type != TokenType.IDENTIFIER) {
 			this.diagnostics.push(unexpectedTokenDiagnosticFactory({actualToken: token, expectedMessage: expectedMessage.type}));
@@ -136,10 +136,20 @@ export abstract class ParserBase<T> {
 		return token.type == TokenType.IDENTIFIER ? {value: token.value, range: token.range} : null;
 	}
 
-	parseTypeEnumMember(): TypeEnumMemberNode {
+	protected parseTypeEnumMember(): TypeEnumMemberNode {
 		const token = this.pop();
 		const parts = token.value.split(".", 2);
 		return {type: parts[0], member: parts[1], range: token.range};
+	}
+
+	protected getTokenRange(): Range {
+		return {
+			start: {line: 0, character: 0},
+			end: {
+				line: this.tokens.length == 0 ? 0 : this.tokens[this.tokens.length - 1].range.end.line,
+				character: this.tokens.length == 0 ? 0 : this.tokens[this.tokens.length - 1].range.end.character
+			}
+		}
 	}
 
 	abstract parse(): T;
