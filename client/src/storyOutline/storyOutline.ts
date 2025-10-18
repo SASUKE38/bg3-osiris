@@ -1,13 +1,11 @@
 import * as vscode from 'vscode';
 import { ComponentBase } from '../componentBase';
-import { LanguageClient } from 'vscode-languageclient/node';
 
 export class StoryItem extends vscode.TreeItem {
 	constructor(
 		public label: string,
-		public readonly children: Array<StoryItem>,
-		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-		uri?: vscode.Uri,
+		public readonly children: StoryItem[],
+		public readonly collapsibleState: vscode.TreeItemCollapsibleState
 	) {
 		super(label, collapsibleState);
 
@@ -21,16 +19,12 @@ export class StoryItem extends vscode.TreeItem {
 }
 
 export class StoryOutlineProvider extends ComponentBase implements vscode.TreeDataProvider<StoryItem> {
-	private onDidChangeTreeDataEmitter: vscode.EventEmitter<StoryItem | undefined | void> = new vscode.EventEmitter<StoryItem | undefined | void>();
-	readonly onDidChangeTreeDataEvent: vscode.Event<StoryItem | undefined | void> = this.onDidChangeTreeDataEmitter.event;
+	private onDidChangeTreeDataEmitter: vscode.EventEmitter<StoryItem | undefined> = new vscode.EventEmitter<StoryItem | undefined>();
+	readonly onDidChangeTreeDataEvent: vscode.Event<StoryItem | undefined> = this.onDidChangeTreeDataEmitter.event;
 
 	constructor(context: vscode.ExtensionContext) {
 		super(context);
 		vscode.window.registerTreeDataProvider("story-outline-view", this);
-	}
-
-	initializeComponent(connection: LanguageClient) {
-		
 	}
 
 	getTreeItem(element: StoryItem): vscode.TreeItem | Thenable<vscode.TreeItem> {
@@ -38,6 +32,10 @@ export class StoryOutlineProvider extends ComponentBase implements vscode.TreeDa
 	}
 
 	getChildren(element?: StoryItem | undefined): vscode.ProviderResult<StoryItem[]> {
-		return [new StoryItem("test", [], vscode.TreeItemCollapsibleState.Collapsed)];
+		let label = "test";
+		if (element) {
+			label = element.label;
+		}
+		return [new StoryItem(label, [], vscode.TreeItemCollapsibleState.Collapsed)];
 	}
 }

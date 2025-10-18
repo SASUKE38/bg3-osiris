@@ -12,21 +12,19 @@ import { join } from 'path';
 
 let client: Client;
 
-interface ComponentContainer {
-	new (context: ExtensionContext): ComponentBase;
-}
+type ComponentContainer = new (context: ExtensionContext) => ComponentBase;
 
-const components: Array<ComponentContainer> = [StoryOutlineProvider, DocumentSemanticTokensProvider];
+const components: ComponentContainer[] = [StoryOutlineProvider, DocumentSemanticTokensProvider];
 
 export class Client {
 	readonly id: string = 'bg3-osiris-language-client';
 	readonly name: string = 'BG3 Osiris';
 	readonly serverPath: string = join('server', 'out', 'server.js');
 	context: ExtensionContext;
-	components: Array<ComponentContainer>;
+	components: ComponentContainer[];
 	connection: LanguageClient;
 
-	constructor(context: ExtensionContext, components: Array<ComponentContainer>) {
+	constructor(context: ExtensionContext, components: ComponentContainer[]) {
 		this.context = context;
 		this.components = components;
 		this.components.map(component => new component(this.context));

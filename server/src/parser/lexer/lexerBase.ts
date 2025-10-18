@@ -6,18 +6,18 @@ type RegexHandlerFactory = (token: TokenType) => RegexHandler;
 type PositionRegex = () => RegExp;
 type RegexFactory = (regex: RegExp) => PositionRegex;
 
-export type RegexPattern = {
+export interface RegexPattern {
 	regex: PositionRegex
 	handler: RegexHandler
 }
 
 export abstract class LexerBase {
-	private pos: number = 0;
+	private pos = 0;
 	private source: string;
 	private document: TextDocument;
-	protected abstract patterns: Array<RegexPattern>;
+	protected abstract patterns: RegexPattern[];
 	protected abstract trimmedTokens: Map<TokenType, [number, number]>;
-	readonly tokens: Array<Token> = [];
+	readonly tokens: Token[] = [];
 
 	constructor(document: TextDocument) {
 		this.document = document;
@@ -43,7 +43,7 @@ export abstract class LexerBase {
 
 	protected regexFactory: RegexFactory = (regex) => {
 		return () => {
-			let res = new RegExp(regex);
+			const res = new RegExp(regex);
 			res.lastIndex = this.pos;
 			return res;
 		}
@@ -69,8 +69,8 @@ export abstract class LexerBase {
 	tokenize() {
 		while (!this.atEOF()) {
 			let matched = false;
-			for (var pattern of this.patterns) {
-				var match = this.source.match(pattern.regex());
+			for (const pattern of this.patterns) {
+				const match = this.source.match(pattern.regex());
 				if (match != null) {
 					pattern.handler(match);
 					matched = true;

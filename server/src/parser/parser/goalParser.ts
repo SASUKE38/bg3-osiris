@@ -12,15 +12,11 @@ import { expectedMessage, ruleMissingActionsDiagnosticFactory, unexpectedTokenDi
 import { ParserBase } from './parserBase';
 
 export class GoalParser extends ParserBase<GoalNode> {
-	private parameterTypes: Array<TokenType> = [TokenType.OPEN_PARENTHESIS, TokenType.IDENTIFIER, TokenType.ENUM_MEMBER, TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.GUID];
-	private comparisonTypes: Array<TokenType> = [TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID];
-	private headerTypes: Array<TokenType> = [TokenType.VERSION, TokenType.INTEGER, TokenType.SUBGOAL_COMBINER, TokenType.IDENTIFIER, TokenType.INITSECTION];
-	private footerTypes: Array<TokenType> = [TokenType.ENDEXITSECTION, TokenType.PARENT_TARGET_EDGE, TokenType.STRING];
-	private operatorTypes: Array<TokenType> = [TokenType.EQUAL, TokenType.NOT_EQUAL, TokenType.LESS_THAN, TokenType.LESS_THAN_OR_EQUAL, TokenType.GREATER_THAN, TokenType.GREATER_THAN_OR_EQUAL];
-
-	constructor(tokens: Array<Token>) {
-		super(tokens);
-	}
+	private parameterTypes: TokenType[] = [TokenType.OPEN_PARENTHESIS, TokenType.IDENTIFIER, TokenType.ENUM_MEMBER, TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.GUID];
+	private comparisonTypes: TokenType[] = [TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID];
+	private headerTypes: TokenType[] = [TokenType.VERSION, TokenType.INTEGER, TokenType.SUBGOAL_COMBINER, TokenType.IDENTIFIER, TokenType.INITSECTION];
+	private footerTypes: TokenType[] = [TokenType.ENDEXITSECTION, TokenType.PARENT_TARGET_EDGE, TokenType.STRING];
+	private operatorTypes: TokenType[] = [TokenType.EQUAL, TokenType.NOT_EQUAL, TokenType.LESS_THAN, TokenType.LESS_THAN_OR_EQUAL, TokenType.GREATER_THAN, TokenType.GREATER_THAN_OR_EQUAL];
 
 	parse(): GoalNode {
 		this.consumeSequence({expectedType: this.headerTypes});
@@ -38,8 +34,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 	}
 
-	private parseKB(): Array<RuleNode> {
-		const body: Array<RuleNode> = [];
+	private parseKB(): RuleNode[] {
+		const body: RuleNode[] = [];
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
 			if (this.consumeUnexpected({expectedType: [TokenType.PROC, TokenType.QRY, TokenType.IF]}).matched) {
 				body.push(this.parseRule());
@@ -48,8 +44,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 		return body;
 	}
 
-	private parseSignatureRegion(endType: TokenType): Array<SignatureNode> {
-		const body: Array<SignatureNode> = [];
+	private parseSignatureRegion(endType: TokenType): SignatureNode[] {
+		const body: SignatureNode[] = [];
 		while (!this.atTokenType(endType)) {
 			if (this.consumeUnexpected({expectedType: [TokenType.IDENTIFIER, TokenType.NOT]}).matched) {
 				if (this.peek().type == TokenType.NOT) {
@@ -65,8 +61,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 	private parseRule(): RuleNode {
 		const ruleStart = this.pop();
 		const call = this.parseSignature();
-		const conditions: Array<SignatureNode | ComparisonNode> = [];
-		const actions: Array<SignatureNode> = [];
+		const conditions: (SignatureNode | ComparisonNode)[] = [];
+		const actions: SignatureNode[] = [];
 		while (!this.atTokenType(TokenType.THEN)) {
 			if (!this.consume({expectedMessage: expectedMessage.andOrThen, expectedType: [TokenType.AND]}).matched) continue;
 			const currentType = this.peek().type;
@@ -146,7 +142,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 	private parseSignature(allowIdentifiers=true): SignatureNode {
 		const name = this.pop();
 		this.consume({expectedType: [TokenType.OPEN_PARENTHESIS]});
-		const parameters: Array<ParameterNode> = [];
+		const parameters: ParameterNode[] = [];
 		let type = null;
 		let requireParameter = false;
 		while (!this.atTokenType(TokenType.CLOSE_PARENTHESIS)) {
@@ -206,14 +202,15 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 		this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
 
-		const endRange = parameters.length == 0 ? name.range.end : parameters[parameters.length - 1].range.end;
-		endRange.character + 1;
 		return {
 			name: name.value,
 			parameters: parameters,
 			range: {
 				start: name.range.start,
-				end: endRange
+				end: {
+					line: parameters.length == 0 ? name.range.end.line : parameters[parameters.length - 1].range.end.line,
+					character: parameters.length == 0 ? name.range.end.character + 2 : parameters[parameters.length - 1].range.end.character + 1,
+				}
 			}
 		}
 	}

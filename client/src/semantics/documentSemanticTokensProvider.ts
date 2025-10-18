@@ -32,19 +32,20 @@ type SemanticHandler = (line: number, content: string, res: ParsedToken[]) => vo
 
 export class DocumentSemanticTokensProvider extends ComponentBase implements vscode.DocumentSemanticTokensProvider {
 
-    private semanticFunctions: Array<SemanticHandler> = [this.parseBuiltins, this.parseEnums];
+    private semanticFunctions: SemanticHandler[] = [this.parseBuiltins, this.parseEnums];
 
     constructor(context: vscode.ExtensionContext) {
         super(context);
         context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider({ language: 'osiris' }, this, legend));
     }
 
-    async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
+    async provideDocumentSemanticTokens(document: vscode.TextDocument, cancelllationToken: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
         const tokens = this.parseText(document.getText());
         const builder = new vscode.SemanticTokensBuilder();
-        tokens.forEach(token => {
+        for (const token of tokens) {
+            if (cancelllationToken.isCancellationRequested) break;
             builder.push(token.line, token.startCharacter, token.length, this.encodeTokenType(token.tokenType));
-        });
+        }
         return builder.build();
     }
 
@@ -101,7 +102,7 @@ export class DocumentSemanticTokensProvider extends ComponentBase implements vsc
 
     private encodeTokenType(tokenType: string): number {
         if (tokenTypes.has(tokenType)) {
-            return tokenTypes.get(tokenType)!;
+            return tokenTypes.get(tokenType) as number;
         }
         return 0;
     }

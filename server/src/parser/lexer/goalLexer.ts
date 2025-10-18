@@ -1,10 +1,9 @@
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { LexerBase, RegexPattern } from './lexerBase';
 import { TokenType } from '../tokens';
 
 export class GoalLexer extends LexerBase {
 
-	protected patterns: Array<RegexPattern> = [
+	protected patterns: RegexPattern[] = [
 		{regex: this.regexFactory(/\s+/y), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/\/\/.*/y), handler: this.handlerFactory(TokenType.SKIP)},
 		{regex: this.regexFactory(/\/\*([^*]|(\*[^/]))*\*+\//sy), handler: this.handlerFactory(TokenType.SKIP)},
@@ -13,9 +12,9 @@ export class GoalLexer extends LexerBase {
 		{regex: this.regexFactory(/-?[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER)},
 		{regex: this.regexFactory(/[A-Z]+\.[A-Za-z]+/y), handler: this.handlerFactory(TokenType.ENUM_MEMBER)},
 		{regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER)},
-		{regex: this.regexFactory(/\"[^"]*\"/y), handler: this.handlerFactory(TokenType.STRING)},
-		{regex: this.regexFactory(/\,/y), handler: this.handlerFactory(TokenType.COMMA)},
-		{regex: this.regexFactory(/\;/y), handler: this.handlerFactory(TokenType.SEMICOLON)},
+		{regex: this.regexFactory(/"[^"]*"/y), handler: this.handlerFactory(TokenType.STRING)},
+		{regex: this.regexFactory(/,/y), handler: this.handlerFactory(TokenType.COMMA)},
+		{regex: this.regexFactory(/;/y), handler: this.handlerFactory(TokenType.SEMICOLON)},
 		{regex: this.regexFactory(/\(/y), handler: this.handlerFactory(TokenType.OPEN_PARENTHESIS)},
 		{regex: this.regexFactory(/\)/y), handler: this.handlerFactory(TokenType.CLOSE_PARENTHESIS)},
 		{regex: this.regexFactory(/==/y), handler: this.handlerFactory(TokenType.EQUAL)},
@@ -30,8 +29,4 @@ export class GoalLexer extends LexerBase {
 	protected trimmedTokens: Map<TokenType, [number, number]> = new Map<TokenType, [number, number]>([
 		[TokenType.STRING, [1, 1]]
 	]);
-
-	constructor(document: TextDocument) {
-		super(document);
-	}
 }

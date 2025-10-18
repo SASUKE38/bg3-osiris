@@ -13,7 +13,7 @@ export interface ASTNode {
 
 export interface SignatureNode extends ASTNode {
 	name: string;
-	parameters: Array<ParameterNode>;
+	parameters: ParameterNode[];
 	signatureType?: string;
 }
 
@@ -38,9 +38,9 @@ export interface NumberNode extends ASTNode {
 // Goal Nodes
 
 export interface GoalNode extends ASTNode {
-	init: Array<SignatureNode>;
-	kb: Array<RuleNode>;
-	exit: Array<SignatureNode>;
+	init: SignatureNode[];
+	kb: RuleNode[];
+	exit: SignatureNode[];
 }
 
 export interface TypeNode extends ASTNode {
@@ -50,8 +50,8 @@ export interface TypeNode extends ASTNode {
 export interface RuleNode extends ASTNode {
 	type: string;
 	call: SignatureNode;
-	conditions: Array<SignatureNode | ComparisonNode>;
-	actions: Array<SignatureNode>;
+	conditions: (SignatureNode | ComparisonNode)[];
+	actions: SignatureNode[];
 }
 
 export interface ComparisonNode extends ASTNode {
@@ -72,11 +72,11 @@ export interface TypeEnumMemberNode extends ASTNode {
 // Header Nodes
 
 export interface HeaderNode extends ASTNode {
-	options: Array<IdentifierNode>;
-	types: Array<AliasTypeNode | EnumTypeNode>;
-	builtinSignatures: Array<SignatureNode>;
+	options: IdentifierNode[];
+	types: (AliasTypeNode | EnumTypeNode)[];
+	builtinSignatures: SignatureNode[];
 	version: StringNode | null;
-	headerGoals: Array<HeaderGoalNode>;
+	headerGoals: HeaderGoalNode[];
 }
 
 export interface AliasTypeNode extends ASTNode {
@@ -85,12 +85,12 @@ export interface AliasTypeNode extends ASTNode {
 
 export interface EnumTypeNode extends ASTNode {
 	type: string;
-	members: Array<string>;
+	members: string[];
 }
 
 export interface HeaderGoalNode extends ASTNode {
 	id: number;
-	children: Array<number>;
+	children: number[];
 	title?: StringNode;
 	init?: string;
 	kb?: string;

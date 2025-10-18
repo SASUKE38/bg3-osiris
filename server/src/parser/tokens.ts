@@ -81,9 +81,9 @@ export const typeReadableMapping = new Map<TokenType, string>([
 	[TokenType.UNKNOWN, "unknown"],
 
 	// General
-	[TokenType.COMMA, "\',\'"],
-	[TokenType.SEMICOLON, "\';\'"],
-	[TokenType.PERIOD, "\'.\'"],
+	[TokenType.COMMA, "','"],
+	[TokenType.SEMICOLON, "';'"],
+	[TokenType.PERIOD, "'.'"],
 	[TokenType.STRING, "string"],
 	[TokenType.GUID, "GUID"],
 	[TokenType.IDENTIFIER, "identifier"],
@@ -93,12 +93,12 @@ export const typeReadableMapping = new Map<TokenType, string>([
 	[TokenType.ENUM_ASSIGNMENT, "="],
 
 	// Groups
-	[TokenType.OPEN_BRACKET, "\'[\'"],
-	[TokenType.CLOSE_BRACKET, "\']\'"],
-	[TokenType.OPEN_BRACE, "\'{\'"],
-	[TokenType.CLOSE_BRACE, "\'}\'"],
-	[TokenType.OPEN_PARENTHESIS, "\'(\'"],
-	[TokenType.CLOSE_PARENTHESIS, "\')\'"],
+	[TokenType.OPEN_BRACKET, "'['"],
+	[TokenType.CLOSE_BRACKET, "']'"],
+	[TokenType.OPEN_BRACE, "'{'"],
+	[TokenType.CLOSE_BRACE, "'}'"],
+	[TokenType.OPEN_PARENTHESIS, "'('"],
+	[TokenType.CLOSE_PARENTHESIS, "')'"],
 
 	// Equivalency
 	[TokenType.EQUAL, "=="],

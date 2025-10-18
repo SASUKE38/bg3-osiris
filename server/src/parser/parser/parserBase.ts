@@ -10,22 +10,22 @@ import {
 import { Token, TokenType } from '../tokens';
 import { expectedMessage, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
 
-type ConsumeParams = {
-	expectedType: Array<TokenType>
+interface ConsumeParams {
+	expectedType: TokenType[]
 	expectedMessage?: string
 }
 
-type ConsumeResult = {
+interface ConsumeResult {
 	token: Token
 	matched?: boolean
 }
 
 export abstract class ParserBase<T> {
-	protected tokens: Array<Token>;
-	protected pos: number = 0;
-	readonly diagnostics: Array<Diagnostic> = [];
+	protected tokens: Token[];
+	protected pos = 0;
+	readonly diagnostics: Diagnostic[] = [];
 
-	constructor(tokens: Array<Token>) {
+	constructor(tokens: Token[]) {
 		this.tokens = tokens;
 	}
 
@@ -118,7 +118,7 @@ export abstract class ParserBase<T> {
 		return {symbol: token.value, range: token.range};
 	}
 	
-	protected parseOperator(expectedTypes: Array<TokenType>): OperatorNode {
+	protected parseOperator(expectedTypes: TokenType[]): OperatorNode {
 		const token = this.consume({
 			expectedMessage: expectedMessage.operator,
 			expectedType: expectedTypes

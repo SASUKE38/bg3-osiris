@@ -1,9 +1,9 @@
-import { Connection, Diagnostic, DiagnosticSeverity, DocumentDiagnosticReport, DocumentDiagnosticReportKind } from 'vscode-languageserver';
-import { ComponentBase } from '../ComponentBase';
+import { Connection, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind } from 'vscode-languageserver';
+import { ComponentBase } from '../componentBase';
 import { Server } from '../server';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { HeaderParser } from '../parser/parser/headerParser';
-import { HeaderLexer } from '../parser/lexer/headerLexer';
+import { GoalLexer } from '../parser/lexer/goalLexer';
+import { GoalParser } from '../parser/parser/goalParser';
 
 export class DiagnosticProvider extends ComponentBase {
 
@@ -18,20 +18,17 @@ export class DiagnosticProvider extends ComponentBase {
 	}
 
 	async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-		const {hasDiagnosticRelatedInformationCapability} = this.server;
 
-		const lexer = new HeaderLexer(textDocument);
+		const lexer = new GoalLexer(textDocument);
 		lexer.tokenize();
-		const parser = new HeaderParser(lexer.tokens);
+		const parser = new GoalParser(lexer.tokens);
 		const node = parser.parse();
 		console.log(node);
 		
-		// In this simple example we get the settings for every validate run.
-		const settings = await this.server.getDocumentSettings(textDocument.uri);
 		return parser.diagnostics;
 	}
 
-	initialize(connection: Connection): void {
+	initializeComponent(connection: Connection): void {
 		const {documents} = this.server;
 		connection.languages.diagnostics.on(async (params) => {
 			const document = documents.get(params.textDocument.uri);

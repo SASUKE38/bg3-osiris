@@ -1,18 +1,11 @@
 import {
 	createConnection,
 	TextDocuments,
-	Diagnostic,
-	DiagnosticSeverity,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
-	CompletionItem,
-	CompletionItemKind,
-	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	DocumentDiagnosticReportKind,
-	type DocumentDiagnosticReport,
 	Connection,
 	DidChangeConfigurationParams
 } from 'vscode-languageserver/node';
@@ -21,13 +14,11 @@ import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
 import { DiagnosticProvider } from './diagnostics/diagnosticsProvider';
-import { ComponentBase } from './ComponentBase';
+import { ComponentBase } from './componentBase';
 
-interface ComponentContainer {
-	new (server: Server): ComponentBase;
-}
+type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: Array<ComponentContainer> = [DiagnosticProvider];
+const components: ComponentContainer[] = [DiagnosticProvider];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
@@ -42,12 +33,12 @@ interface ExampleSettings {
 export class Server {
 	connection: Connection;
 	documents: TextDocuments<TextDocument>;
-	components: Array<ComponentBase>;
+	components: ComponentBase[];
 	hasConfigurationCapability = false;
 	hasWorkspaceFolderCapability = false;
 	hasDiagnosticRelatedInformationCapability = false;
 
-	constructor(components: Array<ComponentContainer>) {
+	constructor(components: ComponentContainer[]) {
 		const connection = createConnection(ProposedFeatures.all);
 		const documents = new TextDocuments(TextDocument);
 		connection.onInitialize(this.initializeHandler);
@@ -57,51 +48,13 @@ export class Server {
 			documentSettings.delete(e.document.uri);
 		});
 
-		connection.onDidChangeWatchedFiles(_change => {
-			// Monitored files have change in VSCode
-			connection.console.log('We received a file change event');
-		});
-
-		connection.onCompletion(
-			(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-				// The pass parameter contains the position of the text document in
-				// which code complete got requested. For the example we ignore this
-				// info and always provide the same completion items.
-				return [
-					{
-						label: 'TypeScript',
-						kind: CompletionItemKind.Text,
-						data: 1
-					},
-					{
-						label: 'JavaScript',
-						kind: CompletionItemKind.Text,
-						data: 2
-					}
-				];
-			}
-		);
-
-		connection.onCompletionResolve(
-			(item: CompletionItem): CompletionItem => {
-				if (item.data === 1) {
-					item.detail = 'TypeScript details';
-					item.documentation = 'TypeScript documentation';
-				} else if (item.data === 2) {
-					item.detail = 'JavaScript details';
-					item.documentation = 'JavaScript documentation';
-				}
-				return item;
-			}
-		);
-
 		documents.listen(connection);
 		connection.listen();
 
 		this.connection = connection;
 		this.documents = documents;
 		this.components = components.map(component => new component(this));
-		this.components.forEach(component => component.initialize(connection));
+		this.components.forEach(component => component.initializeComponent?.(connection));
 	}
 
 	private initializeHandler = (params: InitializeParams): InitializeResult => {
@@ -148,6 +101,7 @@ export class Server {
 		if (this.hasWorkspaceFolderCapability) {
 			this.connection.workspace.onDidChangeWorkspaceFolders(_event => {
 				this.connection.console.log('Workspace folder change event received.');
+				console.log(_event);
 			});
 		}
 	}

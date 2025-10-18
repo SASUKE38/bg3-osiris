@@ -1,7 +1,7 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { Token, TokenType, typeReadableMapping } from '../parser/tokens';
 
-type RuleMissingActionsParams = {
+interface RuleMissingActionsParams {
 	rule: Token
 }
 
@@ -23,10 +23,10 @@ export const expectedMessage = {
 	flow: "parameter flow"
 }
 
-type unexpectedTokenDiagnosticParams = {
+interface unexpectedTokenDiagnosticParams {
 	actualToken: Token,
 	expectedMessage?: string,
-	expectedType?: Array<TokenType>
+	expectedType?: TokenType[]
 }
 
 export function unexpectedTokenDiagnosticFactory({actualToken, expectedMessage, expectedType}: unexpectedTokenDiagnosticParams): Diagnostic {

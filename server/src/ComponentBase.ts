@@ -1,7 +1,7 @@
 import { Connection } from 'vscode-languageserver';
 import { Server } from './server';
 
-export class ComponentBase {
+export abstract class ComponentBase {
 	readonly server: Server;
 
 	constructor(server: Server) {
@@ -9,5 +9,5 @@ export class ComponentBase {
 	}
 
 
-	initialize(connection: Connection) {}
+	initializeComponent?(connection: Connection): void;
 }

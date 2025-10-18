@@ -1,6 +1,6 @@
 import { expectedMessage, unexpectedTokenDiagnosticFactory } from '../../diagnostics/message';
 import { AliasTypeNode, EnumTypeNode, HeaderGoalNode, HeaderNode, IdentifierNode, ParameterFlow, ParameterNode, SignatureNode, StringNode } from '../ast/nodes';
-import { Token, TokenType } from '../tokens';
+import { TokenType } from '../tokens';
 import { ParserBase } from './parserBase';
 
 export class HeaderParser extends ParserBase<HeaderNode> {
@@ -8,10 +8,6 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 	private typeLabels: string[] = ["alias_type", "enum_type"];
 	private builtinLabels: string[] = ["syscall", "sysquery", "query", "call", "event"]; 
 	private builtinTypes: TokenType[] = [TokenType.OPEN_BRACKET, TokenType.OPEN_PARENTHESIS, TokenType.IDENTIFIER];
-
-	constructor(tokens: Token[]) {
-		super(tokens);
-	}
 
 	parse(): HeaderNode {
 		const options: IdentifierNode[] = [];
@@ -70,7 +66,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		const startRange = this.pop().range;
 		this.consume({expectedType: [TokenType.OPEN_BRACE]});
 		const type = this.parseIdentifier().symbol;
-		const members: Array<string> = [];
+		const members: string[] = [];
 		let token;
 		while (!this.atTokenType(TokenType.CLOSE_BRACE)) {
 			token = this.pop();
@@ -96,7 +92,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		const signatureType = this.pop();
 		const signatureName = this.consume({expectedType: [TokenType.IDENTIFIER]});
 		this.consume({expectedType: [TokenType.OPEN_PARENTHESIS]});
-		const parameters: Array<ParameterNode> = [];
+		const parameters: ParameterNode[] = [];
 		let type = null;
 		let flow = null;
 		let requireParameter = false;
@@ -137,8 +133,6 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		}
 		this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
 
-		const endRange = parameters.length == 0 ? signatureName.token.range.end : parameters[parameters.length - 1].range.end;
-		endRange.character + 1;
 		if (this.peek().type == TokenType.OPEN_PARENTHESIS) {
 			while (!this.atTokenType(TokenType.CLOSE_PARENTHESIS)) this.pop();
 			this.consume({expectedType: [TokenType.CLOSE_PARENTHESIS]});
@@ -150,7 +144,10 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 			parameters: parameters,
 			range: {
 				start: signatureType.range.start,
-				end: endRange
+				end: {
+					line: parameters.length == 0 ? signatureName.token.range.end.line : parameters[parameters.length - 1].range.end.line,
+					character: parameters.length == 0 ? signatureName.token.range.end.character + 2 : parameters[parameters.length - 1].range.end.character + 1,
+				}
 			}
 		};
 	}
@@ -183,7 +180,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 			} else if (operation == "SubGoal") {
 				this.consume({expectedType: [TokenType.OPEN_PARENTHESIS]});
 				if (this.peek().type == TokenType.AND) {
-					this.pop;
+					this.pop();
 				} else if (this.peek().type == TokenType.INTEGER) {
 					goal.children.push(parseInt(this.pop().value));
 				}
