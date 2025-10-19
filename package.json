@@ -1,144 +1,146 @@
 {
-  "name": "bg3-osiris",
-  "displayName": "BG3 Osiris",
-  "description": "",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.103.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SASUKE38/bg3-osiris"
-  },
-  "categories": [
-    "Programming Languages",
-    "Snippets"
-  ],
-  "activationEvents": [],
-  "main": "./client/out/extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "osiris",
-        "aliases": [
-          "Osiris",
-          "osiris"
-        ],
-        "extensions": [
-          ".txt"
-        ],
-        "configuration": "./language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "osiris",
-        "scopeName": "source.osiris",
-        "path": "./syntaxes/osiris.tmLanguage.json"
-      }
-    ],
-    "snippets": [
-      {
-        "language": "osiris",
-        "path": "./syntaxes/osiris.tmSnippet.json"
-      }
-    ],
-    "themes": [
-      {
-        "id": "osiris.theme",
-        "label": "Osiris",
-        "path": "./syntaxes/osiris.tmTheme.json",
-        "uiTheme": "vs-dark"
-      }
-    ],
-    "semanticTokenTypes": [
-      {
-        "id": "osiris_builtin",
-        "superType": "function",
-        "description": "A built in Osiris procedure, query, or event."
-      },
-      {
-        "id": "proc",
-        "superType": "osiris_builtin",
-        "description": "An osiris PROC."
-      },
-      {
-        "id": "qry",
-        "superType": "osiris_builtin",
-        "description": "An osiris QRY."
-      },
-      {
-        "id": "event",
-        "superType": "osiris_builtin",
-        "description": "An osiris event."
-      }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "story-outline",
-          "title": "Story Outline",
-          "icon": "./media/dep.svg"
-        }
-      ]
-    },
-    "views": {
-      "story-outline": [
-        {
-          "id": "story-outline-view",
-          "name": "Story Outline",
-          "icon": "./media/dep.svg"
-        }
-      ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "story-outline-view",
-        "contents": "No story items found."
-      }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "Example configuration",
-      "properties": {
-        "languageServerExample.maxNumberOfProblems": {
-          "scope": "resource",
-          "type": "number",
-          "default": 100,
-          "description": "Controls the maximum number of problems produced by the server."
-        },
-        "languageServerExample.trace.server": {
-          "scope": "window",
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
-        }
-      }
-    }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
-    "lint": "eslint",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-    "test": "sh ./scripts/e2e.sh"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.38.0",
-    "@stylistic/eslint-plugin": "^2.9.0",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "^22",
-    "eslint": "^9.38.0",
-    "globals": "^16.4.0",
-    "jiti": "^2.6.1",
-    "mocha": "^10.3.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.1"
-  }
+	"name": "bg3-osiris",
+	"displayName": "BG3 Osiris",
+	"description": "",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.103.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SASUKE38/bg3-osiris"
+	},
+	"categories": [
+		"Programming Languages",
+		"Snippets"
+	],
+	"activationEvents": [],
+	"main": "./client/out/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "osiris",
+				"aliases": [
+					"Osiris",
+					"osiris"
+				],
+				"extensions": [
+					".txt"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "osiris",
+				"scopeName": "source.osiris",
+				"path": "./syntaxes/osiris.tmLanguage.json"
+			}
+		],
+		"snippets": [
+			{
+				"language": "osiris",
+				"path": "./syntaxes/osiris.tmSnippet.json"
+			}
+		],
+		"themes": [
+			{
+				"id": "osiris.theme",
+				"label": "Osiris",
+				"path": "./syntaxes/osiris.tmTheme.json",
+				"uiTheme": "vs-dark"
+			}
+		],
+		"semanticTokenTypes": [
+			{
+				"id": "osiris_builtin",
+				"superType": "function",
+				"description": "A built in Osiris procedure, query, or event."
+			},
+			{
+				"id": "proc",
+				"superType": "osiris_builtin",
+				"description": "An osiris PROC."
+			},
+			{
+				"id": "qry",
+				"superType": "osiris_builtin",
+				"description": "An osiris QRY."
+			},
+			{
+				"id": "event",
+				"superType": "osiris_builtin",
+				"description": "An osiris event."
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "story-outline",
+					"title": "Story Outline",
+					"icon": "./media/dep.svg"
+				}
+			]
+		},
+		"views": {
+			"story-outline": [
+				{
+					"id": "story-outline-view",
+					"name": "Story Outline",
+					"icon": "./media/dep.svg"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "story-outline-view",
+				"contents": "No story items found."
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Example configuration",
+			"properties": {
+				"languageServerExample.maxNumberOfProblems": {
+					"scope": "resource",
+					"type": "number",
+					"default": 100,
+					"description": "Controls the maximum number of problems produced by the server."
+				},
+				"languageServerExample.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"lint": "eslint",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+		"test": "sh ./scripts/e2e.sh"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.38.0",
+		"@stylistic/eslint-plugin": "^2.9.0",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^22",
+		"eslint": "^9.38.0",
+		"eslint-config-prettier": "^10.1.8",
+		"globals": "^16.4.0",
+		"jiti": "^2.6.1",
+		"mocha": "^10.3.0",
+		"prettier": "3.6.2",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.46.1"
+	}
 }

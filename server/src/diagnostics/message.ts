@@ -1,17 +1,17 @@
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Token, TokenType, typeReadableMapping } from '../parser/tokens';
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+import { Token, TokenType, typeReadableMapping } from "../parser/tokens";
 
 interface RuleMissingActionsParams {
-	rule: Token
+	rule: Token;
 }
 
-export function ruleMissingActionsDiagnosticFactory({rule}: RuleMissingActionsParams): Diagnostic {
+export function ruleMissingActionsDiagnosticFactory({ rule }: RuleMissingActionsParams): Diagnostic {
 	return {
 		source: "Osiris",
 		range: rule.range,
 		message: "Rule must contain at least one signature in THEN clause",
 		severity: DiagnosticSeverity.Error
-	}
+	};
 }
 
 export const expectedMessage = {
@@ -21,22 +21,26 @@ export const expectedMessage = {
 	andOrThen: "AND or THEN",
 	parameter: "a parameter",
 	flow: "parameter flow"
-}
+};
 
 interface unexpectedTokenDiagnosticParams {
-	actualToken: Token,
-	expectedMessage?: string,
-	expectedType?: TokenType[]
+	actualToken: Token;
+	expectedMessage?: string;
+	expectedType?: TokenType[];
 }
 
-export function unexpectedTokenDiagnosticFactory({actualToken, expectedMessage, expectedType}: unexpectedTokenDiagnosticParams): Diagnostic {
+export function unexpectedTokenDiagnosticFactory({
+	actualToken,
+	expectedMessage,
+	expectedType
+}: unexpectedTokenDiagnosticParams): Diagnostic {
 	let message = "Unexpected token";
 
 	if (expectedMessage) {
 		message += `; expected ${expectedMessage}`;
 	} else if (expectedType) {
 		message += "; expected ";
-		const types = expectedType.map(type => typeReadableMapping.get(type));
+		const types = expectedType.map((type) => typeReadableMapping.get(type));
 		if (types.length == 2) {
 			message += `${types[0]} or ${types[1]}`;
 		} else if (types.length > 1) {
@@ -51,5 +55,5 @@ export function unexpectedTokenDiagnosticFactory({actualToken, expectedMessage, 
 		range: actualToken.range,
 		message: message,
 		severity: DiagnosticSeverity.Error
-	}
+	};
 }

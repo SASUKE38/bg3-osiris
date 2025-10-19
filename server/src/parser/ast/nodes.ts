@@ -1,4 +1,4 @@
-import { Range } from 'vscode-languageserver';
+import { Range } from "vscode-languageserver";
 
 export enum ParameterFlow {
 	IN,
@@ -65,8 +65,8 @@ export interface OperatorNode extends ASTNode {
 }
 
 export interface TypeEnumMemberNode extends ASTNode {
-	type: string,
-	member: string
+	type: string;
+	member: string;
 }
 
 // Header Nodes

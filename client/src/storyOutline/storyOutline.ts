@@ -1,5 +1,5 @@
-import * as vscode from 'vscode';
-import { ComponentBase } from '../componentBase';
+import * as vscode from "vscode";
+import { ComponentBase } from "../componentBase";
 
 export class StoryItem extends vscode.TreeItem {
 	constructor(
@@ -19,7 +19,9 @@ export class StoryItem extends vscode.TreeItem {
 }
 
 export class StoryOutlineProvider extends ComponentBase implements vscode.TreeDataProvider<StoryItem> {
-	private onDidChangeTreeDataEmitter: vscode.EventEmitter<StoryItem | undefined> = new vscode.EventEmitter<StoryItem | undefined>();
+	private onDidChangeTreeDataEmitter: vscode.EventEmitter<StoryItem | undefined> = new vscode.EventEmitter<
+		StoryItem | undefined
+	>();
 	readonly onDidChangeTreeDataEvent: vscode.Event<StoryItem | undefined> = this.onDidChangeTreeDataEmitter.event;
 
 	constructor(context: vscode.ExtensionContext) {

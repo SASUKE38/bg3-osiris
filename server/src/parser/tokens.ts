@@ -1,4 +1,4 @@
-import { Range } from 'vscode-languageserver';
+import { Range } from "vscode-languageserver";
 
 export enum TokenType {
 	EOF,
@@ -131,7 +131,7 @@ export const typeReadableMapping = new Map<TokenType, string>([
 ]);
 
 export interface Token {
-	type: TokenType,
-	value: string,
-	range: Range
+	type: TokenType;
+	value: string;
+	range: Range;
 }

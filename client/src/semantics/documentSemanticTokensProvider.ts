@@ -1,5 +1,5 @@
-import * as vscode from 'vscode';
-import { ComponentBase } from '../componentBase';
+import * as vscode from "vscode";
+import { ComponentBase } from "../componentBase";
 
 const tokenTypes = new Map<string, number>();
 
@@ -11,99 +11,100 @@ builtinEvents.add("CombatStarted");
 builtinProcs.add("GetFlag");
 builtinQrys.add("IsTagged");
 
-export const legend = (function() {
-    const tokenTypesLegend = [
-        'proc', 'event', 'qry', 'function',
-        'enum', 'enumMember'
-    ];
-    tokenTypesLegend.forEach((tokenType, index) => tokenTypes.set(tokenType, index));
-    return new vscode.SemanticTokensLegend(tokenTypesLegend, []);
+export const legend = (function () {
+	const tokenTypesLegend = ["proc", "event", "qry", "function", "enum", "enumMember"];
+	tokenTypesLegend.forEach((tokenType, index) => tokenTypes.set(tokenType, index));
+	return new vscode.SemanticTokensLegend(tokenTypesLegend, []);
 })();
 
 interface ParsedToken {
-    line: number,
-    startCharacter: number,
-    length: number,
-    tokenType: string,
-    tokenModifiers?: string[];
+	line: number;
+	startCharacter: number;
+	length: number;
+	tokenType: string;
+	tokenModifiers?: string[];
 }
 
 type SemanticHandler = (line: number, content: string, res: ParsedToken[]) => void;
 
 export class DocumentSemanticTokensProvider extends ComponentBase implements vscode.DocumentSemanticTokensProvider {
+	private semanticFunctions: SemanticHandler[] = [this.parseBuiltins, this.parseEnums];
 
-    private semanticFunctions: SemanticHandler[] = [this.parseBuiltins, this.parseEnums];
+	constructor(context: vscode.ExtensionContext) {
+		super(context);
+		context.subscriptions.push(
+			vscode.languages.registerDocumentSemanticTokensProvider({ language: "osiris" }, this, legend)
+		);
+	}
 
-    constructor(context: vscode.ExtensionContext) {
-        super(context);
-        context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider({ language: 'osiris' }, this, legend));
-    }
+	async provideDocumentSemanticTokens(
+		document: vscode.TextDocument,
+		cancelllationToken: vscode.CancellationToken
+	): Promise<vscode.SemanticTokens> {
+		const tokens = this.parseText(document.getText());
+		const builder = new vscode.SemanticTokensBuilder();
+		for (const token of tokens) {
+			if (cancelllationToken.isCancellationRequested) break;
+			builder.push(token.line, token.startCharacter, token.length, this.encodeTokenType(token.tokenType));
+		}
+		return builder.build();
+	}
 
-    async provideDocumentSemanticTokens(document: vscode.TextDocument, cancelllationToken: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
-        const tokens = this.parseText(document.getText());
-        const builder = new vscode.SemanticTokensBuilder();
-        for (const token of tokens) {
-            if (cancelllationToken.isCancellationRequested) break;
-            builder.push(token.line, token.startCharacter, token.length, this.encodeTokenType(token.tokenType));
-        }
-        return builder.build();
-    }
+	private parseText(text: string): ParsedToken[] {
+		const res: ParsedToken[] = [];
+		const lines = text.split(/\r\n|\r|\n/);
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			for (const handler of this.semanticFunctions) {
+				handler(i, line, res);
+			}
+		}
+		return res;
+	}
 
-    private parseText(text: string): ParsedToken[] {
-        const res: ParsedToken[] = [];
-        const lines = text.split(/\r\n|\r|\n/);
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            for (const handler of this.semanticFunctions) {
-                handler(i, line, res);
-            }
-        }
-        return res;
-    }
+	private parseBuiltins(line: number, content: string, res: ParsedToken[]) {
+		const matches = content.matchAll(/\b[A-Za-z_][A-Za-z0-9_]*\(/g);
+		for (const match of matches) {
+			const name = match[0].substring(0, match[0].length - 1);
+			if (!name.startsWith("PROC_") && !name.startsWith("QRY_") && !name.startsWith("DB_")) {
+				let type = "function";
+				if (builtinEvents.has(name)) type = "event";
+				else if (builtinQrys.has(name)) type = "qry";
+				else if (builtinProcs.has(name)) type = "proc";
 
-    private parseBuiltins(line: number, content: string, res: ParsedToken[]) {
-        const matches = content.matchAll(/\b[A-Za-z_][A-Za-z0-9_]*\(/g);
-        for (const match of matches) {
-            const name = match[0].substring(0, match[0].length - 1);
-            if (!name.startsWith("PROC_") && !name.startsWith("QRY_") && !name.startsWith("DB_")) {
-                let type = "function";
-                if (builtinEvents.has(name)) type = "event";
-                else if (builtinQrys.has(name)) type = "qry";
-                else if (builtinProcs.has(name)) type = "proc";
-                
-                res.push({
-                    line: line,
-                    startCharacter: match.index,
-                    length: match[0].length - 1,
-                    tokenType: type
-                });
-            }
-        }
-    }
+				res.push({
+					line: line,
+					startCharacter: match.index,
+					length: match[0].length - 1,
+					tokenType: type
+				});
+			}
+		}
+	}
 
-    private parseEnums(line: number, content: string, res: ParsedToken[]) {
-        const matches = content.matchAll(/[A-Z]+\.[A-Za-z]+/g);
-        for (const match of matches) {
-            const division = match[0].indexOf(".");
-            res.push({
-                line: line,
-                startCharacter: match.index,
-                length: division,
-                tokenType: "enum"
-            });
-            res.push({
-                line: line,
-                startCharacter: match.index + division + 1,
-                length: match[0].length - 1 - division,
-                tokenType: "enumMember"
-            });
-        }
-    }
+	private parseEnums(line: number, content: string, res: ParsedToken[]) {
+		const matches = content.matchAll(/[A-Z]+\.[A-Za-z]+/g);
+		for (const match of matches) {
+			const division = match[0].indexOf(".");
+			res.push({
+				line: line,
+				startCharacter: match.index,
+				length: division,
+				tokenType: "enum"
+			});
+			res.push({
+				line: line,
+				startCharacter: match.index + division + 1,
+				length: match[0].length - 1 - division,
+				tokenType: "enumMember"
+			});
+		}
+	}
 
-    private encodeTokenType(tokenType: string): number {
-        if (tokenTypes.has(tokenType)) {
-            return tokenTypes.get(tokenType) as number;
-        }
-        return 0;
-    }
+	private encodeTokenType(tokenType: string): number {
+		if (tokenTypes.has(tokenType)) {
+			return tokenTypes.get(tokenType) as number;
+		}
+		return 0;
+	}
 }

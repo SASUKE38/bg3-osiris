@@ -8,13 +8,11 @@ import {
 	InitializeResult,
 	Connection,
 	DidChangeConfigurationParams
-} from 'vscode-languageserver/node';
+} from "vscode-languageserver/node";
 
-import {
-	TextDocument
-} from 'vscode-languageserver-textdocument';
-import { DiagnosticProvider } from './diagnostics/diagnosticsProvider';
-import { ComponentBase } from './componentBase';
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
+import { ComponentBase } from "./componentBase";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
@@ -44,7 +42,7 @@ export class Server {
 		connection.onInitialize(this.initializeHandler);
 		connection.onInitialized(this.initializedHandler);
 		connection.onDidChangeConfiguration(this.didchangeConfigurationHandler);
-		documents.onDidClose(e => {
+		documents.onDidClose((e) => {
 			documentSettings.delete(e.document.uri);
 		});
 
@@ -53,19 +51,15 @@ export class Server {
 
 		this.connection = connection;
 		this.documents = documents;
-		this.components = components.map(component => new component(this));
-		this.components.forEach(component => component.initializeComponent?.(connection));
+		this.components = components.map((component) => new component(this));
+		this.components.forEach((component) => component.initializeComponent?.(connection));
 	}
 
 	private initializeHandler = (params: InitializeParams): InitializeResult => {
 		const capabilities = params.capabilities;
 
-		this.hasConfigurationCapability = !!(
-			capabilities.workspace && !!capabilities.workspace.configuration
-		);
-		this.hasWorkspaceFolderCapability = !!(
-			capabilities.workspace && !!capabilities.workspace.workspaceFolders
-		);
+		this.hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
+		this.hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders);
 		this.hasDiagnosticRelatedInformationCapability = !!(
 			capabilities.textDocument &&
 			capabilities.textDocument.publishDiagnostics &&
@@ -92,34 +86,32 @@ export class Server {
 			};
 		}
 		return result;
-	}
+	};
 
 	private initializedHandler = () => {
 		if (this.hasConfigurationCapability) {
-		this.connection.client.register(DidChangeConfigurationNotification.type, undefined);
+			this.connection.client.register(DidChangeConfigurationNotification.type, undefined);
 		}
 		if (this.hasWorkspaceFolderCapability) {
-			this.connection.workspace.onDidChangeWorkspaceFolders(_event => {
-				this.connection.console.log('Workspace folder change event received.');
+			this.connection.workspace.onDidChangeWorkspaceFolders((_event) => {
+				this.connection.console.log("Workspace folder change event received.");
 				console.log(_event);
 			});
 		}
-	}
+	};
 
 	private didchangeConfigurationHandler = (change: DidChangeConfigurationParams) => {
 		if (this.hasConfigurationCapability) {
 			// Reset all cached document settings
 			documentSettings.clear();
 		} else {
-			globalSettings = (
-				(change.settings.languageServerExample || defaultSettings)
-			);
+			globalSettings = change.settings.languageServerExample || defaultSettings;
 		}
 		// Refresh the diagnostics since the `maxNumberOfProblems` could have changed.
 		// We could optimize things here and re-fetch the setting first can compare it
 		// to the existing setting, but this is out of scope for this example.
 		this.connection.languages.diagnostics.refresh();
-	}
+	};
 
 	getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 		if (!this.hasConfigurationCapability) {
@@ -129,7 +121,7 @@ export class Server {
 		if (!result) {
 			result = this.connection.workspace.getConfiguration({
 				scopeUri: resource,
-				section: 'languageServerExample'
+				section: "languageServerExample"
 			});
 			documentSettings.set(resource, result);
 		}

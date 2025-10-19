@@ -1,5 +1,5 @@
-import { Connection } from 'vscode-languageserver';
-import { Server } from './server';
+import { Connection } from "vscode-languageserver";
+import { Server } from "./server";
 
 export abstract class ComponentBase {
 	readonly server: Server;
@@ -7,7 +7,6 @@ export abstract class ComponentBase {
 	constructor(server: Server) {
 		this.server = server;
 	}
-
 
 	initializeComponent?(connection: Connection): void;
 }

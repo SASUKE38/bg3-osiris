@@ -5,6 +5,7 @@ This in-development Visual Studio Code extension provides language support for O
 ## Features
 
 Planned features include:
+
 - Syntax highlighting
 - Diagnostics for syntax and program logic
 - Hover support
