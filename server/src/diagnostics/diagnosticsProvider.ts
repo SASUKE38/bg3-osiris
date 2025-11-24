@@ -44,5 +44,9 @@ export class DiagnosticProvider extends ComponentBase {
 				} satisfies DocumentDiagnosticReport;
 			}
 		});
+
+		connection.workspace.getWorkspaceFolders().then((value) => {
+			console.log(value);
+		});
 	}
 }

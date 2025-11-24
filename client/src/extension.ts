@@ -1,6 +1,6 @@
 import { DocumentSemanticTokensProvider } from "./semantics/documentSemanticTokensProvider";
 import { workspace, ExtensionContext } from "vscode";
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
+import { LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind } from "vscode-languageclient/node";
 import { ComponentBase } from "./componentBase";
 import { StoryOutlineProvider } from "./storyOutline/storyOutline";
 import { join } from "path";
@@ -15,15 +15,14 @@ export class Client {
 	readonly id: string = "bg3-osiris-language-client";
 	readonly name: string = "BG3 Osiris";
 	readonly serverPath: string = join("server", "out", "server.js");
+	private intialized = false;
 	context: ExtensionContext;
-	components: ComponentContainer[];
+	components: ComponentBase[];
 	connection: LanguageClient;
 
 	constructor(context: ExtensionContext, components: ComponentContainer[]) {
 		this.context = context;
-		this.components = components;
-		this.components.map((component) => new component(this.context));
-
+		this.components = components.map((component) => new component(this.context));
 		this.connection = this.createConnection();
 	}
 
@@ -45,6 +44,13 @@ export class Client {
 		const client = new LanguageClient(this.id, this.name, serverOptions, clientOptions);
 
 		client.start();
+		client.onDidChangeState((event) => {
+			if (!this.intialized && event.newState == State.Running) {
+				this.intialized = true;
+				this.connection.sendNotification("running");
+				this.components.forEach((component) => component.initializeComponent?.(this.connection));
+			}
+		});
 		return client;
 	}
 

@@ -52,7 +52,6 @@ export class Server {
 		this.connection = connection;
 		this.documents = documents;
 		this.components = components.map((component) => new component(this));
-		this.components.forEach((component) => component.initializeComponent?.(connection));
 	}
 
 	private initializeHandler = (params: InitializeParams): InitializeResult => {
@@ -98,6 +97,10 @@ export class Server {
 				console.log(_event);
 			});
 		}
+
+		this.connection.onNotification("running", () => {
+			this.components.forEach((component) => component.initializeComponent?.(this.connection));
+		});
 	};
 
 	private didchangeConfigurationHandler = (change: DidChangeConfigurationParams) => {
