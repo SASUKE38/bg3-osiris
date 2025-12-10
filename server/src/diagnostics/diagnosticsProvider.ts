@@ -20,8 +20,8 @@ export class DiagnosticProvider extends ComponentBase {
 		const lexer = new GoalLexer(textDocument);
 		lexer.tokenize();
 		const parser = new GoalParser(lexer.tokens);
-		const node = parser.parse();
-		console.log(node);
+		// const node = parser.parse();
+		// console.log(node);
 
 		return parser.diagnostics;
 	}
@@ -43,10 +43,6 @@ export class DiagnosticProvider extends ComponentBase {
 					items: []
 				} satisfies DocumentDiagnosticReport;
 			}
-		});
-
-		connection.workspace.getWorkspaceFolders().then((value) => {
-			console.log(value);
 		});
 	}
 }
