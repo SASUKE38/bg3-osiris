@@ -32,7 +32,7 @@ export class ModManager extends ComponentBase {
 						if (path.startsWith("file:///")) {
 							path = path.substring(8);
 						}
-						this.createMod(path);
+						this.createModFromPath(path);
 					}
 				}
 			},
@@ -42,15 +42,22 @@ export class ModManager extends ComponentBase {
 		);
 	}
 
-	createMod(path: string) {
-		this.readModMeta(path);
+	createModFromPath(path: string) {
+		const meta = this.readModMeta(path);
+		if (meta) {
+			this.createMod(meta);
+		}
 	}
 
-	readModMeta(path: string): ModMetaModuleInfo {
-		const meta: Partial<ModMetaModuleInfo> = {};
-		meta.dependencies = [];
-		meta.scripts = [];
+	private createMod(meta: ModMetaModuleInfo) {
+		this.mods.push(new Mod(meta));
+	}
+
+	private readModMeta(path: string): ModMetaModuleInfo | undefined {
 		try {
+			const meta: Partial<ModMetaModuleInfo> = {};
+			meta.dependencies = [];
+			meta.scripts = [];
 			const rootNode = findRegionChild(
 				findRegion(this.xmlParser.parse(readFileSync(join(path, "meta.lsx"), { encoding: "utf-8" })), "Config"),
 				"root"
@@ -84,9 +91,10 @@ export class ModManager extends ComponentBase {
 					meta.scripts.push(scriptObj);
 				}
 			}
+			return meta as ModMetaModuleInfo;
 		} catch (e) {
 			console.error(e);
 		}
-		return meta as ModMetaModuleInfo;
+		return undefined;
 	}
 }

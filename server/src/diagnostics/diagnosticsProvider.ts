@@ -20,7 +20,7 @@ export class DiagnosticProvider extends ComponentBase {
 		const lexer = new GoalLexer(textDocument);
 		lexer.tokenize();
 		const parser = new GoalParser(lexer.tokens);
-		// const node = parser.parse();
+		parser.parse();
 		// console.log(node);
 
 		return parser.diagnostics;
