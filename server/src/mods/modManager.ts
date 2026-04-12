@@ -1,7 +1,6 @@
 import { Connection } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "./mod";
-import { readFileSync } from "fs";
 import { join } from "path";
 import {
 	collectAttributes,
@@ -9,7 +8,8 @@ import {
 	findRegion,
 	findRegionChild,
 	getNodeChildren,
-	LSXMLParserFactory
+	LSXMLParserFactory,
+	ParseLSXML
 } from "../utils/lsXML/lsXML";
 import {
 	ModMetaModuleInfo,
@@ -59,7 +59,7 @@ export class ModManager extends ComponentBase {
 			meta.dependencies = [];
 			meta.scripts = [];
 			const rootNode = findRegionChild(
-				findRegion(this.xmlParser.parse(readFileSync(join(path, "meta.lsx"), { encoding: "utf-8" })), "Config"),
+				findRegion(ParseLSXML(this.xmlParser, join(path, "meta.lsx")), "Config"),
 				"root"
 			);
 

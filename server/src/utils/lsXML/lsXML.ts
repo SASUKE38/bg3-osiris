@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { PathOrFileDescriptor, readFileSync } from 'fs';
 
 export interface LSXMLFile {
 	save: LSXMLSave;
@@ -47,6 +48,10 @@ const uniqueAttributeNames: Map<string, string> = new Map<string, string>([
 	["MD5", "md5"],
 	["UUID", "uuid"]
 ]);
+
+export function ParseLSXML(parser: XMLParser, path: PathOrFileDescriptor): any {
+	return parser.parse(readFileSync(path, { encoding: "utf-8" }));
+}
 
 export function LSXMLParserFactory(): XMLParser {
 	return new XMLParser({
