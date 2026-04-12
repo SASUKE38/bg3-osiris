@@ -20,7 +20,8 @@ import {
 } from "./modMeta";
 
 export class ModManager extends ComponentBase {
-	readonly mods: Mod[] = [];
+	readonly initializingMods: Map<string, Promise<Mod>> = new Map<string, Promise<Mod>>();
+	readonly mods: Map<string, Mod> = new Map<string, Mod>();
 	private readonly xmlParser = LSXMLParserFactory();
 
 	initializeComponent(connection: Connection): void {
@@ -42,15 +43,29 @@ export class ModManager extends ComponentBase {
 		);
 	}
 
-	createModFromPath(path: string) {
+	async createModFromPath(path: string) {
 		const meta = this.readModMeta(path);
 		if (meta) {
-			this.createMod(meta);
+			await this.createMod(meta);
 		}
 	}
 
-	private createMod(meta: ModMetaModuleInfo) {
-		this.mods.push(new Mod(meta));
+	private async createMod(meta: ModMetaModuleInfo): Promise<Mod> {
+		if (meta.uuid in this.mods) {
+			return this.mods.get(meta.uuid) as Mod;
+		}
+		if (!(meta.uuid in this.initializingMods)) {
+			const mod = new Mod(meta);
+			const initializer = new Promise<Mod>((resolve) => {
+				mod.initialize();
+				this.initializingMods.delete(meta.uuid);
+				this.mods.set(meta.uuid, mod);
+				resolve(mod);
+			});
+			this.initializingMods.set(meta.uuid, initializer);
+		}
+
+		return this.initializingMods.get(meta.uuid) as Promise<Mod>;
 	}
 
 	private readModMeta(path: string): ModMetaModuleInfo | undefined {
