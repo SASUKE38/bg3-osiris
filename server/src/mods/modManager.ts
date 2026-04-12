@@ -56,13 +56,13 @@ export class ModManager extends ComponentBase {
 		}
 		if (!(meta.uuid in this.initializingMods)) {
 			const mod = new Mod(meta);
-			const initializer = new Promise<Mod>((resolve) => {
-				mod.initialize();
-				this.initializingMods.delete(meta.uuid);
-				this.mods.set(meta.uuid, mod);
-				resolve(mod);
-			});
-			this.initializingMods.set(meta.uuid, initializer);
+			const initializer = async(manager: ModManager) => {
+				await mod.initialize();
+				manager.initializingMods.delete(meta.uuid);
+				manager.mods.set(meta.uuid, mod);
+				return mod;
+			}
+			this.initializingMods.set(meta.uuid, initializer(this));
 		}
 
 		return this.initializingMods.get(meta.uuid) as Promise<Mod>;
