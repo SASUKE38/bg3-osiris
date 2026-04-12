@@ -14,10 +14,11 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
 import { ComponentBase } from "./componentBase";
 import { ModManager } from "./mods/modManager";
+import { DocumentationProvider } from './documentation/documentationProvider';
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: ComponentContainer[] = [DiagnosticProvider, ModManager];
+const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, ModManager];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
