@@ -4,14 +4,33 @@ import { Server } from "../server";
 import axios from "axios";
 import { Element } from "domhandler";
 
+// Change to index signatures?
+export class DocumentationEntry {
+	description: string[] = [];
+	fullDefinitions: string[] = [];
+	examples: string[] = [];
+	seeAlso: string[] = [];
+
+	static readonly descriptionHeader = "Description";
+	static readonly definitionsHeader = "Full Definitions";
+	static readonly examplesHeader = "Example(s)";
+	static readonly seeAlsoHeader = "See Also";
+	static readonly fieldMapping = new Map<string, keyof DocumentationEntry>([
+		["Description", "description"],
+		["Full Definitions", "fullDefinitions"],
+		["Example(s)", "examples"],
+		["See Also", "seeAlso"]
+	]);
+}
+
 export class DocumentationProvider extends ComponentBase {
 	readonly urlBase = new URL("https://docs.baldursgate3.game");
 	readonly urlPathName = "/index.php";
 	readonly urlSearchPrefix = "?title=";
+	readonly documentationCollection = new Map<string, DocumentationEntry>();
 
 	constructor(server: Server) {
 		super(server);
-
 		axios.interceptors.response.use(
 			(response) => {
 				return response;
@@ -78,10 +97,19 @@ export class DocumentationProvider extends ComponentBase {
 		return url;
 	}
 
-	private parseFunctionDocumentation(elements: Cheerio<Element>, $: CheerioAPI) {
+	private parseFunctionDocumentation(elements: Cheerio<Element>, $: CheerioAPI): DocumentationEntry {
+		let header: keyof DocumentationEntry;
+		const entry = new DocumentationEntry();
+		const { fieldMapping } = DocumentationEntry;
 		elements.each((i, el) => {
 			const text = $(el).text();
-			if (text === "Full Definitions") console.log($(el).text());
+			const field = fieldMapping.get(text);
+			if (field) {
+				header = field as keyof DocumentationEntry;
+			} else {
+				if (header) entry[header].push(text);
+			}
 		});
+		return entry;
 	}
 }
