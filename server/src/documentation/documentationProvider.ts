@@ -3,6 +3,7 @@ import { ComponentBase } from "../componentBase";
 import { Server } from "../server";
 import axios from "axios";
 import { Element } from "domhandler";
+import { writeFile } from 'fs/promises';
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -11,10 +12,6 @@ export class DocumentationEntry {
 	examples: string[] = [];
 	seeAlso: string[] = [];
 
-	static readonly descriptionHeader = "Description";
-	static readonly definitionsHeader = "Full Definitions";
-	static readonly examplesHeader = "Example(s)";
-	static readonly seeAlsoHeader = "See Also";
 	static readonly fieldMapping = new Map<string, keyof DocumentationEntry>([
 		["Description", "description"],
 		["Full Definitions", "fullDefinitions"],
@@ -42,10 +39,11 @@ export class DocumentationProvider extends ComponentBase {
 		);
 	}
 
-	async getCategoryLinks(title: string) {
-		const url = this.getSearchURL(title);
+	async retrieveCategoryDocumentation(category: string) {
+		const url = this.getSearchURL(category);
 		const searchURLs: string[] = [];
-		axios.get(url.toString()).then(async (response) => {
+		const response = await axios.get(url.toString());
+		try {
 			const $ = load(response.data);
 			$(".mw-category-group")
 				.children()
@@ -56,33 +54,31 @@ export class DocumentationProvider extends ComponentBase {
 					if (link) searchURLs.push(link as string);
 				});
 			await Promise.all(
-				searchURLs.map(async (url) => {
-					this.getFunctionDocumentation(url);
-				})
+				searchURLs.map(this.retrieveFunctionDocumentation, this)
 			);
-		});
+			this.logDocumentationCollection();
+		} catch {
+			console.error("Failed to fetch category documentation.");
+		}
 	}
 
-	async getFunctionDocumentation(title: string): Promise<string> {
+	async retrieveFunctionDocumentation(title: string) {
 		const url = this.getSearchURL(title);
-		axios
-			.get(url.toString())
-			.then((response) => {
-				const $ = load(response.data);
-				const $content = $(".mw-body-content")
-					.first()
-					.children()
-					.children()
-					.filter((_, element) => {
-						return !$(element).hasClass("toc");
-					});
-				this.parseFunctionDocumentation($content, $);
-				return $content.text();
-			})
-			.catch(() => {
-				console.error("Failed to fetch documentation.");
-			});
-		return "";
+		const response = await axios.get(url.toString());
+		try {
+			const $ = load(response.data);
+			const $content = $(".mw-body-content")
+				.first()
+				.children()
+				.children()
+				.filter((_, element) => {
+					return !$(element).hasClass("toc");
+				});
+			const title = $(".mw-page-title-main").text();
+			this.parseFunctionDocumentation($content, title, $);
+		} catch {
+			console.error("Failed to fetch function documentation.");
+		}
 	}
 
 	private getSearchURL(query: string) {
@@ -97,10 +93,10 @@ export class DocumentationProvider extends ComponentBase {
 		return url;
 	}
 
-	private parseFunctionDocumentation(elements: Cheerio<Element>, $: CheerioAPI): DocumentationEntry {
+	private parseFunctionDocumentation(elements: Cheerio<Element>, title: string, $: CheerioAPI) {
 		let header: keyof DocumentationEntry;
-		const entry = new DocumentationEntry();
 		const { fieldMapping } = DocumentationEntry;
+		const entry = new DocumentationEntry();
 		elements.each((i, el) => {
 			const text = $(el).text();
 			const field = fieldMapping.get(text);
@@ -110,6 +106,14 @@ export class DocumentationProvider extends ComponentBase {
 				if (header) entry[header].push(text);
 			}
 		});
-		return entry;
+		this.documentationCollection.set(title, entry);
+	}
+
+	private async logDocumentationCollection() {
+		try {
+			writeFile("builtInDocumentation.json", JSON.stringify(Object.fromEntries(this.documentationCollection), null, 4));
+		} catch (error) {
+			console.error(error);
+		}
 	}
 }
