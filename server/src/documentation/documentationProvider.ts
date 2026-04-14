@@ -3,7 +3,8 @@ import { ComponentBase } from "../componentBase";
 import { Server } from "../server";
 import axios from "axios";
 import { Element } from "domhandler";
-import { writeFile } from 'fs/promises';
+import { writeFile } from "fs/promises";
+import { join } from "path";
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -24,7 +25,24 @@ export class DocumentationProvider extends ComponentBase {
 	readonly urlBase = new URL("https://docs.baldursgate3.game");
 	readonly urlPathName = "/index.php";
 	readonly urlSearchPrefix = "?title=";
+	readonly urlPageFromPrefix = "&pagefrom=";
 	readonly documentationCollection = new Map<string, DocumentationEntry>();
+
+	private static readonly callPages = [
+		["Category:Osiris_Calls", ""],
+		["Category:Osiris_Calls", "MoveItemTo"],
+		["Category:Osiris_Calls", "SetVarInteger"]
+	];
+
+	private static readonly eventPages = [
+		["Category:Osiris_Events", ""],
+		["Category:Osiris_Events", "StartAttack"]
+	];
+
+	private static readonly queryPages = [
+		["Category:Osiris_Queries", ""],
+		["Category:Osiris_Queries", "GetTeleportTarget"]
+	];
 
 	constructor(server: Server) {
 		super(server);
@@ -39,8 +57,19 @@ export class DocumentationProvider extends ComponentBase {
 		);
 	}
 
-	async retrieveCategoryDocumentation(category: string) {
-		const url = this.getSearchURL(category);
+	async getCategories() {
+		await this.retrieveCategoryDocumentation(DocumentationProvider.callPages);
+		await this.retrieveCategoryDocumentation(DocumentationProvider.eventPages);
+		await this.retrieveCategoryDocumentation(DocumentationProvider.queryPages);
+	}
+
+	async retrieveCategoryDocumentation(category: string[][]) {
+		await Promise.all(category.map(this.retrieveCategoryPageDocumentation, this));
+		this.logDocumentationCollection();
+	}
+
+	async retrieveCategoryPageDocumentation(category: string[]) {
+		const url = this.getSearchURL(category[0], category[1]);
 		const searchURLs: string[] = [];
 		const response = await axios.get(url.toString());
 		try {
@@ -53,10 +82,7 @@ export class DocumentationProvider extends ComponentBase {
 					const link = $(element).attr("href");
 					if (link) searchURLs.push(link as string);
 				});
-			await Promise.all(
-				searchURLs.map(this.retrieveFunctionDocumentation, this)
-			);
-			this.logDocumentationCollection();
+			await Promise.all(searchURLs.map(this.retrieveFunctionDocumentation, this));
 		} catch {
 			console.error("Failed to fetch category documentation.");
 		}
@@ -81,13 +107,13 @@ export class DocumentationProvider extends ComponentBase {
 		}
 	}
 
-	private getSearchURL(query: string) {
+	private getSearchURL(query: string, pageFrom = "") {
 		const url = new URL(this.urlBase);
 		url.search = this.urlSearchPrefix;
 		if (query.startsWith(this.urlPathName + this.urlSearchPrefix)) {
 			url.search += query.substring(this.urlPathName.length + this.urlSearchPrefix.length);
 		} else {
-			url.search += query;
+			url.search += query + this.urlPageFromPrefix + pageFrom;
 		}
 		url.pathname = this.urlPathName;
 		return url;
@@ -111,7 +137,10 @@ export class DocumentationProvider extends ComponentBase {
 
 	private async logDocumentationCollection() {
 		try {
-			writeFile("builtInDocumentation.json", JSON.stringify(Object.fromEntries(this.documentationCollection), null, 4));
+			writeFile(
+				join(__dirname, "builtInDocumentation.json"),
+				JSON.stringify(Object.fromEntries(this.documentationCollection), null, 4)
+			);
 		} catch (error) {
 			console.error(error);
 		}
