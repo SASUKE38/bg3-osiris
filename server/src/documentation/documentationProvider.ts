@@ -8,10 +8,11 @@ import { join } from "path";
 
 // Change to index signatures?
 export class DocumentationEntry {
-	description: string[] = [];
-	fullDefinitions: string[] = [];
-	examples: string[] = [];
-	seeAlso: string[] = [];
+	type: string;
+	description = "";
+	fullDefinitions = "";
+	examples = "";
+	seeAlso = "";
 
 	static readonly fieldMapping = new Map<string, keyof DocumentationEntry>([
 		["Description", "description"],
@@ -19,6 +20,10 @@ export class DocumentationEntry {
 		["Example(s)", "examples"],
 		["See Also", "seeAlso"]
 	]);
+
+	constructor(type: string) {
+		this.type = type;
+	}
 }
 
 export class DocumentationProvider extends ComponentBase {
@@ -28,20 +33,20 @@ export class DocumentationProvider extends ComponentBase {
 	readonly urlPageFromPrefix = "&pagefrom=";
 	readonly documentationCollection = new Map<string, DocumentationEntry>();
 
-	private static readonly callPages = [
-		["Category:Osiris_Calls", ""],
-		["Category:Osiris_Calls", "MoveItemTo"],
-		["Category:Osiris_Calls", "SetVarInteger"]
+	private static readonly callPages: [string, string, string][] = [
+		["Category:Osiris_Calls", "", "call"],
+		["Category:Osiris_Calls", "MoveItemTo", "call"],
+		["Category:Osiris_Calls", "SetVarInteger", "call"]
 	];
 
-	private static readonly eventPages = [
-		["Category:Osiris_Events", ""],
-		["Category:Osiris_Events", "StartAttack"]
+	private static readonly eventPages: [string, string, string][] = [
+		["Category:Osiris_Events", "", "event"],
+		["Category:Osiris_Events", "StartAttack", "event"]
 	];
 
-	private static readonly queryPages = [
-		["Category:Osiris_Queries", ""],
-		["Category:Osiris_Queries", "GetTeleportTarget"]
+	private static readonly queryPages: [string, string, string][] = [
+		["Category:Osiris_Queries", "", "query"],
+		["Category:Osiris_Queries", "GetTeleportTarget", "query"]
 	];
 
 	constructor(server: Server) {
@@ -63,14 +68,15 @@ export class DocumentationProvider extends ComponentBase {
 		await this.retrieveCategoryDocumentation(DocumentationProvider.queryPages);
 	}
 
-	async retrieveCategoryDocumentation(category: string[][]) {
+	async retrieveCategoryDocumentation(category: [string, string, string][]) {
 		await Promise.all(category.map(this.retrieveCategoryPageDocumentation, this));
 		this.logDocumentationCollection();
 	}
 
-	async retrieveCategoryPageDocumentation(category: string[]) {
+	async retrieveCategoryPageDocumentation(category: [string, string, string]) {
 		const url = this.getSearchURL(category[0], category[1]);
-		const searchURLs: string[] = [];
+		const type = category[2];
+		const searchURLs: [string, string][] = [];
 		const response = await axios.get(url.toString());
 		try {
 			const $ = load(response.data);
@@ -80,7 +86,7 @@ export class DocumentationProvider extends ComponentBase {
 				.children()
 				.each((i, element) => {
 					const link = $(element).attr("href");
-					if (link) searchURLs.push(link as string);
+					if (link) searchURLs.push([link as string, type]);
 				});
 			await Promise.all(searchURLs.map(this.retrieveFunctionDocumentation, this));
 		} catch {
@@ -88,7 +94,9 @@ export class DocumentationProvider extends ComponentBase {
 		}
 	}
 
-	async retrieveFunctionDocumentation(title: string) {
+	async retrieveFunctionDocumentation(urlPair: [string, string]) {
+		const title = urlPair[0];
+		const type = urlPair[1];
 		const url = this.getSearchURL(title);
 		const response = await axios.get(url.toString());
 		try {
@@ -101,7 +109,7 @@ export class DocumentationProvider extends ComponentBase {
 					return !$(element).hasClass("toc");
 				});
 			const title = $(".mw-page-title-main").text();
-			this.parseFunctionDocumentation($content, title, $);
+			this.parseFunctionDocumentation($content, title, type, $);
 		} catch {
 			console.error("Failed to fetch function documentation.");
 		}
@@ -119,17 +127,17 @@ export class DocumentationProvider extends ComponentBase {
 		return url;
 	}
 
-	private parseFunctionDocumentation(elements: Cheerio<Element>, title: string, $: CheerioAPI) {
+	private parseFunctionDocumentation(elements: Cheerio<Element>, title: string, type: string, $: CheerioAPI) {
 		let header: keyof DocumentationEntry;
 		const { fieldMapping } = DocumentationEntry;
-		const entry = new DocumentationEntry();
+		const entry = new DocumentationEntry(type);
 		elements.each((i, el) => {
 			const text = $(el).text();
 			const field = fieldMapping.get(text);
 			if (field) {
 				header = field as keyof DocumentationEntry;
 			} else {
-				if (header) entry[header].push(text);
+				if (header) entry[header] += text;
 			}
 		});
 		this.documentationCollection.set(title, entry);
