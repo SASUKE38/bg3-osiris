@@ -3,8 +3,9 @@ import { ComponentBase } from "../componentBase";
 import { Server } from "../server";
 import axios from "axios";
 import { Element } from "domhandler";
-import { writeFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
+import { existsSync } from "fs";
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -32,6 +33,8 @@ export class DocumentationProvider extends ComponentBase {
 	readonly urlSearchPrefix = "?title=";
 	readonly urlPageFromPrefix = "&pagefrom=";
 	readonly documentationCollection = new Map<string, DocumentationEntry>();
+
+	private static readonly collectionPath = join(__dirname, "builtInDocumentation.json");
 
 	private static readonly callPages: [string, string, string][] = [
 		["Category:Osiris_Calls", "", "call"],
@@ -146,11 +149,20 @@ export class DocumentationProvider extends ComponentBase {
 	private async logDocumentationCollection() {
 		try {
 			writeFile(
-				join(__dirname, "builtInDocumentation.json"),
+				DocumentationProvider.collectionPath,
 				JSON.stringify(Object.fromEntries(this.documentationCollection), null, 4)
 			);
 		} catch (error) {
 			console.error(error);
+		}
+	}
+
+	private async readDocumentationCollection() {
+		if (existsSync(DocumentationProvider.collectionPath)) {
+			const json = await readFile(DocumentationProvider.collectionPath, { encoding: "utf-8" });
+			Object.entries(JSON.parse(json)).forEach((entry) => {
+				this.documentationCollection.set(entry[0], entry[1] as DocumentationEntry);
+			});
 		}
 	}
 }
