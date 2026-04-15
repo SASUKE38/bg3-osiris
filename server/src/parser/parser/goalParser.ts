@@ -1,4 +1,4 @@
-import { SignatureNode, ParameterNode, TypeNode, RuleNode, ComparisonNode, ASTNode, GoalNode } from "../ast/nodes";
+import { SignatureNode, ParameterNode, TypeNode, RuleNode, ComparisonNode, ASTNode, GoalNode, SignatureSectionNode, KBSectionNode } from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import {
 	expectedMessage,
@@ -43,11 +43,11 @@ export class GoalParser extends ParserBase<GoalNode> {
 
 	parse(): GoalNode {
 		this.consumeSequence({ expectedType: this.headerTypes });
-		const init = this.parseSignatureRegion(TokenType.KBSECTION);
+		const init = this.parseSignatureSection(TokenType.KBSECTION);
 		this.consume({ expectedType: [TokenType.KBSECTION] });
-		const kb = this.parseKB();
+		const kb = this.parseKBSection();
 		this.consume({ expectedType: [TokenType.EXITSECTION] });
-		const exit = this.parseSignatureRegion(TokenType.ENDEXITSECTION);
+		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
 		this.consumeSequence({ expectedType: this.footerTypes });
 		return {
 			init,
@@ -57,18 +57,26 @@ export class GoalParser extends ParserBase<GoalNode> {
 		};
 	}
 
-	private parseKB(): RuleNode[] {
+	private parseKBSection(): KBSectionNode {
 		const body: RuleNode[] = [];
+		const sectionStart = this.peek();
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
 			if (this.consumeUnexpected({ expectedType: [TokenType.PROC, TokenType.QRY, TokenType.IF] }).matched) {
 				body.push(this.parseRule());
 			}
 		}
-		return body;
+		return {
+			content: body,
+			range: {
+				start: sectionStart.range.start,
+				end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
+			}
+		};
 	}
 
-	private parseSignatureRegion(endType: TokenType): SignatureNode[] {
+	private parseSignatureSection(endType: TokenType): SignatureSectionNode {
 		const body: SignatureNode[] = [];
+		const sectionStart = this.peek();
 		while (!this.atTokenType(endType)) {
 			if (this.consumeUnexpected({ expectedType: [TokenType.IDENTIFIER, TokenType.NOT] }).matched) {
 				if (this.peek().type == TokenType.NOT) {
@@ -78,7 +86,13 @@ export class GoalParser extends ParserBase<GoalNode> {
 				this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 			}
 		}
-		return body;
+		return {
+			content: body,
+			range: {
+				start: sectionStart.range.start, 
+				end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
+			}
+		};
 	}
 
 	private parseRule(): RuleNode {

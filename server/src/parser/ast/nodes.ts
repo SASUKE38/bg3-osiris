@@ -38,9 +38,17 @@ export interface NumberNode extends ASTNode {
 // Goal Nodes
 
 export interface GoalNode extends ASTNode {
-	init: SignatureNode[];
-	kb: RuleNode[];
-	exit: SignatureNode[];
+	init: SignatureSectionNode;
+	kb: KBSectionNode;
+	exit: SignatureSectionNode;
+}
+
+export interface SignatureSectionNode extends ASTNode {
+	content: SignatureNode[];
+}
+
+export interface KBSectionNode extends ASTNode {
+	content: RuleNode[];
 }
 
 export interface TypeNode extends ASTNode {
