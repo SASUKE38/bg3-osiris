@@ -1,9 +1,10 @@
-import { readdir } from 'fs/promises';
-import { ModMetaModuleInfo } from '../modMeta';
-import { Resource } from '../resource/resource';
-import { Goal } from './goal';
-import { join } from 'path';
-import { EventEmitter } from 'events';
+import { readdir } from "fs/promises";
+import { ModMetaModuleInfo } from "../modMeta";
+import { Resource } from "../resource/resource";
+import { Goal } from "./goal";
+import { join } from "path";
+import { EventEmitter } from "events";
+import { GoalResource } from "../resource/goalResource";
 
 export class Story extends EventEmitter {
 	private meta?: ModMetaModuleInfo;
@@ -15,7 +16,7 @@ export class Story extends EventEmitter {
 		this.meta = meta;
 		const contents = await readdir(join(directory, "Story", "RawFiles", "Goals"));
 		for (const file of contents) {
-			this.files.push(new Resource(this, join(directory, "Story", "RawFiles", "Goals", file)));
+			this.files.push(new GoalResource(this, join(directory, "Story", "RawFiles", "Goals", file)));
 		}
 		this.emit("storyInitialized");
 	}

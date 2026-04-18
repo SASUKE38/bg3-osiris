@@ -1,21 +1,20 @@
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Story } from '../story/story';
-import { ASTNode } from '../../parser/ast/nodes';
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { Story } from "../story/story";
+import { ASTNode } from "../../parser/ast/nodes";
+import { Position } from "vscode-languageserver";
 
-export class Resource {
-	private ast?: ASTNode;
-	private document?: TextDocument;
+export abstract class Resource {
 	readonly path;
-	private readonly story;
+	protected ast?: ASTNode;
+	protected document?: TextDocument;
+	protected readonly story;
 
 	constructor(story: Story, path: string) {
 		this.story = story;
 		this.path = path;
 	}
 
-	async load() {
-
-	}
+	abstract load(): Promise<ASTNode | undefined>;
 
 	setTextDocument(document: TextDocument) {
 		this.document = document;
@@ -23,5 +22,12 @@ export class Resource {
 
 	removeTextDocment() {
 		this.document = undefined;
+	}
+
+	getNodeAt(position: Position) {}
+
+	async getRootNode(): Promise<ASTNode | undefined> {
+		if (this.ast) return Promise.resolve(this.ast);
+		else return this.load();
 	}
 }

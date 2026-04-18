@@ -1,4 +1,14 @@
-import { SignatureNode, ParameterNode, TypeNode, RuleNode, ComparisonNode, ASTNode, GoalNode, SignatureSectionNode, KBSectionNode } from "../ast/nodes";
+import {
+	SignatureNode,
+	ParameterNode,
+	TypeNode,
+	RuleNode,
+	ComparisonNode,
+	ASTNode,
+	GoalNode,
+	SignatureSectionNode,
+	KBSectionNode
+} from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import {
 	expectedMessage,
@@ -89,7 +99,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		return {
 			content: body,
 			range: {
-				start: sectionStart.range.start, 
+				start: sectionStart.range.start,
 				end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
 			}
 		};

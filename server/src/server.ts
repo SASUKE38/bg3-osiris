@@ -14,7 +14,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
 import { ComponentBase } from "./componentBase";
 import { ModManager } from "./mods/modManager";
-import { DocumentationProvider } from './documentation/documentationProvider';
+import { DocumentationProvider } from "./documentation/documentationProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 

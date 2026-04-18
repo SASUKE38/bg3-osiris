@@ -19,20 +19,15 @@ import {
 	ModMetaScriptParameter
 } from "./modMeta";
 import { existsSync, readdirSync } from "fs";
-import { Resource } from './resource/resource';
-import { trimFilePrefix } from '../utils/path/pathUtils';
-import { Server } from '../server';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Resource } from "./resource/resource";
+import { trimFilePrefix } from "../utils/path/pathUtils";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 export class ModManager extends ComponentBase {
 	readonly initializingMods = new Map<string, Promise<Mod>>();
 	readonly mods = new Map<string, Mod>();
 	private readonly xmlParser = LSXMLParserFactory();
 	private readonly orphanedFiles = new Set<TextDocument>();
-
-	constructor(server: Server) {
-		super(server);
-	}
 
 	initializeComponent(connection: Connection): void {
 		connection.workspace.getWorkspaceFolders().then(
@@ -49,7 +44,7 @@ export class ModManager extends ComponentBase {
 				console.error(reason);
 			}
 		);
-		
+
 		const { documents } = this.server;
 		documents.onDidOpen(this.handleDidOpen);
 		documents.onDidClose(this.handleDidClose);
@@ -65,7 +60,7 @@ export class ModManager extends ComponentBase {
 		const file = this.findResource(trimFilePrefix(decodeURIComponent(event.document.uri)));
 		if (file) file.removeTextDocment();
 		else this.orphanedFiles.delete(event.document);
-	}
+	};
 
 	private findResource(path: string): Resource | undefined {
 		for (const mod of this.mods.values()) {
@@ -88,7 +83,7 @@ export class ModManager extends ComponentBase {
 		if (!(meta.uuid in this.initializingMods)) {
 			const mod = new Mod(meta);
 			mod.story.on("storyInitialized", () => {
-					for (const file of this.orphanedFiles) {
+				for (const file of this.orphanedFiles) {
 					const path = this.findResource(trimFilePrefix(decodeURIComponent(file.uri)));
 					if (path) {
 						path.setTextDocument(file);

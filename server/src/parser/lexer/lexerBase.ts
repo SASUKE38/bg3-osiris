@@ -69,7 +69,7 @@ export abstract class LexerBase {
 		return regexMatch[0].substring(indices[0], regexMatch[0].length - indices[1]);
 	}
 
-	tokenize() {
+	tokenize(): Token[] {
 		while (!this.atEOF()) {
 			let matched = false;
 			for (const pattern of this.patterns) {
@@ -94,5 +94,6 @@ export abstract class LexerBase {
 				end: this.document.positionAt(this.pos)
 			}
 		});
+		return this.tokens;
 	}
 }

@@ -1,5 +1,5 @@
 import { ModMetaModuleInfo } from "./modMeta";
-import { Story } from './story/story';
+import { Story } from "./story/story";
 
 export class Mod {
 	readonly meta: ModMetaModuleInfo;

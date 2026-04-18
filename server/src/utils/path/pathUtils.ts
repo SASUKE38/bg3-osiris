@@ -1,4 +1,4 @@
-import { normalize } from 'path';
+import { normalize } from "path";
 
 export function trimFilePrefix(path: string) {
 	if (path.startsWith("file:///")) {
