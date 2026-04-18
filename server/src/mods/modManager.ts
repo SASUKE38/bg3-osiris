@@ -1,4 +1,4 @@
-import { Connection } from "vscode-languageserver";
+import { Connection, TextDocumentChangeEvent } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "./mod";
 import { dirname, join } from "path";
@@ -19,11 +19,20 @@ import {
 	ModMetaScriptParameter
 } from "./modMeta";
 import { existsSync, readdirSync } from "fs";
+import { Resource } from './resource/resource';
+import { trimFilePrefix } from '../utils/path/pathUtils';
+import { Server } from '../server';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class ModManager extends ComponentBase {
-	readonly initializingMods: Map<string, Promise<Mod>> = new Map<string, Promise<Mod>>();
-	readonly mods: Map<string, Mod> = new Map<string, Mod>();
+	readonly initializingMods = new Map<string, Promise<Mod>>();
+	readonly mods = new Map<string, Mod>();
 	private readonly xmlParser = LSXMLParserFactory();
+	private readonly orphanedFiles = new Set<TextDocument>();
+
+	constructor(server: Server) {
+		super(server);
+	}
 
 	initializeComponent(connection: Connection): void {
 		connection.workspace.getWorkspaceFolders().then(
@@ -31,9 +40,7 @@ export class ModManager extends ComponentBase {
 				if (folders) {
 					for (const folder of folders) {
 						let path = decodeURIComponent(folder.uri);
-						if (path.startsWith("file:///")) {
-							path = path.substring(8);
-						}
+						path = trimFilePrefix(path);
 						this.createModFromPath(path);
 					}
 				}
@@ -42,6 +49,29 @@ export class ModManager extends ComponentBase {
 				console.error(reason);
 			}
 		);
+		
+		const { documents } = this.server;
+		documents.onDidOpen(this.handleDidOpen);
+		documents.onDidClose(this.handleDidClose);
+	}
+
+	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {
+		const file = this.findResource(trimFilePrefix(decodeURIComponent(event.document.uri)));
+		if (file) file.setTextDocument(event.document);
+		else this.orphanedFiles.add(event.document);
+	};
+
+	private handleDidClose = (event: TextDocumentChangeEvent<TextDocument>) => {
+		const file = this.findResource(trimFilePrefix(decodeURIComponent(event.document.uri)));
+		if (file) file.removeTextDocment();
+		else this.orphanedFiles.delete(event.document);
+	}
+
+	private findResource(path: string): Resource | undefined {
+		for (const mod of this.mods.values()) {
+			const file = mod.story.getResource(path);
+			if (file) return file;
+		}
 	}
 
 	async createModFromPath(path: string) {
@@ -57,8 +87,17 @@ export class ModManager extends ComponentBase {
 		}
 		if (!(meta.uuid in this.initializingMods)) {
 			const mod = new Mod(meta);
+			mod.story.on("storyInitialized", () => {
+					for (const file of this.orphanedFiles) {
+					const path = this.findResource(trimFilePrefix(decodeURIComponent(file.uri)));
+					if (path) {
+						path.setTextDocument(file);
+						this.orphanedFiles.delete(file);
+					}
+				}
+			});
 			const initializer = async (thisArg: ModManager) => {
-				await mod.initialize();
+				await mod.initialize(path);
 				thisArg.initializingMods.delete(meta.uuid);
 				thisArg.mods.set(meta.uuid, mod);
 				return mod;
@@ -94,7 +133,7 @@ export class ModManager extends ComponentBase {
 					});
 				}
 				if (!dependencyFolder) {
-					console.error(`Couldn't find dependency ${dependency} for ${meta.name}`);
+					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
 					continue;
 				}
 				res.push(join(modDir, dependencyFolder));
