@@ -10,7 +10,8 @@ import {
 	IdentifierNode,
 	StringNode,
 	NumberNode,
-	UnknownNode
+	UnknownNode,
+	ASTNode
 } from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import {
@@ -191,6 +192,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 				}).matched
 			) {
 				const parameter = this.peek();
+				let parameterSubNode: ASTNode;
 				switch (parameter.type) {
 					case TokenType.OPEN_PARENTHESIS:
 						this.pop();
@@ -205,33 +207,36 @@ export class GoalParser extends ParserBase<GoalNode> {
 								})
 							);
 						}
-						parameters.push(new ParameterNode(this.parseIdentifier(), parameter.range, type));
-						if (type != undefined) type = undefined;
+						parameterSubNode = this.parseIdentifier();
 						break;
 					case TokenType.ENUM_MEMBER:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push(new ParameterNode(this.parseTypeEnumMember(), parameter.range));
+						parameterSubNode = this.parseTypeEnumMember();
 						break;
 					case TokenType.STRING:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push(new ParameterNode(this.parseString(), parameter.range));
-						if (type != undefined) type = undefined;
+						parameterSubNode = this.parseString();
 						break;
 					case TokenType.INTEGER:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push(new ParameterNode(this.parseInteger(), parameter.range));
-						if (type != undefined) type = undefined;
+						parameterSubNode = this.parseInteger();
 						break;
 					case TokenType.FLOAT:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push(new ParameterNode(this.parseFloat(), parameter.range));
-						if (type != undefined) type = undefined;
+						parameterSubNode = this.parseFloat();
 						break;
 					case TokenType.GUID:
-						parameters.push(new ParameterNode(this.parseGUID(), parameter.range, type));
-						if (type != undefined) type = undefined;
+						parameterSubNode = this.parseGUID();
 						break;
 				}
+				parameters.push(
+					new ParameterNode(
+						parameterSubNode!,
+						type ? { start: type.range.start, end: parameter.range.end } : parameter.range,
+						type
+					)
+				);
+				type = undefined;
 				requireParameter = false;
 				if (this.peek().type != TokenType.CLOSE_PARENTHESIS) {
 					this.consumeIf({ expectedType: [TokenType.COMMA] });

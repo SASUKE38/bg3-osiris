@@ -81,6 +81,7 @@ export class ParameterNode extends ASTNode {
 	}
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.type;
 		yield this.content;
 	}
 }
