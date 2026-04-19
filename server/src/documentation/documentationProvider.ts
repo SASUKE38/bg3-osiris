@@ -27,6 +27,10 @@ export class DocumentationEntry {
 	}
 }
 
+/**
+ * Server component that provides mechanisms to scrape Osiris API
+ * information from https://docs.baldursgate3.game.
+ */
 export class DocumentationProvider extends ComponentBase {
 	readonly urlBase = new URL("https://docs.baldursgate3.game");
 	readonly urlPathName = "/index.php";
@@ -65,17 +69,32 @@ export class DocumentationProvider extends ComponentBase {
 		);
 	}
 
+	/**
+	 * Gets and logs Osiris API information for built in calls, events, and queries.
+	 */
 	async getCategories() {
 		await this.retrieveCategoryDocumentation(DocumentationProvider.callPages);
 		await this.retrieveCategoryDocumentation(DocumentationProvider.eventPages);
 		await this.retrieveCategoryDocumentation(DocumentationProvider.queryPages);
 	}
 
+	/**
+	 * Scrapes Osiris API information from category pages. 
+	 * 
+	 * @param category Array of triples of the form [search, page from, type]
+	 * that indicate category page information.
+	 */
 	async retrieveCategoryDocumentation(category: [string, string, string][]) {
 		await Promise.all(category.map(this.retrieveCategoryPageDocumentation, this));
 		this.logDocumentationCollection();
 	}
 
+	/**
+	 * Scrapes Osiris API information from a single category page.
+	 * 
+	 * @param category Triple of the form [search, page from, type]
+	 * that indicates category page information.
+	 */
 	async retrieveCategoryPageDocumentation(category: [string, string, string]) {
 		const url = this.getSearchURL(category[0], category[1]);
 		const type = category[2];
@@ -97,6 +116,12 @@ export class DocumentationProvider extends ComponentBase {
 		}
 	}
 
+	/**
+	 * Scrapes information for a given Osiris function. 
+	 * 
+	 * @param urlPair Pair of the form [name, type] that indicates 
+	 * information of an Osiris function signature.
+	 */
 	async retrieveFunctionDocumentation(urlPair: [string, string]) {
 		const title = urlPair[0];
 		const type = urlPair[1];
@@ -118,6 +143,14 @@ export class DocumentationProvider extends ComponentBase {
 		}
 	}
 
+	/**
+	 * Gets a properly formatted URL that can be used for scraping Osiris API documentation
+	 * information.
+	 * 
+	 * @param query Search query that follows ?title=.
+	 * @param pageFrom Function name that follows &pagefrom=.
+	 * @returns A properly formatted URL that can be used for scraping with the given parameters.
+	 */
 	private getSearchURL(query: string, pageFrom = "") {
 		const url = new URL(this.urlBase);
 		url.search = this.urlSearchPrefix;
@@ -130,6 +163,16 @@ export class DocumentationProvider extends ComponentBase {
 		return url;
 	}
 
+	/**
+	 * Parses an Osiris function page scraped from https://docs.baldursgate3.game.
+	 * Information is added to {@link documentationCollection} and contains
+	 * the sections as described in the field mapping.
+	 * 
+	 * @param elements A Cheerio object to parse.
+	 * @param title The name of the Osiris function.
+	 * @param type The type of the Osiris function.
+	 * @param $ A CheerioAPI initialized to a scraped function page.
+	 */
 	private parseFunctionDocumentation(elements: Cheerio<Element>, title: string, type: string, $: CheerioAPI) {
 		let header: keyof DocumentationEntry;
 		const { fieldMapping } = DocumentationEntry;
@@ -146,6 +189,9 @@ export class DocumentationProvider extends ComponentBase {
 		this.documentationCollection.set(title, entry);
 	}
 
+	/**
+	 * Writes {@link documentationCollection} to {@link DocumentationProvider.collectionPath} as JSON.
+	 */
 	private async logDocumentationCollection() {
 		try {
 			writeFile(
@@ -157,6 +203,9 @@ export class DocumentationProvider extends ComponentBase {
 		}
 	}
 
+	/**
+	 * Loads {@link DocumentationProvider.collectionPath} as JSON to {@link documentationCollection}.
+	 */
 	private async readDocumentationCollection() {
 		if (existsSync(DocumentationProvider.collectionPath)) {
 			const json = await readFile(DocumentationProvider.collectionPath, { encoding: "utf-8" });

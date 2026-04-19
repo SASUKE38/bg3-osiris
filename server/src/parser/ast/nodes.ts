@@ -37,6 +37,9 @@ export abstract class ASTNode {
 		this.range = range;
 	}
 
+	/**
+	 * Returns an {@link Iterable} over this node's child nodes if it has any.
+	 */
 	abstract getNodeChildren(): Iterable<ASTNode | undefined>;
 }
 

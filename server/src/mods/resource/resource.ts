@@ -16,14 +16,29 @@ export abstract class Resource {
 
 	abstract load(): Promise<ASTNode | undefined>;
 
+	/**
+	 * Associates a {@link TextDocument} with this Resource.
+	 * 
+	 * @param document The {@link TextDocument} to associate with this Resource.
+	 */
 	setTextDocument(document: TextDocument) {
 		this.document = document;
 	}
 
+	/**
+	 * Removes the {@link TextDocument} assiocated with this resource.
+	 */
 	removeTextDocment() {
 		this.document = undefined;
 	}
 
+	/**
+	 * Retrieves an {@link ASTNode} array that contains all AST nodes asociated with this
+	 * {@link Resource} that contain the given position.
+	 * 
+	 * @param position The {@link Position} to search for.
+	 * @returns An array of nodes that contain the given {@link Position}.
+	 */
 	async getNodesAt(position: Position): Promise<ASTNode[]> {
 		function getNodesIn(node: ASTNode, thisArg: Resource) {
 			const children = node.getNodeChildren();
@@ -46,6 +61,12 @@ export abstract class Resource {
 		return res;
 	}
 
+	/**
+	 * Retreives the {@link ASTNode} associated with this {@link Resource}, parsing
+	 * the associated document if necessary.
+	 * 
+	 * @returns The root {@link ASTNode} associated with this {@link Resource}.
+	 */
 	async getRootNode(): Promise<ASTNode | undefined> {
 		if (this.ast) return Promise.resolve(this.ast);
 		else return this.load();

@@ -12,6 +12,12 @@ export class Story extends EventEmitter {
 	private files: Resource[] = [];
 	private isInitialized = false;
 
+	/**
+	 * Loads the Story resources associated with a given mod.
+	 * 
+	 * @param directory The path to the mod associated with this {@link Story}. Should contain the mod's meta.lsx.
+	 * @param meta The {@link ModMetaModuleInfo} of the mod associated with this {@link Story}.
+	 */
 	async initialize(directory: string, meta: ModMetaModuleInfo) {
 		this.meta = meta;
 		const contents = await readdir(join(directory, "Story", "RawFiles", "Goals"));
