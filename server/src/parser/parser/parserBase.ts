@@ -99,27 +99,26 @@ export abstract class ParserBase<T> {
 
 	protected parseIdentifier(): IdentifierNode {
 		const token = this.pop();
-		return { symbol: token.value, range: token.range };
+		return new IdentifierNode(token.value, token.range);
 	}
 
 	protected parseString(): StringNode {
 		const token = this.pop();
-		return { value: token.value, range: token.range };
+		return new StringNode(token.value, token.range);
 	}
 
 	protected parseInteger(): NumberNode {
 		const token = this.pop();
-		return { value: parseInt(token.value), range: token.range };
+		return new NumberNode(parseInt(token.value), token.range);
 	}
 
 	protected parseFloat(): NumberNode {
 		const token = this.pop();
-		return { value: parseFloat(token.value), range: token.range };
+		return new NumberNode(parseFloat(token.value), token.range);
 	}
 
 	protected parseGUID(): IdentifierNode {
-		const token = this.pop();
-		return { symbol: token.value, range: token.range };
+		return this.parseIdentifier();
 	}
 
 	protected parseOperator(expectedTypes: TokenType[]): OperatorNode {
@@ -127,25 +126,25 @@ export abstract class ParserBase<T> {
 			expectedMessage: expectedMessage.operator,
 			expectedType: expectedTypes
 		}).token;
-		return { operator: token.value, range: token.range };
+		return new OperatorNode(token.value, token.range);
 	}
 
-	protected parseType(): TypeNode | null {
+	protected parseType(): TypeNode | undefined {
 		const token = this.pop();
 		if (token.type != TokenType.IDENTIFIER) {
 			this.diagnostics.push(
 				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage: expectedMessage.type })
 			);
-			if (token.type == TokenType.CLOSE_PARENTHESIS) return null;
+			if (token.type == TokenType.CLOSE_PARENTHESIS) return undefined;
 		}
 		this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
-		return token.type == TokenType.IDENTIFIER ? { value: token.value, range: token.range } : null;
+		return token.type == TokenType.IDENTIFIER ? new TypeNode(token.value, token.range) : undefined;
 	}
 
 	protected parseTypeEnumMember(): TypeEnumMemberNode {
 		const token = this.pop();
 		const parts = token.value.split(".", 2);
-		return { type: parts[0], member: parts[1], range: token.range };
+		return new TypeEnumMemberNode(parts[0], parts[1], token.range);
 	}
 
 	protected getTokenRange(): Range {

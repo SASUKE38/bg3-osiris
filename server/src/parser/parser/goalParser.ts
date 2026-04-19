@@ -4,10 +4,13 @@ import {
 	TypeNode,
 	RuleNode,
 	ComparisonNode,
-	ASTNode,
 	GoalNode,
 	SignatureSectionNode,
-	KBSectionNode
+	KBSectionNode,
+	IdentifierNode,
+	StringNode,
+	NumberNode,
+	UnknownNode
 } from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import {
@@ -59,12 +62,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		this.consume({ expectedType: [TokenType.EXITSECTION] });
 		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
 		this.consumeSequence({ expectedType: this.footerTypes });
-		return {
-			init,
-			kb,
-			exit,
-			range: this.getTokenRange()
-		};
+		return new GoalNode(init, kb, exit, this.getTokenRange());
 	}
 
 	private parseKBSection(): KBSectionNode {
@@ -75,13 +73,10 @@ export class GoalParser extends ParserBase<GoalNode> {
 				body.push(this.parseRule());
 			}
 		}
-		return {
-			content: body,
-			range: {
-				start: sectionStart.range.start,
-				end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
-			}
-		};
+		return new KBSectionNode(body, {
+			start: sectionStart.range.start,
+			end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
+		});
 	}
 
 	private parseSignatureSection(endType: TokenType): SignatureSectionNode {
@@ -96,13 +91,10 @@ export class GoalParser extends ParserBase<GoalNode> {
 				this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 			}
 		}
-		return {
-			content: body,
-			range: {
-				start: sectionStart.range.start,
-				end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
-			}
-		};
+		return new SignatureSectionNode(body, {
+			start: sectionStart.range.start,
+			end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
+		});
 	}
 
 	private parseRule(): RuleNode {
@@ -143,34 +135,24 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 		if (actions.length == 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ rule: ruleStart }));
 
-		return {
-			type: ruleStart.value,
-			call,
-			conditions,
-			actions,
-			range: {
-				start: ruleStart.range.start,
-				end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
-			}
-		};
+		return new RuleNode(ruleStart.value, call, conditions, actions, {
+			start: ruleStart.range.start,
+			end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
+		});
 	}
 
 	private parseComparison(): ComparisonNode {
 		const left = this.parseComparisonOperand();
 		const operator = this.parseOperator(this.operatorTypes);
 		const right = this.parseComparisonOperand();
-		return {
-			left,
-			operator,
-			right,
-			range: {
-				start: left.range.start,
-				end: right.range.end
-			}
-		};
+
+		return new ComparisonNode(left, operator, right, {
+			start: left.range.start,
+			end: right.range.end
+		});
 	}
 
-	private parseComparisonOperand(): ASTNode {
+	private parseComparisonOperand(): StringNode | NumberNode | IdentifierNode | UnknownNode {
 		const token = this.peek();
 		switch (token.type) {
 			case TokenType.STRING:
@@ -191,7 +173,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 					})
 				);
 				this.pop();
-				return { range: token.range };
+				return new UnknownNode(token.range);
 		}
 	}
 
@@ -199,7 +181,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		const name = this.pop();
 		this.consume({ expectedType: [TokenType.OPEN_PARENTHESIS] });
 		const parameters: ParameterNode[] = [];
-		let type = null;
+		let type = undefined;
 		let requireParameter = false;
 		while (!this.atTokenType(TokenType.CLOSE_PARENTHESIS)) {
 			if (
@@ -223,31 +205,31 @@ export class GoalParser extends ParserBase<GoalNode> {
 								})
 							);
 						}
-						parameters.push({ content: this.parseIdentifier(), type: type, range: parameter.range });
-						if (type != null) type = null;
+						parameters.push(new ParameterNode(this.parseIdentifier(), parameter.range, type));
+						if (type != undefined) type = undefined;
 						break;
 					case TokenType.ENUM_MEMBER:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push({ content: this.parseTypeEnumMember(), type: null, range: parameter.range });
+						parameters.push(new ParameterNode(this.parseTypeEnumMember(), parameter.range));
 						break;
 					case TokenType.STRING:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push({ content: this.parseString(), type: null, range: parameter.range });
-						if (type != null) type = null;
+						parameters.push(new ParameterNode(this.parseString(), parameter.range));
+						if (type != undefined) type = undefined;
 						break;
 					case TokenType.INTEGER:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push({ content: this.parseInteger(), type: null, range: parameter.range });
-						if (type != null) type = null;
+						parameters.push(new ParameterNode(this.parseInteger(), parameter.range));
+						if (type != undefined) type = undefined;
 						break;
 					case TokenType.FLOAT:
 						this.verifyNoType(parameter, type, allowIdentifiers);
-						parameters.push({ content: this.parseFloat(), type: null, range: parameter.range });
-						if (type != null) type = null;
+						parameters.push(new ParameterNode(this.parseFloat(), parameter.range));
+						if (type != undefined) type = undefined;
 						break;
 					case TokenType.GUID:
-						parameters.push({ content: this.parseGUID(), type: type, range: parameter.range });
-						if (type != null) type = null;
+						parameters.push(new ParameterNode(this.parseGUID(), parameter.range, type));
+						if (type != undefined) type = undefined;
 						break;
 				}
 				requireParameter = false;
@@ -267,24 +249,19 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 		this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 
-		return {
-			name: name.value,
-			parameters: parameters,
-			range: {
-				start: name.range.start,
-				end: {
-					line:
-						parameters.length == 0 ? name.range.end.line : parameters[parameters.length - 1].range.end.line,
-					character:
-						parameters.length == 0
-							? name.range.end.character + 2
-							: parameters[parameters.length - 1].range.end.character + 1
-				}
+		return new SignatureNode(name.value, parameters, {
+			start: name.range.start,
+			end: {
+				line: parameters.length == 0 ? name.range.end.line : parameters[parameters.length - 1].range.end.line,
+				character:
+					parameters.length == 0
+						? name.range.end.character + 2
+						: parameters[parameters.length - 1].range.end.character + 1
 			}
-		};
+		});
 	}
 
-	private verifyNoType(parameter: Token, type: TypeNode | null, allowIdentifiers = true) {
+	private verifyNoType(parameter: Token, type?: TypeNode, allowIdentifiers = true) {
 		if (type != null) {
 			this.diagnostics.push(
 				unexpectedTokenDiagnosticFactory({

@@ -8,7 +8,8 @@ import {
 	ParameterFlow,
 	ParameterNode,
 	SignatureNode,
-	StringNode
+	StringNode,
+	TypeNode
 } from "../ast/nodes";
 import { TokenType } from "../tokens";
 import { ParserBase } from "./parserBase";
@@ -23,7 +24,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		const options: IdentifierNode[] = [];
 		const types: (AliasTypeNode | EnumTypeNode)[] = [];
 		const builtinSignatures: SignatureNode[] = [];
-		let version: StringNode | null = null;
+		let version: StringNode | undefined = undefined;
 		const headerGoals: HeaderGoalNode[] = [];
 		while (!this.empty()) {
 			const label = this.peek().value;
@@ -43,14 +44,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 				this.pop();
 			}
 		}
-		return {
-			options,
-			types,
-			builtinSignatures,
-			version,
-			headerGoals,
-			range: this.getTokenRange()
-		};
+		return new HeaderNode(options, types, builtinSignatures, headerGoals, this.getTokenRange(), version);
 	}
 
 	private parseHeaderType(): AliasTypeNode | EnumTypeNode {
@@ -60,22 +54,16 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 	private parseAliasType(): AliasTypeNode {
 		const startRange = this.pop().range;
 		this.consume({ expectedType: [TokenType.OPEN_BRACE] });
-		const type = this.parseIdentifier().symbol;
+		const type = this.parseIdentifier().value;
 		while (!this.atTokenType(TokenType.CLOSE_BRACE)) this.pop();
 		const endToken = this.consume({ expectedType: [TokenType.CLOSE_BRACE] }).token;
-		return {
-			type,
-			range: {
-				start: startRange.start,
-				end: endToken.range.end
-			}
-		};
+		return new AliasTypeNode(type, { start: startRange.start, end: endToken.range.end });
 	}
 
 	private parseEnumType(): EnumTypeNode {
 		const startRange = this.pop().range;
 		this.consume({ expectedType: [TokenType.OPEN_BRACE] });
-		const type = this.parseIdentifier().symbol;
+		const type = this.parseIdentifier().value;
 		const members: string[] = [];
 		let token;
 		while (!this.atTokenType(TokenType.CLOSE_BRACE)) {
@@ -88,14 +76,8 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 			}
 		}
 		const endToken = this.consume({ expectedType: [TokenType.CLOSE_BRACE] }).token;
-		return {
-			type,
-			members,
-			range: {
-				start: startRange.start,
-				end: endToken.range.end
-			}
-		};
+
+		return new EnumTypeNode(type, members, { start: startRange.start, end: endToken.range.end });
 	}
 
 	private parseBuiltin(): SignatureNode {
@@ -103,8 +85,8 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		const signatureName = this.consume({ expectedType: [TokenType.IDENTIFIER] });
 		this.consume({ expectedType: [TokenType.OPEN_PARENTHESIS] });
 		const parameters: ParameterNode[] = [];
-		let type = null;
-		let flow = null;
+		let type: TypeNode | undefined = undefined;
+		let flow: ParameterFlow | undefined = undefined;
 		let requireParameter = false;
 		while (!this.atTokenType(TokenType.CLOSE_PARENTHESIS)) {
 			if (this.consumeUnexpected({ expectedType: this.builtinTypes }).matched) {
@@ -121,17 +103,11 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 						continue;
 						break;
 					case TokenType.IDENTIFIER:
-						parameters.push({
-							content: this.parseIdentifier(),
-							type: type,
-							flow: flow,
-							range: parameter.range
-						});
-						break;
+						parameters.push(new ParameterNode(this.parseIdentifier(), parameter.range, type, flow));
 				}
 				requireParameter = false;
-				type = null;
-				flow = null;
+				type = undefined;
+				flow = undefined;
 
 				if (this.peek().type != TokenType.CLOSE_PARENTHESIS) {
 					this.consumeIf({ expectedType: [TokenType.COMMA] });
@@ -155,24 +131,19 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 			this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 		}
 
-		return {
-			signatureType: signatureType.value,
-			name: signatureName.token.value,
-			parameters: parameters,
-			range: {
-				start: signatureType.range.start,
-				end: {
-					line:
-						parameters.length == 0
-							? signatureName.token.range.end.line
-							: parameters[parameters.length - 1].range.end.line,
-					character:
-						parameters.length == 0
-							? signatureName.token.range.end.character + 2
-							: parameters[parameters.length - 1].range.end.character + 1
-				}
+		return new SignatureNode(signatureName.token.value, parameters, {
+			start: signatureType.range.start,
+			end: {
+				line:
+					parameters.length == 0
+						? signatureName.token.range.end.line
+						: parameters[parameters.length - 1].range.end.line,
+				character:
+					parameters.length == 0
+						? signatureName.token.range.end.character + 2
+						: parameters[parameters.length - 1].range.end.character + 1
 			}
-		};
+		});
 	}
 
 	private parseGoalElement(goals: HeaderGoalNode[]) {
@@ -183,11 +154,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 		let goal = goals.find((goal) => goal.id === id);
 		if (!goal) {
-			goal = {
-				id,
-				children: [],
-				range: startToken.range
-			};
+			goal = new HeaderGoalNode(id, [], startToken.range);
 			goals.push(goal);
 		}
 		if (this.peek().type == TokenType.PERIOD) {
@@ -224,13 +191,13 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		}
 	}
 
-	private parseFlow(): ParameterFlow | null {
+	private parseFlow(): ParameterFlow | undefined {
 		const token = this.pop();
 		if (token.type != TokenType.IDENTIFIER || !(token.value == "in" || token.value == "out")) {
 			this.diagnostics.push(
 				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage: expectedMessage.flow })
 			);
-			if (token.type == TokenType.CLOSE_BRACKET) return null;
+			if (token.type == TokenType.CLOSE_BRACKET) return undefined;
 		}
 		this.consume({ expectedType: [TokenType.CLOSE_BRACKET] });
 		return token.value == "in" ? ParameterFlow.IN : ParameterFlow.OUT;

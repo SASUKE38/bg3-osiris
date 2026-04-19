@@ -5,102 +5,322 @@ export enum ParameterFlow {
 	OUT
 }
 
-// Base Nodes
-
-export interface ASTNode {
-	range: Range;
+export enum ASTNodeKind {
+	NONE,
+	UNKNOWN,
+	SIGNATURE_NODE,
+	PARAMETER_NODE,
+	STRING_NODE,
+	IDENTIFIER_NODE,
+	NUMBER_NODE,
+	GOAL_NODE,
+	SIGNATURE_SECTION_NODE,
+	KB_SECTION_NODE,
+	TYPE_NODE,
+	RULE_NODE,
+	COMPARISON_NODE,
+	OPERATOR_NODE,
+	TYPE_ENUM_MEMBER_NODE,
+	HEADER_NODE,
+	ALIAS_TYPE_NODE,
+	ENUM_TYPE_NODE,
+	HEADER_GOAL_NODE
 }
 
-export interface SignatureNode extends ASTNode {
+// Base Nodes
+
+export abstract class ASTNode {
+	abstract kind: ASTNodeKind;
+	range: Range;
+
+	constructor(range: Range) {
+		this.range = range;
+	}
+
+	abstract getNodeChildren(): Iterable<ASTNode | undefined>;
+}
+
+export class UnknownNode extends ASTNode {
+	kind = ASTNodeKind.UNKNOWN;
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield undefined;
+	}
+}
+
+export class SignatureNode extends ASTNode {
+	kind = ASTNodeKind.SIGNATURE_NODE;
 	name: string;
 	parameters: ParameterNode[];
 	signatureType?: string;
+
+	constructor(name: string, parameters: ParameterNode[], range: Range) {
+		super(range);
+		this.name = name;
+		this.parameters = parameters;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		for (const parameter of this.parameters) {
+			yield parameter;
+		}
+	}
 }
 
-export interface ParameterNode extends ASTNode {
+export class ParameterNode extends ASTNode {
+	kind = ASTNodeKind.PARAMETER_NODE;
 	content: ASTNode;
-	type: TypeNode | null;
-	flow?: ParameterFlow | null;
+	type?: TypeNode;
+	flow?: ParameterFlow;
+
+	constructor(content: ASTNode, range: Range, type?: TypeNode, flow?: ParameterFlow) {
+		super(range);
+		this.content = content;
+		this.type = type;
+		this.flow = flow;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.content;
+	}
 }
 
-export interface StringNode extends ASTNode {
-	value: string;
+export abstract class SingletonNode<T> extends ASTNode {
+	value: T;
+
+	constructor(value: T, range: Range) {
+		super(range);
+		this.value = value;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield undefined;
+	}
 }
 
-export interface IdentifierNode extends ASTNode {
-	symbol: string;
+export class StringNode extends SingletonNode<string> {
+	kind = ASTNodeKind.STRING_NODE;
 }
 
-export interface NumberNode extends ASTNode {
-	value: number;
+export class IdentifierNode extends SingletonNode<string> {
+	kind = ASTNodeKind.IDENTIFIER_NODE;
+}
+
+export class NumberNode extends SingletonNode<number> {
+	kind = ASTNodeKind.NUMBER_NODE;
 }
 
 // Goal Nodes
 
-export interface GoalNode extends ASTNode {
+export class GoalNode extends ASTNode {
+	kind = ASTNodeKind.GOAL_NODE;
 	init: SignatureSectionNode;
 	kb: KBSectionNode;
 	exit: SignatureSectionNode;
+
+	constructor(init: SignatureSectionNode, kb: KBSectionNode, exit: SignatureSectionNode, range: Range) {
+		super(range);
+		this.init = init;
+		this.kb = kb;
+		this.exit = exit;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.init;
+		yield this.kb;
+		yield this.exit;
+	}
 }
 
-export interface SignatureSectionNode extends ASTNode {
-	content: SignatureNode[];
+export abstract class SectionNode<T extends ASTNode> extends ASTNode {
+	content: T[];
+
+	constructor(content: T[], range: Range) {
+		super(range);
+		this.content = content;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		for (const item of this.content) {
+			yield item;
+		}
+	}
 }
 
-export interface KBSectionNode extends ASTNode {
-	content: RuleNode[];
+export class SignatureSectionNode extends SectionNode<SignatureNode> {
+	kind = ASTNodeKind.SIGNATURE_SECTION_NODE;
 }
 
-export interface TypeNode extends ASTNode {
-	value: string;
+export class KBSectionNode extends SectionNode<RuleNode> {
+	kind = ASTNodeKind.KB_SECTION_NODE;
 }
 
-export interface RuleNode extends ASTNode {
+export class TypeNode extends SingletonNode<string> {
+	kind = ASTNodeKind.TYPE_NODE;
+}
+
+export class RuleNode extends ASTNode {
+	kind = ASTNodeKind.RULE_NODE;
 	type: string;
 	call: SignatureNode;
 	conditions: (SignatureNode | ComparisonNode)[];
 	actions: SignatureNode[];
+
+	constructor(
+		type: string,
+		call: SignatureNode,
+		conditions: (SignatureNode | ComparisonNode)[],
+		actions: SignatureNode[],
+		range: Range
+	) {
+		super(range);
+		this.type = type;
+		this.call = call;
+		this.conditions = conditions;
+		this.actions = actions;
+		this.range = range;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.call;
+		for (const condition of this.conditions) {
+			yield condition;
+		}
+		for (const action of this.actions) {
+			yield action;
+		}
+	}
 }
 
-export interface ComparisonNode extends ASTNode {
+export class ComparisonNode extends ASTNode {
+	kind = ASTNodeKind.COMPARISON_NODE;
 	left: ASTNode;
 	operator: OperatorNode;
 	right: ASTNode;
+
+	constructor(left: ASTNode, operator: OperatorNode, right: ASTNode, range: Range) {
+		super(range);
+		this.left = left;
+		this.operator = operator;
+		this.right = right;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.left;
+		yield this.right;
+	}
 }
 
-export interface OperatorNode extends ASTNode {
-	operator: string;
+export class OperatorNode extends SingletonNode<string> {
+	kind = ASTNodeKind.OPERATOR_NODE;
 }
 
-export interface TypeEnumMemberNode extends ASTNode {
+export class TypeEnumMemberNode extends ASTNode {
+	kind = ASTNodeKind.TYPE_ENUM_MEMBER_NODE;
 	type: string;
 	member: string;
+
+	constructor(type: string, member: string, range: Range) {
+		super(range);
+		this.type = type;
+		this.member = member;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield undefined;
+	}
 }
 
 // Header Nodes
 
-export interface HeaderNode extends ASTNode {
+export class HeaderNode extends ASTNode {
+	kind = ASTNodeKind.HEADER_NODE;
 	options: IdentifierNode[];
 	types: (AliasTypeNode | EnumTypeNode)[];
 	builtinSignatures: SignatureNode[];
-	version: StringNode | null;
 	headerGoals: HeaderGoalNode[];
+	version?: StringNode;
+
+	constructor(
+		options: IdentifierNode[],
+		types: (AliasTypeNode | EnumTypeNode)[],
+		builtinSignatures: SignatureNode[],
+		headerGoals: HeaderGoalNode[],
+		range: Range,
+		version?: StringNode
+	) {
+		super(range);
+		this.options = options;
+		this.types = types;
+		this.builtinSignatures = builtinSignatures;
+		this.headerGoals = headerGoals;
+		this.version = version;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		for (const option of this.options) {
+			yield option;
+		}
+		for (const type of this.types) {
+			yield type;
+		}
+		for (const signature of this.builtinSignatures) {
+			yield signature;
+		}
+		for (const headerGoal of this.headerGoals) {
+			yield headerGoal;
+		}
+	}
 }
 
-export interface AliasTypeNode extends ASTNode {
-	type: string;
+export class AliasTypeNode extends SingletonNode<string> {
+	kind = ASTNodeKind.ALIAS_TYPE_NODE;
 }
 
-export interface EnumTypeNode extends ASTNode {
+export class EnumTypeNode extends ASTNode {
+	kind = ASTNodeKind.ENUM_TYPE_NODE;
 	type: string;
 	members: string[];
+
+	constructor(type: string, members: string[], range: Range) {
+		super(range);
+		this.type = type;
+		this.members = members;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield undefined;
+	}
 }
 
-export interface HeaderGoalNode extends ASTNode {
+export class HeaderGoalNode extends ASTNode {
+	kind = ASTNodeKind.HEADER_GOAL_NODE;
 	id: number;
 	children: number[];
 	title?: StringNode;
 	init?: string;
 	kb?: string;
 	exit?: string;
+
+	constructor(
+		id: number,
+		children: number[],
+		range: Range,
+		title?: StringNode,
+		init?: string,
+		kb?: string,
+		exit?: string
+	) {
+		super(range);
+		this.id = id;
+		this.children = children;
+		this.title = title;
+		this.init = init;
+		this.kb = kb;
+		this.exit = exit;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.title;
+	}
 }
