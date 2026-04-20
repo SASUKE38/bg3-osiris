@@ -11,7 +11,7 @@ export class Mod {
 
 	/**
 	 * Initializes this {@link Mod}.
-	 * 
+	 *
 	 * @param directory This mod's path.
 	 */
 	async initialize(directory: string) {

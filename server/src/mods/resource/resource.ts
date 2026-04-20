@@ -18,7 +18,7 @@ export abstract class Resource {
 
 	/**
 	 * Associates a {@link TextDocument} with this Resource.
-	 * 
+	 *
 	 * @param document The {@link TextDocument} to associate with this Resource.
 	 */
 	setTextDocument(document: TextDocument) {
@@ -35,7 +35,7 @@ export abstract class Resource {
 	/**
 	 * Retrieves an {@link ASTNode} array that contains all AST nodes asociated with this
 	 * {@link Resource} that contain the given position.
-	 * 
+	 *
 	 * @param position The {@link Position} to search for.
 	 * @returns An array of nodes that contain the given {@link Position}.
 	 */
@@ -64,7 +64,7 @@ export abstract class Resource {
 	/**
 	 * Retreives the {@link ASTNode} associated with this {@link Resource}, parsing
 	 * the associated document if necessary.
-	 * 
+	 *
 	 * @returns The root {@link ASTNode} associated with this {@link Resource}.
 	 */
 	async getRootNode(): Promise<ASTNode | undefined> {

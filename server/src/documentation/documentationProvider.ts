@@ -79,8 +79,8 @@ export class DocumentationProvider extends ComponentBase {
 	}
 
 	/**
-	 * Scrapes Osiris API information from category pages. 
-	 * 
+	 * Scrapes Osiris API information from category pages.
+	 *
 	 * @param category Array of triples of the form [search, page from, type]
 	 * that indicate category page information.
 	 */
@@ -91,7 +91,7 @@ export class DocumentationProvider extends ComponentBase {
 
 	/**
 	 * Scrapes Osiris API information from a single category page.
-	 * 
+	 *
 	 * @param category Triple of the form [search, page from, type]
 	 * that indicates category page information.
 	 */
@@ -117,9 +117,9 @@ export class DocumentationProvider extends ComponentBase {
 	}
 
 	/**
-	 * Scrapes information for a given Osiris function. 
-	 * 
-	 * @param urlPair Pair of the form [name, type] that indicates 
+	 * Scrapes information for a given Osiris function.
+	 *
+	 * @param urlPair Pair of the form [name, type] that indicates
 	 * information of an Osiris function signature.
 	 */
 	async retrieveFunctionDocumentation(urlPair: [string, string]) {
@@ -146,7 +146,7 @@ export class DocumentationProvider extends ComponentBase {
 	/**
 	 * Gets a properly formatted URL that can be used for scraping Osiris API documentation
 	 * information.
-	 * 
+	 *
 	 * @param query Search query that follows ?title=.
 	 * @param pageFrom Function name that follows &pagefrom=.
 	 * @returns A properly formatted URL that can be used for scraping with the given parameters.
@@ -167,7 +167,7 @@ export class DocumentationProvider extends ComponentBase {
 	 * Parses an Osiris function page scraped from https://docs.baldursgate3.game.
 	 * Information is added to {@link documentationCollection} and contains
 	 * the sections as described in the field mapping.
-	 * 
+	 *
 	 * @param elements A Cheerio object to parse.
 	 * @param title The name of the Osiris function.
 	 * @param type The type of the Osiris function.

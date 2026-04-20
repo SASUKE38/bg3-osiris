@@ -7,7 +7,7 @@ export class GoalResource extends Resource {
 	/**
 	 * Parses the {@link document} associated with this resource if it has been loaded
 	 * and creates its AST.
-	 * 
+	 *
 	 * @returns The loaded {@link ASTNode} or `undefined` if {@link document} is `undefined`.
 	 */
 	async load(): Promise<ASTNode | undefined> {

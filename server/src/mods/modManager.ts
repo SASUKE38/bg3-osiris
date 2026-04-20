@@ -67,7 +67,7 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * Locates a {@link Resource} associated with a given path.
-	 * 
+	 *
 	 * @param path The path of the {@link Resource} to find. It is recommended to normalize the path first.
 	 * @returns The {@link Resource} pointed to by the path, or `undefined` if it does not exist.
 	 */
@@ -80,7 +80,7 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * Loads a mod from a given path.
-	 * 
+	 *
 	 * @param path The path of the mod to load. Should contain the mod's meta.lsx.
 	 */
 	async createModFromPath(path: string) {
@@ -92,7 +92,7 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * Loads a mod from a given path and {@link ModMetaModuleInfo}.
-	 * 
+	 *
 	 * @param meta The {@link ModMetaModuleInfo} of the mod to load.
 	 * @param path The path to the mod directory to load. Should contain the mod's meta.lsx.
 	 * @returns The loaded {@link Mod}.
@@ -129,7 +129,7 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * Gets an array of paths to a mod's dependencies.
-	 * 
+	 *
 	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
 	 * @param path The path to the mod directory whose dependencies should be loaded.
 	 * Should contain the mod's meta.lsx.
@@ -168,7 +168,7 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * Retrieves metadata associated with a given mod directory.
-	 * 
+	 *
 	 * @param path The path to the mod whose metadata should be loaded. Should contain the mod's meta.lsx.
 	 * @returns The mod's metadata as an {@link ModMetaModuleInfo}.
 	 */

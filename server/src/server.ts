@@ -15,10 +15,11 @@ import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
 import { ComponentBase } from "./componentBase";
 import { ModManager } from "./mods/modManager";
 import { DocumentationProvider } from "./documentation/documentationProvider";
+import { SymbolManager } from "./symbols/symbolManager";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, ModManager];
+const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, ModManager, SymbolManager];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
@@ -76,7 +77,8 @@ export class Server {
 				diagnosticProvider: {
 					interFileDependencies: false,
 					workspaceDiagnostics: false
-				}
+				},
+				documentSymbolProvider: true
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {

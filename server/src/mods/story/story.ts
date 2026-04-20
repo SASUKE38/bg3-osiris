@@ -14,7 +14,7 @@ export class Story extends EventEmitter {
 
 	/**
 	 * Loads the Story resources associated with a given mod.
-	 * 
+	 *
 	 * @param directory The path to the mod associated with this {@link Story}. Should contain the mod's meta.lsx.
 	 * @param meta The {@link ModMetaModuleInfo} of the mod associated with this {@link Story}.
 	 */
