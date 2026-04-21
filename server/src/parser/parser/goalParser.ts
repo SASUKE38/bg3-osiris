@@ -130,7 +130,10 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 
 		this.consume({ expectedType: [TokenType.THEN] });
-		while (this.peek().type == TokenType.IDENTIFIER) {
+		while (this.peek().type == TokenType.IDENTIFIER || this.peek().type == TokenType.NOT) {
+			if (this.peek().type == TokenType.NOT) {
+				this.pop();
+			}
 			actions.push(this.parseSignature());
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 		}
