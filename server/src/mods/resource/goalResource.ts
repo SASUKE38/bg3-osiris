@@ -13,6 +13,7 @@ export class GoalResource extends Resource {
 	async load(): Promise<ASTNode | undefined> {
 		if (this.document) {
 			this.ast = new GoalParser(new GoalLexer(this.document).tokenize()).parse();
+			this.valid = true;
 			return this.ast;
 		} else {
 			console.error(`Tried loading goal resource ${this.path} without a document.`);

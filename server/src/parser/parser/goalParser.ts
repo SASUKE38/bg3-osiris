@@ -19,7 +19,7 @@ import {
 	ruleMissingActionsDiagnosticFactory,
 	unexpectedTokenDiagnosticFactory
 } from "../../diagnostics/message";
-import { ParserBase } from "./parserBase";
+import { ConsumeResult, ParserBase } from "./parserBase";
 
 export class GoalParser extends ParserBase<GoalNode> {
 	private parameterTypes: TokenType[] = [
@@ -58,15 +58,15 @@ export class GoalParser extends ParserBase<GoalNode> {
 	parse(): GoalNode {
 		this.consumeSequence({ expectedType: this.headerTypes });
 		const init = this.parseSignatureSection(TokenType.KBSECTION);
-		this.consume({ expectedType: [TokenType.KBSECTION] });
-		const kb = this.parseKBSection();
+		// this.consume({ expectedType: [TokenType.KBSECTION] });
+		const kb = this.parseKBSection(this.consume({ expectedType: [TokenType.KBSECTION] }));
 		this.consume({ expectedType: [TokenType.EXITSECTION] });
 		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
 		this.consumeSequence({ expectedType: this.footerTypes });
 		return new GoalNode(init, kb, exit, this.getTokenRange());
 	}
 
-	private parseKBSection(): KBSectionNode {
+	private parseKBSection(sectionHeaderConsumption: ConsumeResult): KBSectionNode {
 		const body: RuleNode[] = [];
 		const sectionStart = this.peek();
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
@@ -136,10 +136,20 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 		if (actions.length == 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ rule: ruleStart }));
 
-		return new RuleNode(ruleStart.value, call, conditions, actions, {
-			start: ruleStart.range.start,
-			end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
-		});
+		return new RuleNode(
+			ruleStart.value,
+			call,
+			conditions,
+			actions,
+			{
+				start: ruleStart.range.start,
+				end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
+			},
+			{
+				start: ruleStart.range.start,
+				end: ruleStart.range.end
+			}
+		);
 	}
 
 	private parseComparison(): ComparisonNode {
@@ -233,6 +243,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 					new ParameterNode(
 						parameterSubNode!,
 						type ? { start: type.range.start, end: parameter.range.end } : parameter.range,
+						{ start: parameter.range.start, end: parameter.range.end },
 						type
 					)
 				);
@@ -254,16 +265,25 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 		this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 
-		return new SignatureNode(name.value, parameters, {
-			start: name.range.start,
-			end: {
-				line: parameters.length == 0 ? name.range.end.line : parameters[parameters.length - 1].range.end.line,
-				character:
-					parameters.length == 0
-						? name.range.end.character + 2
-						: parameters[parameters.length - 1].range.end.character + 1
+		return new SignatureNode(
+			name.value,
+			parameters,
+			{
+				start: name.range.start,
+				end: {
+					line:
+						parameters.length == 0 ? name.range.end.line : parameters[parameters.length - 1].range.end.line,
+					character:
+						parameters.length == 0
+							? name.range.end.character + 2
+							: parameters[parameters.length - 1].range.end.character + 1
+				}
+			},
+			{
+				start: name.range.start,
+				end: name.range.end
 			}
-		});
+		);
 	}
 
 	private verifyNoType(parameter: Token, type?: TypeNode, allowIdentifiers = true) {

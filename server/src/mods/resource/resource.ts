@@ -1,13 +1,16 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Story } from "../story/story";
 import { ASTNode } from "../../parser/ast/nodes";
-import { Position } from "vscode-languageserver";
+import { DocumentSymbol, Position } from "vscode-languageserver";
 
 export abstract class Resource {
 	readonly path;
 	protected ast?: ASTNode;
 	protected document?: TextDocument;
 	protected readonly story;
+
+	symbols: DocumentSymbol[] = [];
+	valid = false;
 
 	constructor(story: Story, path: string) {
 		this.story = story;

@@ -32,9 +32,11 @@ export enum ASTNodeKind {
 export abstract class ASTNode {
 	abstract kind: ASTNodeKind;
 	range: Range;
+	selectionRange: Range;
 
-	constructor(range: Range) {
+	constructor(range: Range, selectionRange: Range) {
 		this.range = range;
+		this.selectionRange = selectionRange;
 	}
 
 	/**
@@ -49,6 +51,10 @@ export class UnknownNode extends ASTNode {
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
 		yield undefined;
 	}
+
+	constructor(range: Range) {
+		super(range, range);
+	}
 }
 
 export class SignatureNode extends ASTNode {
@@ -57,8 +63,8 @@ export class SignatureNode extends ASTNode {
 	parameters: ParameterNode[];
 	signatureType?: string;
 
-	constructor(name: string, parameters: ParameterNode[], range: Range) {
-		super(range);
+	constructor(name: string, parameters: ParameterNode[], range: Range, selectionRange: Range) {
+		super(range, selectionRange);
 		this.name = name;
 		this.parameters = parameters;
 	}
@@ -76,8 +82,8 @@ export class ParameterNode extends ASTNode {
 	type?: TypeNode;
 	flow?: ParameterFlow;
 
-	constructor(content: ASTNode, range: Range, type?: TypeNode, flow?: ParameterFlow) {
-		super(range);
+	constructor(content: ASTNode, range: Range, selectionRange: Range, type?: TypeNode, flow?: ParameterFlow) {
+		super(range, selectionRange);
 		this.content = content;
 		this.type = type;
 		this.flow = flow;
@@ -93,7 +99,7 @@ export abstract class SingletonNode<T> extends ASTNode {
 	value: T;
 
 	constructor(value: T, range: Range) {
-		super(range);
+		super(range, range);
 		this.value = value;
 	}
 
@@ -123,7 +129,7 @@ export class GoalNode extends ASTNode {
 	exit: SignatureSectionNode;
 
 	constructor(init: SignatureSectionNode, kb: KBSectionNode, exit: SignatureSectionNode, range: Range) {
-		super(range);
+		super(range, range);
 		this.init = init;
 		this.kb = kb;
 		this.exit = exit;
@@ -140,7 +146,7 @@ export abstract class SectionNode<T extends ASTNode> extends ASTNode {
 	content: T[];
 
 	constructor(content: T[], range: Range) {
-		super(range);
+		super(range, range);
 		this.content = content;
 	}
 
@@ -175,9 +181,10 @@ export class RuleNode extends ASTNode {
 		call: SignatureNode,
 		conditions: (SignatureNode | ComparisonNode)[],
 		actions: SignatureNode[],
-		range: Range
+		range: Range,
+		selectionRange: Range
 	) {
-		super(range);
+		super(range, selectionRange);
 		this.type = type;
 		this.call = call;
 		this.conditions = conditions;
@@ -203,7 +210,7 @@ export class ComparisonNode extends ASTNode {
 	right: ASTNode;
 
 	constructor(left: ASTNode, operator: OperatorNode, right: ASTNode, range: Range) {
-		super(range);
+		super(range, range);
 		this.left = left;
 		this.operator = operator;
 		this.right = right;
@@ -224,8 +231,8 @@ export class TypeEnumMemberNode extends ASTNode {
 	type: string;
 	member: string;
 
-	constructor(type: string, member: string, range: Range) {
-		super(range);
+	constructor(type: string, member: string, range: Range, selectionRange: Range) {
+		super(range, selectionRange);
 		this.type = type;
 		this.member = member;
 	}
@@ -253,7 +260,7 @@ export class HeaderNode extends ASTNode {
 		range: Range,
 		version?: StringNode
 	) {
-		super(range);
+		super(range, range);
 		this.options = options;
 		this.types = types;
 		this.builtinSignatures = builtinSignatures;
@@ -286,8 +293,8 @@ export class EnumTypeNode extends ASTNode {
 	type: string;
 	members: string[];
 
-	constructor(type: string, members: string[], range: Range) {
-		super(range);
+	constructor(type: string, members: string[], range: Range, selectionRange: Range) {
+		super(range, selectionRange);
 		this.type = type;
 		this.members = members;
 	}
@@ -315,7 +322,7 @@ export class HeaderGoalNode extends ASTNode {
 		kb?: string,
 		exit?: string
 	) {
-		super(range);
+		super(range, range);
 		this.id = id;
 		this.children = children;
 		this.title = title;

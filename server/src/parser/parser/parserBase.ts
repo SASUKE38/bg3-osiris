@@ -3,12 +3,12 @@ import { IdentifierNode, StringNode, NumberNode, TypeNode, OperatorNode, TypeEnu
 import { Token, TokenType } from "../tokens";
 import { expectedMessage, unexpectedTokenDiagnosticFactory } from "../../diagnostics/message";
 
-interface ConsumeParams {
+export interface ConsumeParams {
 	expectedType: TokenType[];
 	expectedMessage?: string;
 }
 
-interface ConsumeResult {
+export interface ConsumeResult {
 	token: Token;
 	matched?: boolean;
 }
@@ -144,7 +144,7 @@ export abstract class ParserBase<T> {
 	protected parseTypeEnumMember(): TypeEnumMemberNode {
 		const token = this.pop();
 		const parts = token.value.split(".", 2);
-		return new TypeEnumMemberNode(parts[0], parts[1], token.range);
+		return new TypeEnumMemberNode(parts[0], parts[1], token.range, token.range);
 	}
 
 	protected getTokenRange(): Range {

@@ -19,7 +19,7 @@ import { SymbolManager } from "./symbols/symbolManager";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, ModManager, SymbolManager];
+const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, SymbolManager];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
@@ -35,6 +35,7 @@ export class Server {
 	connection: Connection;
 	documents: TextDocuments<TextDocument>;
 	components: ComponentBase[];
+	modManager: ModManager = new ModManager(this);
 	hasConfigurationCapability = false;
 	hasWorkspaceFolderCapability = false;
 	hasDiagnosticRelatedInformationCapability = false;
@@ -103,6 +104,7 @@ export class Server {
 		}
 
 		this.connection.onNotification("running", () => {
+			this.components.push(this.modManager);
 			this.components.forEach((component) => component.initializeComponent?.(this.connection));
 		});
 	};

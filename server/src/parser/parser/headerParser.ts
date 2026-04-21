@@ -77,7 +77,12 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		}
 		const endToken = this.consume({ expectedType: [TokenType.CLOSE_BRACE] }).token;
 
-		return new EnumTypeNode(type, members, { start: startRange.start, end: endToken.range.end });
+		return new EnumTypeNode(
+			type,
+			members,
+			{ start: startRange.start, end: endToken.range.end },
+			{ start: startRange.start, end: startRange.end }
+		);
 	}
 
 	private parseBuiltin(): SignatureNode {
@@ -103,7 +108,9 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 						continue;
 						break;
 					case TokenType.IDENTIFIER:
-						parameters.push(new ParameterNode(this.parseIdentifier(), parameter.range, type, flow));
+						parameters.push(
+							new ParameterNode(this.parseIdentifier(), parameter.range, parameter.range, type, flow)
+						);
 				}
 				requireParameter = false;
 				type = undefined;
@@ -131,19 +138,27 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 			this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 		}
 
-		return new SignatureNode(signatureName.token.value, parameters, {
-			start: signatureType.range.start,
-			end: {
-				line:
-					parameters.length == 0
-						? signatureName.token.range.end.line
-						: parameters[parameters.length - 1].range.end.line,
-				character:
-					parameters.length == 0
-						? signatureName.token.range.end.character + 2
-						: parameters[parameters.length - 1].range.end.character + 1
+		return new SignatureNode(
+			signatureName.token.value,
+			parameters,
+			{
+				start: signatureType.range.start,
+				end: {
+					line:
+						parameters.length == 0
+							? signatureName.token.range.end.line
+							: parameters[parameters.length - 1].range.end.line,
+					character:
+						parameters.length == 0
+							? signatureName.token.range.end.character + 2
+							: parameters[parameters.length - 1].range.end.character + 1
+				}
+			},
+			{
+				start: signatureName.token.range.start,
+				end: signatureName.token.range.end
 			}
-		});
+		);
 	}
 
 	private parseGoalElement(goals: HeaderGoalNode[]) {

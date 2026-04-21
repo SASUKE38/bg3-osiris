@@ -20,7 +20,7 @@ import {
 } from "./modMeta";
 import { existsSync, readdirSync } from "fs";
 import { Resource } from "./resource/resource";
-import { trimFilePrefix } from "../utils/path/pathUtils";
+import { preparePath, trimFilePrefix } from "../utils/path/pathUtils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 /**
@@ -51,18 +51,24 @@ export class ModManager extends ComponentBase {
 		const { documents } = this.server;
 		documents.onDidOpen(this.handleDidOpen);
 		documents.onDidClose(this.handleDidClose);
+		documents.onDidChangeContent(this.handleDidChangeContent);
 	}
 
 	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(trimFilePrefix(decodeURIComponent(event.document.uri)));
+		const file = this.findResource(preparePath(event.document.uri));
 		if (file) file.setTextDocument(event.document);
 		else this.orphanedFiles.add(event.document);
 	};
 
 	private handleDidClose = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(trimFilePrefix(decodeURIComponent(event.document.uri)));
+		const file = this.findResource(preparePath(event.document.uri));
 		if (file) file.removeTextDocment();
 		else this.orphanedFiles.delete(event.document);
+	};
+
+	private handleDidChangeContent = (event: TextDocumentChangeEvent<TextDocument>) => {
+		const file = this.findResource(preparePath(event.document.uri));
+		if (file) file.valid = false;
 	};
 
 	/**
@@ -71,7 +77,7 @@ export class ModManager extends ComponentBase {
 	 * @param path The path of the {@link Resource} to find. It is recommended to normalize the path first.
 	 * @returns The {@link Resource} pointed to by the path, or `undefined` if it does not exist.
 	 */
-	private findResource(path: string): Resource | undefined {
+	findResource(path: string): Resource | undefined {
 		for (const mod of this.mods.values()) {
 			const file = mod.story.getResource(path);
 			if (file) return file;
@@ -105,7 +111,7 @@ export class ModManager extends ComponentBase {
 			const mod = new Mod(meta);
 			mod.story.on("storyInitialized", () => {
 				for (const file of this.orphanedFiles) {
-					const path = this.findResource(trimFilePrefix(decodeURIComponent(file.uri)));
+					const path = this.findResource(preparePath(file.uri));
 					if (path) {
 						path.setTextDocument(file);
 						this.orphanedFiles.delete(file);
