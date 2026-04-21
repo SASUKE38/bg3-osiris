@@ -16,10 +16,11 @@ import { ComponentBase } from "./componentBase";
 import { ModManager } from "./mods/modManager";
 import { DocumentationProvider } from "./documentation/documentationProvider";
 import { SymbolManager } from "./symbols/symbolManager";
+import { RenameProvider } from "./rename/renameProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, SymbolManager];
+const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, RenameProvider];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
@@ -36,6 +37,7 @@ export class Server {
 	documents: TextDocuments<TextDocument>;
 	components: ComponentBase[];
 	modManager: ModManager = new ModManager(this);
+	symbolManager: SymbolManager = new SymbolManager(this);
 	hasConfigurationCapability = false;
 	hasWorkspaceFolderCapability = false;
 	hasDiagnosticRelatedInformationCapability = false;
@@ -79,7 +81,8 @@ export class Server {
 					interFileDependencies: false,
 					workspaceDiagnostics: false
 				},
-				documentSymbolProvider: true
+				documentSymbolProvider: true,
+				renameProvider: true
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {
@@ -105,6 +108,7 @@ export class Server {
 
 		this.connection.onNotification("running", () => {
 			this.components.push(this.modManager);
+			this.components.push(this.symbolManager);
 			this.components.forEach((component) => component.initializeComponent?.(this.connection));
 		});
 	};

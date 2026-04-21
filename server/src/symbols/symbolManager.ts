@@ -1,21 +1,50 @@
-import { Connection, DocumentSymbol, DocumentSymbolParams, SymbolKind } from "vscode-languageserver";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import {
+	Connection,
+	DocumentSymbol,
+	DocumentSymbolParams,
+	Position,
+	SymbolKind,
+	TextDocumentIdentifier
+} from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { preparePath } from "../utils/path/pathUtils";
-import {
-	ASTNode,
-	ASTNodeKind,
-	EnumTypeNode,
-	IdentifierNode,
-	RuleNode,
-	SignatureNode,
-} from "../parser/ast/nodes";
+import { ASTNode, ASTNodeKind, EnumTypeNode, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
 
 /**
  * Server component that manages document symbols.
  */
 export class SymbolManager extends ComponentBase {
 	initializeComponent(connection: Connection): void {
-		connection.onDocumentSymbol(this.getDocumentSymbols);
+		connection.onDocumentSymbol(this.handleDocumentSymbol);
+	}
+
+	private handleDocumentSymbol = async (document: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
+		return await this.getDocumentSymbols(document.textDocument.uri);
+	};
+
+	async getSymbolsAt(documentIdentifier: TextDocumentIdentifier, position: Position): Promise<DocumentSymbol[]> {
+		const file = this.server.modManager.findResource(preparePath(documentIdentifier.uri));
+		const document = file?.getTextDocument();
+		const res: DocumentSymbol[] = [];
+		if (!file || !document) return res;
+		if (!file.valid) await this.getDocumentSymbols(file.path);
+
+		const positionOffset = document.offsetAt(position);
+		function getSymbols(symbols: DocumentSymbol[]) {
+			for (const symbol of symbols) {
+				const startOffset = document!.offsetAt(symbol.range.start);
+				const endOffset = document!.offsetAt(symbol.range.end);
+				if (endOffset < positionOffset) continue;
+				if (startOffset > positionOffset) break;
+				res.push(symbol);
+				if (symbol.children) getSymbols(symbol.children);
+				break;
+			}
+		}
+
+		getSymbols(file.symbols);
+		return res;
 	}
 
 	/**
@@ -25,8 +54,8 @@ export class SymbolManager extends ComponentBase {
 	 * @param document The document whose symbols should be extracted.
 	 * @returns A {@link DocumentSymbol} array that contains the given docuemnt's symbols in a hierarchical fashion.
 	 */
-	private getDocumentSymbols = async (document: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
-		const path = preparePath(document.textDocument.uri);
+	private async getDocumentSymbols(document: string): Promise<DocumentSymbol[]> {
+		const path = preparePath(document);
 		const file = this.server.modManager.findResource(path);
 		const root = await file?.getRootNode();
 		const res: DocumentSymbol[] = [];
@@ -86,5 +115,5 @@ export class SymbolManager extends ComponentBase {
 		getNodeSymbols(root, res);
 		file.symbols = res;
 		return res;
-	};
+	}
 }

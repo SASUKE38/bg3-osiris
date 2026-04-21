@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Story } from "../story/story";
 import { ASTNode } from "../../parser/ast/nodes";
@@ -33,6 +34,10 @@ export abstract class Resource {
 	 */
 	removeTextDocment() {
 		this.document = undefined;
+	}
+
+	getTextDocument() {
+		return this.document;
 	}
 
 	/**
