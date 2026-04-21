@@ -82,7 +82,9 @@ export class Server {
 					workspaceDiagnostics: false
 				},
 				documentSymbolProvider: true,
-				renameProvider: true
+				renameProvider: {
+					prepareProvider: true
+				}
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {
