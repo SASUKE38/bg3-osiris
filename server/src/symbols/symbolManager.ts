@@ -9,7 +9,7 @@ import {
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { preparePath } from "../utils/path/pathUtils";
-import { ASTNode, ASTNodeKind, EnumTypeNode, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
+import { ASTNode, ASTNodeKind, ComparisonNode, EnumTypeNode, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
 
 /**
  * Server component that manages document symbols.
@@ -92,6 +92,11 @@ export class SymbolManager extends ComponentBase {
 						case ASTNodeKind.SIGNATURE_NODE:
 							symbol.name = (child as SignatureNode).name;
 							symbol.kind = SymbolKind.Function;
+							getNodeSymbols(child, symbol.children!);
+							break;
+						case ASTNodeKind.COMPARISON_NODE:
+							symbol.name = (child as ComparisonNode).operator.value;
+							symbol.kind = SymbolKind.Operator;
 							getNodeSymbols(child, symbol.children!);
 							break;
 						case ASTNodeKind.IDENTIFIER_NODE:

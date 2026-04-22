@@ -76,7 +76,8 @@ export abstract class Resource {
 	 * @returns The root {@link ASTNode} associated with this {@link Resource}.
 	 */
 	async getRootNode(): Promise<ASTNode | undefined> {
-		if (this.ast) return Promise.resolve(this.ast);
-		else return this.load();
+		// if (this.ast) return Promise.resolve(this.ast);
+		// else return this.load();
+		return await this.load();
 	}
 }

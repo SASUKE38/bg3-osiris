@@ -21,7 +21,8 @@ export class RenameProvider extends ComponentBase {
 		const selectionRangeOffsetEnd = document.offsetAt(selectionRange.end);
 		if (positionOffset > selectionRangeOffsetEnd || positionOffset < selectionRangeOffsetStart) return null;
 		
-		if (symbols[symbols.length - 1].kind == SymbolKind.Variable || symbols[symbols.length - 1].kind == SymbolKind.Function) {
+		const lastSymbolKind = symbols[symbols.length - 1].kind;
+		if (lastSymbolKind === SymbolKind.Variable || lastSymbolKind === SymbolKind.Function || lastSymbolKind === SymbolKind.Constant) {
 			return selectionRange;
 		}
 
@@ -29,8 +30,30 @@ export class RenameProvider extends ComponentBase {
 	}
 
 	private handleRenameRequest = async (params: RenameParams): Promise<WorkspaceEdit> => {
-		console.log(await this.server.symbolManager.getSymbolsAt(params.textDocument, params.position));
+		const symbols = await this.server.symbolManager.getSymbolsAt(params.textDocument, params.position);
+		const documentURI = params.textDocument.uri;
+		const oldSymbol = symbols[symbols.length - 1];
+		const res: WorkspaceEdit = { changes: { [`${documentURI}`]: [] } };
 
-		return {};
+		if (oldSymbol.kind === SymbolKind.Variable || oldSymbol.kind === SymbolKind.Constant) {
+			for (let i = symbols.length - 1; i >= 0; i--) {
+				if (symbols[i].kind === SymbolKind.Class) {
+					if (!symbols[i].children) return {};
+					for (const func of symbols[i].children!) {
+						if (!func.children) return {};
+						for (const parameter of func.children) {
+							if (parameter.name === oldSymbol.name) {
+								res.changes![`${documentURI}`].push({range: parameter.selectionRange, newText: params.newName});
+							}
+						}
+					}
+					break;
+				}
+			}
+		} else if (oldSymbol.kind === SymbolKind.Function) {
+			
+		}
+
+		return res;
 	};
 }
