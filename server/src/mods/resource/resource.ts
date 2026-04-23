@@ -6,9 +6,9 @@ import { DocumentSymbol, Position } from "vscode-languageserver";
 
 export abstract class Resource {
 	readonly path;
+	readonly story;
 	protected ast?: ASTNode;
 	protected document?: TextDocument;
-	protected readonly story;
 
 	symbols: DocumentSymbol[] = [];
 	valid = false;

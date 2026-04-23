@@ -2,11 +2,13 @@ import { ModMetaModuleInfo } from "./modMeta";
 import { Story } from "./story/story";
 
 export class Mod {
+	readonly path?: string;
 	readonly meta: ModMetaModuleInfo;
-	readonly story: Story = new Story();
+	readonly story: Story = new Story(this);
 
-	constructor(meta: ModMetaModuleInfo) {
+	constructor(meta: ModMetaModuleInfo, path?: string) {
 		this.meta = meta;
+		this.path = path;
 	}
 
 	/**

@@ -5,12 +5,19 @@ import { Goal } from "./goal";
 import { join } from "path";
 import { EventEmitter } from "events";
 import { GoalResource } from "../resource/goalResource";
+import { Mod } from "../mod";
 
 export class Story extends EventEmitter {
+	readonly mod: Mod;
 	private meta?: ModMetaModuleInfo;
 	private goals: Goal[] = [];
 	private files: Resource[] = [];
 	private isInitialized = false;
+
+	constructor(mod: Mod) {
+		super();
+		this.mod = mod;
+	}
 
 	/**
 	 * Loads the Story resources associated with a given mod.
@@ -29,5 +36,9 @@ export class Story extends EventEmitter {
 
 	getResource(path: string): Resource | undefined {
 		return this.files.find((file) => file.path == path);
+	}
+
+	getAllResources(): Resource[] {
+		return this.files;
 	}
 }

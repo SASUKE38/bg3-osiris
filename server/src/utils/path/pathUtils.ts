@@ -1,7 +1,11 @@
 import { normalize } from "path";
 
-export function preparePath(path: string) {
+export function decodePath(path: string) {
 	return trimFilePrefix(decodeURIComponent(path));
+}
+
+export function encodePath(path: string) {
+	return `file:///${encodeURIComponent(path.replaceAll(/\\/g, "/"))}`;
 }
 
 export function trimFilePrefix(path: string) {

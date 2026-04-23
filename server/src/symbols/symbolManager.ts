@@ -8,8 +8,16 @@ import {
 	TextDocumentIdentifier
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { preparePath } from "../utils/path/pathUtils";
-import { ASTNode, ASTNodeKind, ComparisonNode, EnumTypeNode, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
+import { decodePath } from "../utils/path/pathUtils";
+import {
+	ASTNode,
+	ASTNodeKind,
+	ComparisonNode,
+	EnumTypeNode,
+	IdentifierNode,
+	RuleNode,
+	SignatureNode
+} from "../parser/ast/nodes";
 
 /**
  * Server component that manages document symbols.
@@ -24,7 +32,7 @@ export class SymbolManager extends ComponentBase {
 	};
 
 	async getSymbolsAt(documentIdentifier: TextDocumentIdentifier, position: Position): Promise<DocumentSymbol[]> {
-		const file = this.server.modManager.findResource(preparePath(documentIdentifier.uri));
+		const file = this.server.modManager.findResource(decodePath(documentIdentifier.uri));
 		const document = file?.getTextDocument();
 		const res: DocumentSymbol[] = [];
 		if (!file || !document) return res;
@@ -55,7 +63,7 @@ export class SymbolManager extends ComponentBase {
 	 * @returns A {@link DocumentSymbol} array that contains the given docuemnt's symbols in a hierarchical fashion.
 	 */
 	private async getDocumentSymbols(document: string): Promise<DocumentSymbol[]> {
-		const path = preparePath(document);
+		const path = decodePath(document);
 		const file = this.server.modManager.findResource(path);
 		const root = await file?.getRootNode();
 		const res: DocumentSymbol[] = [];
@@ -119,6 +127,17 @@ export class SymbolManager extends ComponentBase {
 		}
 		getNodeSymbols(root, res);
 		file.symbols = res;
+		return res;
+	}
+
+	async getAllSymbols(path: string): Promise<Map<string, DocumentSymbol[]>> {
+		const resources = this.server.modManager.getAllResources(path);
+		const res = new Map<string, DocumentSymbol[]>();
+
+		for (const resource of resources) {
+			res.set(resource.path, await this.getDocumentSymbols(resource.path));
+		}
+
 		return res;
 	}
 }

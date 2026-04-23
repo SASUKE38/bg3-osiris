@@ -20,7 +20,7 @@ import {
 } from "./modMeta";
 import { existsSync, readdirSync } from "fs";
 import { Resource } from "./resource/resource";
-import { preparePath, trimFilePrefix } from "../utils/path/pathUtils";
+import { decodePath, trimFilePrefix } from "../utils/path/pathUtils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 /**
@@ -55,19 +55,19 @@ export class ModManager extends ComponentBase {
 	}
 
 	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(preparePath(event.document.uri));
+		const file = this.findResource(decodePath(event.document.uri));
 		if (file) file.setTextDocument(event.document);
 		else this.orphanedFiles.add(event.document);
 	};
 
 	private handleDidClose = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(preparePath(event.document.uri));
+		const file = this.findResource(decodePath(event.document.uri));
 		if (file) file.removeTextDocment();
 		else this.orphanedFiles.delete(event.document);
 	};
 
 	private handleDidChangeContent = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(preparePath(event.document.uri));
+		const file = this.findResource(decodePath(event.document.uri));
 		if (file) file.valid = false;
 	};
 
@@ -82,6 +82,14 @@ export class ModManager extends ComponentBase {
 			const file = mod.story.getResource(path);
 			if (file) return file;
 		}
+	}
+
+	getAllResources(path: string): Resource[] {
+		const mod = this.findResource(decodePath(path))?.story.mod;
+		if (mod) {
+			return mod.story.getAllResources();
+		}
+		return [];
 	}
 
 	/**
@@ -108,10 +116,10 @@ export class ModManager extends ComponentBase {
 			return this.mods.get(meta.uuid) as Mod;
 		}
 		if (!(meta.uuid in this.initializingMods)) {
-			const mod = new Mod(meta);
+			const mod = new Mod(meta, path);
 			mod.story.on("storyInitialized", () => {
 				for (const file of this.orphanedFiles) {
-					const path = this.findResource(preparePath(file.uri));
+					const path = this.findResource(decodePath(file.uri));
 					if (path) {
 						path.setTextDocument(file);
 						this.orphanedFiles.delete(file);
