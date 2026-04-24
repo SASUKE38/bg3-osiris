@@ -9,7 +9,7 @@ import {
 	WorkspaceEdit
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath, encodePath } from "../utils/path/pathUtils";
+import { encodePath } from "../utils/path/pathUtils";
 
 export class RenameProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
@@ -18,28 +18,7 @@ export class RenameProvider extends ComponentBase {
 	}
 
 	private handlePrepareRename = async (params: PrepareRenameParams): Promise<Range | null> => {
-		const symbols = await this.server.symbolManager.getSymbolsAt(params.textDocument, params.position);
-		if (symbols.length <= 1) return null;
-
-		const document = this.server.modManager.findResource(decodePath(params.textDocument.uri))?.getTextDocument();
-		if (!document) return null;
-
-		const positionOffset = document.offsetAt(params.position);
-		const selectionRange = symbols[symbols.length - 1].selectionRange;
-		const selectionRangeOffsetStart = document.offsetAt(selectionRange.start);
-		const selectionRangeOffsetEnd = document.offsetAt(selectionRange.end);
-		if (positionOffset > selectionRangeOffsetEnd || positionOffset < selectionRangeOffsetStart) return null;
-
-		const lastSymbolKind = symbols[symbols.length - 1].kind;
-		if (
-			lastSymbolKind === SymbolKind.Variable ||
-			lastSymbolKind === SymbolKind.Function ||
-			lastSymbolKind === SymbolKind.Constant
-		) {
-			return selectionRange;
-		}
-
-		return null;
+		return await this.server.symbolManager.validateRenameOrReferences(params);
 	};
 
 	private handleRenameRequest = async (params: RenameParams): Promise<WorkspaceEdit> => {

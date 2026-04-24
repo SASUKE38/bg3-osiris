@@ -17,10 +17,16 @@ import { ModManager } from "./mods/modManager";
 import { DocumentationProvider } from "./documentation/documentationProvider";
 import { SymbolManager } from "./symbols/symbolManager";
 import { RenameProvider } from "./rename/renameProvider";
+import { ReferencesProvider } from "./references/referencesProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: ComponentContainer[] = [DiagnosticProvider, DocumentationProvider, RenameProvider];
+const components: ComponentContainer[] = [
+	DiagnosticProvider,
+	DocumentationProvider,
+	RenameProvider,
+	ReferencesProvider
+];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
@@ -84,7 +90,8 @@ export class Server {
 				documentSymbolProvider: true,
 				renameProvider: {
 					prepareProvider: true
-				}
+				},
+				referencesProvider: true
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {
