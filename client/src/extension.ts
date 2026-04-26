@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { DocumentSemanticTokensProvider } from "./semantics/documentSemanticTokensProvider";
 import { workspace, ExtensionContext, WorkspaceFolder, Uri, TextDocument } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind } from "vscode-languageclient/node";
@@ -14,28 +15,30 @@ const components: ComponentContainer[] = [StoryOutlineProvider, DocumentSemantic
 let _sortedWorkspaceFolders: string[] | undefined;
 function sortedWorkspaceFolders(): string[] {
 	if (_sortedWorkspaceFolders === void 0) {
-		_sortedWorkspaceFolders = workspace.workspaceFolders ? workspace.workspaceFolders.map(folder => {
-			let result = folder.uri.toString();
-			if (result.charAt(result.length - 1) !== '/') {
-				result = result + '/';
-			}
-			return result;
-		}).sort(
-			(a, b) => {
-				return a.length - b.length;
-			}
-		) : [];
+		_sortedWorkspaceFolders = workspace.workspaceFolders
+			? workspace.workspaceFolders
+					.map((folder) => {
+						let result = folder.uri.toString();
+						if (result.charAt(result.length - 1) !== "/") {
+							result = result + "/";
+						}
+						return result;
+					})
+					.sort((a, b) => {
+						return a.length - b.length;
+					})
+			: [];
 	}
 	return _sortedWorkspaceFolders;
 }
-workspace.onDidChangeWorkspaceFolders(() => _sortedWorkspaceFolders = undefined);
+workspace.onDidChangeWorkspaceFolders(() => (_sortedWorkspaceFolders = undefined));
 
 function getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
 	const sorted = sortedWorkspaceFolders();
 	for (const element of sorted) {
 		let uri = folder.uri.toString();
-		if (uri.charAt(uri.length - 1) !== '/') {
-			uri = uri + '/';
+		if (uri.charAt(uri.length - 1) !== "/") {
+			uri = uri + "/";
 		}
 		if (uri.startsWith(element)) {
 			return workspace.getWorkspaceFolder(Uri.parse(element))!;
@@ -85,11 +88,11 @@ export class Client {
 				this.connection.sendNotification("running");
 				this.connection.onRequest("getRoot", () => {
 					return this.folder.uri.toString();
-				})
+				});
 				this.connection.onRequest("getWorkspace", (path: string) => {
 					console.log("Incoming path: " + Uri.parse(path));
 					console.log(workspace.getWorkspaceFolder(Uri.parse(path)));
-				})
+				});
 				this.components.forEach((component) => component.initializeComponent?.(this.connection));
 			}
 		});
@@ -102,7 +105,6 @@ export class Client {
 }
 
 export function activate(context: ExtensionContext) {
-
 	function didOpenTextDocument(document: TextDocument) {
 		if (document.languageId !== "osiris") {
 			return;

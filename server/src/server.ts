@@ -7,7 +7,8 @@ import {
 	TextDocumentSyncKind,
 	InitializeResult,
 	Connection,
-	DidChangeConfigurationParams
+	DidChangeConfigurationParams,
+	WorkspaceFolder
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -44,6 +45,7 @@ export class Server {
 	components: ComponentBase[];
 	modManager: ModManager = new ModManager(this);
 	symbolManager: SymbolManager = new SymbolManager(this);
+	rootFolder?: WorkspaceFolder;
 	hasConfigurationCapability = false;
 	hasWorkspaceFolderCapability = false;
 	hasDiagnosticRelatedInformationCapability = false;
@@ -68,6 +70,9 @@ export class Server {
 
 	private initializeHandler = (params: InitializeParams): InitializeResult => {
 		const capabilities = params.capabilities;
+		if (params.workspaceFolders) {
+			this.rootFolder = params.workspaceFolders[params.workspaceFolders.length - 1];
+		}
 
 		this.hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
 		this.hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders);

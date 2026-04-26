@@ -1,4 +1,4 @@
-import { Connection, TextDocumentChangeEvent } from "vscode-languageserver";
+import { Connection, CreateFilesParams, DeleteFilesParams, TextDocumentChangeEvent } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "./mod";
 import { dirname, join } from "path";
@@ -27,53 +27,39 @@ import { TextDocument } from "vscode-languageserver-textdocument";
  * Server component that manages mod loading and tracking.
  */
 export class ModManager extends ComponentBase {
-	readonly initializingMods = new Map<string, Promise<Mod>>();
-	readonly mods = new Map<string, Mod>();
+	mod?: Mod;
+
 	private readonly xmlParser = LSXMLParserFactory();
-	private readonly orphanedFiles = new Set<TextDocument>();
 
-	initializeComponent(connection: Connection): void {
-		connection.sendRequest<string>("getRoot").then((value) => {
-			console.log(value);
-		})
-
-		// connection.workspace.getWorkspaceFolders().then(
-		// 	(folders) => {
-		// 		if (folders) {
-		// 			for (const folder of folders) {
-		// 				let path = decodeURIComponent(folder.uri);
-		// 				path = trimFilePrefix(path);
-		// 				this.createModFromPath(path);
-		// 			}
-		// 		}
-		// 	},
-		// 	(reason) => {
-		// 		console.error(reason);
-		// 	}
-		// );
-
-		const { documents } = this.server;
+	async initializeComponent(connection: Connection): Promise<void> {
+		const { documents, rootFolder } = this.server;
 		documents.onDidOpen(this.handleDidOpen);
 		documents.onDidClose(this.handleDidClose);
 		documents.onDidChangeContent(this.handleDidChangeContent);
+		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
+		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
+
+		if (rootFolder) this.mod = await this.createModFromPath(decodePath(rootFolder.uri));
 	}
 
 	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {
 		const file = this.findResource(decodePath(event.document.uri));
 		if (file) file.setTextDocument(event.document);
-		else this.orphanedFiles.add(event.document);
 	};
 
 	private handleDidClose = (event: TextDocumentChangeEvent<TextDocument>) => {
 		const file = this.findResource(decodePath(event.document.uri));
 		if (file) file.removeTextDocment();
-		else this.orphanedFiles.delete(event.document);
 	};
 
 	private handleDidChangeContent = (event: TextDocumentChangeEvent<TextDocument>) => {
 		const file = this.findResource(decodePath(event.document.uri));
 		if (file) file.valid = false;
 	};
+
+	private handleDeleteFiles = (params: DeleteFilesParams) => {};
+
+	private handleCreateFiles = (params: CreateFilesParams) => {};
 
 	/**
 	 * Locates a {@link Resource} associated with a given path.
@@ -82,16 +68,16 @@ export class ModManager extends ComponentBase {
 	 * @returns The {@link Resource} pointed to by the path, or `undefined` if it does not exist.
 	 */
 	findResource(path: string): Resource | undefined {
-		for (const mod of this.mods.values()) {
-			const file = mod.story.getResource(path);
+		if (this.mod) {
+			const file = this.mod.getResource(path);
 			if (file) return file;
 		}
 	}
 
 	getAllResources(path: string): Resource[] {
-		const mod = this.findResource(decodePath(path))?.story.mod;
+		const mod = this.findResource(decodePath(path))?.mod;
 		if (mod) {
-			return mod.story.getAllResources();
+			return mod.getAllResources();
 		}
 		return [];
 	}
@@ -101,10 +87,10 @@ export class ModManager extends ComponentBase {
 	 *
 	 * @param path The path of the mod to load. Should contain the mod's meta.lsx.
 	 */
-	async createModFromPath(path: string) {
+	async createModFromPath(path: string): Promise<Mod | undefined> {
 		const meta = this.readModMeta(path);
 		if (meta) {
-			await this.createMod(meta, path);
+			return await this.createMod(meta, path);
 		}
 	}
 
@@ -116,33 +102,9 @@ export class ModManager extends ComponentBase {
 	 * @returns The loaded {@link Mod}.
 	 */
 	private async createMod(meta: ModMetaModuleInfo, path: string): Promise<Mod> {
-		if (meta.uuid in this.mods) {
-			return this.mods.get(meta.uuid) as Mod;
-		}
-		if (!(meta.uuid in this.initializingMods)) {
-			const mod = new Mod(meta, path);
-			mod.story.on("storyInitialized", () => {
-				for (const file of this.orphanedFiles) {
-					const path = this.findResource(decodePath(file.uri));
-					if (path) {
-						path.setTextDocument(file);
-						this.orphanedFiles.delete(file);
-					}
-				}
-			});
-			const initializer = async (thisArg: ModManager) => {
-				await mod.initialize(path);
-				thisArg.initializingMods.delete(meta.uuid);
-				thisArg.mods.set(meta.uuid, mod);
-				return mod;
-			};
-			this.initializingMods.set(meta.uuid, initializer(this));
-		}
-
-		for (const dependency of this.findDependencies(meta, path)) {
-			this.createModFromPath(dependency);
-		}
-		return this.initializingMods.get(meta.uuid) as Promise<Mod>;
+		const mod = new Mod(meta, path);
+		await mod.initialize();
+		return Promise.resolve(mod);
 	}
 
 	/**

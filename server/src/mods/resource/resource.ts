@@ -1,20 +1,20 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Story } from "../story/story";
 import { ASTNode } from "../../parser/ast/nodes";
 import { DocumentSymbol, Position } from "vscode-languageserver";
+import { Mod } from "../mod";
 
 export abstract class Resource {
 	readonly path;
-	readonly story;
+	readonly mod;
 	protected ast?: ASTNode;
 	protected document?: TextDocument;
 
 	symbols: DocumentSymbol[] = [];
 	valid = false;
 
-	constructor(story: Story, path: string) {
-		this.story = story;
+	constructor(mod: Mod, path: string) {
+		this.mod = mod;
 		this.path = path;
 	}
 
