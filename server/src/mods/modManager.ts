@@ -20,7 +20,7 @@ import {
 } from "./modMeta";
 import { existsSync, readdirSync } from "fs";
 import { Resource } from "./resource/resource";
-import { decodePath, trimFilePrefix } from "../utils/path/pathUtils";
+import { decodePath } from "../utils/path/pathUtils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 /**
@@ -33,20 +33,24 @@ export class ModManager extends ComponentBase {
 	private readonly orphanedFiles = new Set<TextDocument>();
 
 	initializeComponent(connection: Connection): void {
-		connection.workspace.getWorkspaceFolders().then(
-			(folders) => {
-				if (folders) {
-					for (const folder of folders) {
-						let path = decodeURIComponent(folder.uri);
-						path = trimFilePrefix(path);
-						this.createModFromPath(path);
-					}
-				}
-			},
-			(reason) => {
-				console.error(reason);
-			}
-		);
+		connection.sendRequest<string>("getRoot").then((value) => {
+			console.log(value);
+		})
+
+		// connection.workspace.getWorkspaceFolders().then(
+		// 	(folders) => {
+		// 		if (folders) {
+		// 			for (const folder of folders) {
+		// 				let path = decodeURIComponent(folder.uri);
+		// 				path = trimFilePrefix(path);
+		// 				this.createModFromPath(path);
+		// 			}
+		// 		}
+		// 	},
+		// 	(reason) => {
+		// 		console.error(reason);
+		// 	}
+		// );
 
 		const { documents } = this.server;
 		documents.onDidOpen(this.handleDidOpen);
