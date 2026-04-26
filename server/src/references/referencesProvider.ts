@@ -1,6 +1,6 @@
 import { Connection, DocumentSymbol, Location, ReferenceParams, SymbolKind } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { encodePath } from "../utils/path/pathUtils";
+import { decodePath, encodePath } from "../utils/path/pathUtils";
 
 export class ReferencesProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
@@ -9,13 +9,16 @@ export class ReferencesProvider extends ComponentBase {
 
 	private handleReferences = async (params: ReferenceParams): Promise<Location[] | null> => {
 		if (await this.server.symbolManager.validateRenameOrReferences(params)) {
-			const symbolsAt = await this.server.symbolManager.getSymbolsAt(params.textDocument, params.position);
-			const searchSymbol = symbolsAt[symbolsAt.length - 1];
+			const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+			if (resource) {
+				const symbolsAt = await resource.getSymbolsAt(params.position);
+				const searchSymbol = symbolsAt[symbolsAt.length - 1];
 
-			if (searchSymbol.kind === SymbolKind.Variable || searchSymbol.kind === SymbolKind.Constant) {
-				return Promise.resolve(this.findVariableOrConstantReferences(params, symbolsAt, searchSymbol));
-			} else if (searchSymbol.kind === SymbolKind.Function) {
-				return await this.findSignatureReferences(params, searchSymbol);
+				if (searchSymbol.kind === SymbolKind.Variable || searchSymbol.kind === SymbolKind.Constant) {
+					return Promise.resolve(this.findVariableOrConstantReferences(params, symbolsAt, searchSymbol));
+				} else if (searchSymbol.kind === SymbolKind.Function) {
+					return await this.findSignatureReferences(params, searchSymbol);
+				}
 			}
 		}
 

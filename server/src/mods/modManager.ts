@@ -54,7 +54,7 @@ export class ModManager extends ComponentBase {
 
 	private handleDidChangeContent = (event: TextDocumentChangeEvent<TextDocument>) => {
 		const file = this.findResource(decodePath(event.document.uri));
-		if (file) file.valid = false;
+		if (file) file.invalidate();
 	};
 
 	private handleDeleteFiles = (params: DeleteFilesParams) => {};

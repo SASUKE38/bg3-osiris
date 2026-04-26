@@ -9,9 +9,9 @@ export abstract class Resource {
 	readonly mod;
 	protected ast?: ASTNode;
 	protected document?: TextDocument;
+	private valid = false;
 
 	symbols: DocumentSymbol[] = [];
-	valid = false;
 
 	constructor(mod: Mod, path: string) {
 		this.mod = mod;
@@ -19,6 +19,20 @@ export abstract class Resource {
 	}
 
 	abstract load(): Promise<ASTNode | undefined>;
+
+	abstract loadSymbols(): Promise<DocumentSymbol[]>;
+
+	isValid() {
+		return this.valid;
+	}
+
+	invalidate() {
+		this.valid = false;
+	}
+
+	validate() {
+		this.valid = true;
+	}
 
 	/**
 	 * Associates a {@link TextDocument} with this Resource.
@@ -48,6 +62,8 @@ export abstract class Resource {
 	 * @returns An array of nodes that contain the given {@link Position}.
 	 */
 	async getNodesAt(position: Position): Promise<ASTNode[]> {
+		if (!this.isValid()) await this.load();
+
 		function getNodesIn(node: ASTNode, thisArg: Resource) {
 			const children = node.getNodeChildren();
 			for (const child of children) {
@@ -79,5 +95,33 @@ export abstract class Resource {
 		// if (this.ast) return Promise.resolve(this.ast);
 		// else return this.load();
 		return await this.load();
+	}
+
+	async getSymbols(): Promise<DocumentSymbol[]> {
+		if (!this.isValid()) await this.load();
+		return this.symbols;
+	}
+
+	async getSymbolsAt(position: Position): Promise<DocumentSymbol[]> {
+		const res: DocumentSymbol[] = [];
+		if (!this.document) return res;
+		if (!this.isValid()) await this.load();
+
+		const positionOffset = this.document.offsetAt(position);
+
+		function getSymbolsIn(symbols: DocumentSymbol[], thisArg: Resource) {
+			for (const symbol of symbols) {
+				const startOffset = thisArg.document!.offsetAt(symbol.range.start);
+				const endOffset = thisArg.document!.offsetAt(symbol.range.end);
+				if (endOffset < positionOffset) continue;
+				if (startOffset > positionOffset) break;
+				res.push(symbol);
+				if (symbol.children) getSymbolsIn(symbol.children, thisArg);
+				break;
+			}
+		}
+
+		getSymbolsIn(this.symbols, this);
+		return res;
 	}
 }
