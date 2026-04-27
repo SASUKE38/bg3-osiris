@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
 	ASTNode,
@@ -11,8 +12,9 @@ import {
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
 import { Resource } from "./resource";
-import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
+import { DocumentSymbol, Location, SymbolKind, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
+import { encodePath } from "../../utils/path/pathUtils";
 
 export class GoalResource extends Resource {
 	/**
@@ -32,22 +34,23 @@ export class GoalResource extends Resource {
 			const document = TextDocument.create(this.path, "osiris", 1, content);
 			this.ast = new GoalParser(new GoalLexer(document).tokenize()).parse();
 		}
-		this.symbols = await this.loadSymbols();
+		await this.loadSymbols();
 		this.validate();
 		return Promise.resolve(this.ast);
 	}
 
-	async loadSymbols(): Promise<DocumentSymbol[]> {
+	async loadSymbols(): Promise<[DocumentSymbol[], WorkspaceSymbol[]]> {
 		const root = this.ast;
-		const res: DocumentSymbol[] = [];
+		const symbols: DocumentSymbol[] = [];
+		const workspaceSymbols: WorkspaceSymbol[] = [];
 		let hadInit = false;
-		if (!root) return res;
+		if (!root) return [symbols, workspaceSymbols];
 
-		function getNodeSymbols(node: ASTNode, symbols: DocumentSymbol[]) {
+		function getNodeSymbols(node: ASTNode, symbols: DocumentSymbol[], thisArg: GoalResource) {
 			for (const child of node.getNodeChildren()) {
 				if (!child) continue;
 				if (child.kind == ASTNodeKind.PARAMETER_NODE) {
-					getNodeSymbols(child, symbols);
+					getNodeSymbols(child, symbols, thisArg);
 				} else {
 					const symbol: Partial<DocumentSymbol> = {
 						children: []
@@ -57,27 +60,22 @@ export class GoalResource extends Resource {
 							symbol.name = hadInit ? "EXIT" : "INIT";
 							symbol.kind = SymbolKind.Module;
 							hadInit = true;
-							getNodeSymbols(child, symbol.children!);
 							break;
 						case ASTNodeKind.KB_SECTION_NODE:
 							symbol.name = "KB";
 							symbol.kind = SymbolKind.Module;
-							getNodeSymbols(child, symbol.children!);
 							break;
 						case ASTNodeKind.RULE_NODE:
 							symbol.name = (child as RuleNode).type;
 							symbol.kind = SymbolKind.Class;
-							getNodeSymbols(child, symbol.children!);
 							break;
 						case ASTNodeKind.SIGNATURE_NODE:
 							symbol.name = (child as SignatureNode).name;
 							symbol.kind = SymbolKind.Function;
-							getNodeSymbols(child, symbol.children!);
 							break;
 						case ASTNodeKind.COMPARISON_NODE:
 							symbol.name = (child as ComparisonNode).operator.value;
 							symbol.kind = SymbolKind.Operator;
-							getNodeSymbols(child, symbol.children!);
 							break;
 						case ASTNodeKind.IDENTIFIER_NODE:
 							symbol.name = (child as IdentifierNode).value;
@@ -91,13 +89,21 @@ export class GoalResource extends Resource {
 							continue;
 					}
 
+					getNodeSymbols(child, symbol.children!, thisArg);
 					symbol.range = child.range;
 					symbol.selectionRange = child.selectionRange;
 					symbols.push(symbol as DocumentSymbol);
+					workspaceSymbols.push({
+						name: symbol.name,
+						kind: symbol.kind,
+						location: Location.create(encodePath(thisArg.path), symbol.range)
+					});
 				}
 			}
 		}
-		getNodeSymbols(root, res);
-		return res;
+		getNodeSymbols(root, symbols, this);
+		this.symbols = symbols;
+		this.workspaceSymbols = workspaceSymbols;
+		return [symbols, workspaceSymbols];
 	}
 }

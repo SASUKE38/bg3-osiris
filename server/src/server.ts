@@ -96,7 +96,8 @@ export class Server {
 				renameProvider: {
 					prepareProvider: true
 				},
-				referencesProvider: true
+				referencesProvider: true,
+				workspaceSymbolProvider: true
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {

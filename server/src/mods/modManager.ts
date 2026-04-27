@@ -74,10 +74,9 @@ export class ModManager extends ComponentBase {
 		}
 	}
 
-	getAllResources(path: string): Resource[] {
-		const mod = this.findResource(decodePath(path))?.mod;
-		if (mod) {
-			return mod.getAllResources();
+	getAllResources(): Resource[] {
+		if (this.mod) {
+			return this.mod.getAllResources();
 		}
 		return [];
 	}

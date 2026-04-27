@@ -41,7 +41,7 @@ export class ReferencesProvider extends ComponentBase {
 
 	private async findSignatureReferences(params: ReferenceParams, searchSymbol: DocumentSymbol): Promise<Location[]> {
 		const res: Location[] = [];
-		const allSymbols = await this.server.symbolManager.getAllSymbols(params.textDocument.uri);
+		const allSymbols = await this.server.symbolManager.getAllSymbols();
 
 		for (const entry of allSymbols.entries()) {
 			const encodedPath = encodePath(entry[0]);

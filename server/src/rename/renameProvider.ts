@@ -38,7 +38,7 @@ export class RenameProvider extends ComponentBase {
 	};
 
 	private async renameSignature(params: RenameParams, oldSymbol: DocumentSymbol): Promise<WorkspaceEdit> {
-		const allSymbols = await this.server.symbolManager.getAllSymbols(params.textDocument.uri);
+		const allSymbols = await this.server.symbolManager.getAllSymbols();
 		const res: WorkspaceEdit = { changes: {} };
 
 		for (const entry of allSymbols.entries()) {

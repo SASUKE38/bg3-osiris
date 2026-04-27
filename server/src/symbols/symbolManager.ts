@@ -6,7 +6,8 @@ import {
 	PrepareRenameParams,
 	Range,
 	ReferenceParams,
-	SymbolKind
+	SymbolKind,
+	WorkspaceSymbol
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/path/pathUtils";
@@ -17,6 +18,7 @@ import { decodePath } from "../utils/path/pathUtils";
 export class SymbolManager extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onDocumentSymbol(this.handleDocumentSymbol);
+		connection.onWorkspaceSymbol(this.handleWorkspaceSymbol);
 	}
 
 	private handleDocumentSymbol = async (document: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
@@ -25,8 +27,16 @@ export class SymbolManager extends ComponentBase {
 		return await resource.getSymbols();
 	};
 
-	async getAllSymbols(path: string): Promise<Map<string, DocumentSymbol[]>> {
-		const resources = this.server.modManager.getAllResources(path);
+	private handleWorkspaceSymbol = async (): Promise<WorkspaceSymbol[]> => {
+		let res: WorkspaceSymbol[] = [];
+		for (const resource of this.server.modManager.getAllResources()) {
+			res = [...res, ...(await resource.getWorkspaceSymbols())];
+		}
+		return res;
+	};
+
+	async getAllSymbols(): Promise<Map<string, DocumentSymbol[]>> {
+		const resources = this.server.modManager.getAllResources();
 		const res = new Map<string, DocumentSymbol[]>();
 
 		for (const resource of resources) {

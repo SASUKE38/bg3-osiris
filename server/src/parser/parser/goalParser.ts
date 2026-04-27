@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
 	SignatureNode,
 	ParameterNode,
@@ -19,7 +20,7 @@ import {
 	ruleMissingActionsDiagnosticFactory,
 	unexpectedTokenDiagnosticFactory
 } from "../../diagnostics/message";
-import { ConsumeResult, ParserBase } from "./parserBase";
+import { ParserBase } from "./parserBase";
 
 export class GoalParser extends ParserBase<GoalNode> {
 	private parameterTypes: TokenType[] = [
@@ -59,14 +60,14 @@ export class GoalParser extends ParserBase<GoalNode> {
 		this.consumeSequence({ expectedType: this.headerTypes });
 		const init = this.parseSignatureSection(TokenType.KBSECTION);
 		// this.consume({ expectedType: [TokenType.KBSECTION] });
-		const kb = this.parseKBSection(this.consume({ expectedType: [TokenType.KBSECTION] }));
+		const kb = this.parseKBSection();
 		this.consume({ expectedType: [TokenType.EXITSECTION] });
 		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
 		this.consumeSequence({ expectedType: this.footerTypes });
 		return new GoalNode(init, kb, exit, this.getTokenRange());
 	}
 
-	private parseKBSection(sectionHeaderConsumption: ConsumeResult): KBSectionNode {
+	private parseKBSection(): KBSectionNode {
 		const body: RuleNode[] = [];
 		const sectionStart = this.peek();
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
