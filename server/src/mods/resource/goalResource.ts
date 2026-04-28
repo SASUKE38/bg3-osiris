@@ -12,9 +12,10 @@ import {
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
 import { Resource } from "./resource";
-import { DocumentSymbol, Location, SymbolKind, WorkspaceSymbol } from "vscode-languageserver";
+import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/path/pathUtils";
+import { SemanticTokenOsirisTypes } from '../../symbols/symbolManager';
 
 export class GoalResource extends Resource {
 	/**
@@ -43,6 +44,10 @@ export class GoalResource extends Resource {
 		const root = this.ast;
 		const symbols: DocumentSymbol[] = [];
 		const workspaceSymbols: WorkspaceSymbol[] = [];
+		const semanticTokens: uinteger[] = [];
+		const documentation = await this.mod.manager.server.documentationManager.getDocumentation();
+		let previousLine = 0;
+		let previousStartChar = 0;
 		let hadInit = false;
 		if (!root) return [symbols, workspaceSymbols];
 
@@ -72,6 +77,15 @@ export class GoalResource extends Resource {
 						case ASTNodeKind.SIGNATURE_NODE:
 							symbol.name = (child as SignatureNode).name;
 							symbol.kind = SymbolKind.Function;
+							if (documentation.has(symbol.name)) {
+								const deltaLine = child.range.start.line - previousLine;
+								const deltaStartChar = previousLine === deltaLine ? child.range.start.character - previousStartChar : child.range.start.character;
+								const length = child.selectionRange.end.character - child.selectionRange.start.character
+								const type = SemanticTokenOsirisTypes.indexOf(documentation.get(symbol.name)!.type);
+								semanticTokens.push(...[deltaLine, deltaStartChar, length, type > 0 ? type : 0, 0])
+								previousLine = child.range.end.line;
+								previousStartChar = child.range.end.character;
+							}
 							break;
 						case ASTNodeKind.COMPARISON_NODE:
 							symbol.name = (child as ComparisonNode).operator.value;
@@ -104,6 +118,7 @@ export class GoalResource extends Resource {
 		getNodeSymbols(root, symbols, this);
 		this.symbols = symbols;
 		this.workspaceSymbols = workspaceSymbols;
+		this.semanticTokens = semanticTokens;
 		return [symbols, workspaceSymbols];
 	}
 }

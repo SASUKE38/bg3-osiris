@@ -3,14 +3,17 @@ import { ModMetaModuleInfo } from "./modMeta";
 import { join } from "path";
 import { Resource } from "./resource/resource";
 import { GoalResource } from "./resource/goalResource";
+import { ModManager } from './modManager';
 
 export class Mod {
 	readonly meta: ModMetaModuleInfo;
+	readonly manager: ModManager;
 	private files: Resource[] = [];
 	private path: string;
 
-	constructor(meta: ModMetaModuleInfo, path: string) {
+	constructor(meta: ModMetaModuleInfo, path: string, manager: ModManager) {
 		this.meta = meta;
+		this.manager = manager;
 		this.path = path;
 	}
 

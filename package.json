@@ -58,12 +58,12 @@
 				"description": "A built in Osiris procedure, query, or event."
 			},
 			{
-				"id": "proc",
+				"id": "call",
 				"superType": "osiris_builtin",
 				"description": "An osiris PROC."
 			},
 			{
-				"id": "qry",
+				"id": "query",
 				"superType": "osiris_builtin",
 				"description": "An osiris QRY."
 			},

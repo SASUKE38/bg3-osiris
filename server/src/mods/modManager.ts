@@ -101,7 +101,7 @@ export class ModManager extends ComponentBase {
 	 * @returns The loaded {@link Mod}.
 	 */
 	private async createMod(meta: ModMetaModuleInfo, path: string): Promise<Mod> {
-		const mod = new Mod(meta, path);
+		const mod = new Mod(meta, path, this);
 		await mod.initialize();
 		return Promise.resolve(mod);
 	}

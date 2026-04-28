@@ -15,8 +15,8 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
 import { ComponentBase } from "./componentBase";
 import { ModManager } from "./mods/modManager";
-import { DocumentationProvider } from "./documentation/documentationProvider";
-import { SymbolManager } from "./symbols/symbolManager";
+import { DocumentationManager } from "./documentation/documentationManager";
+import { SemanticTokenOsirisTypes, SymbolManager } from "./symbols/symbolManager";
 import { RenameProvider } from "./rename/renameProvider";
 import { ReferencesProvider } from "./references/referencesProvider";
 
@@ -24,7 +24,6 @@ type ComponentContainer = new (server: Server) => ComponentBase;
 
 const components: ComponentContainer[] = [
 	DiagnosticProvider,
-	DocumentationProvider,
 	RenameProvider,
 	ReferencesProvider
 ];
@@ -45,6 +44,7 @@ export class Server {
 	components: ComponentBase[];
 	modManager: ModManager = new ModManager(this);
 	symbolManager: SymbolManager = new SymbolManager(this);
+	documentationManager: DocumentationManager = new DocumentationManager(this);
 	rootFolder?: WorkspaceFolder;
 	hasConfigurationCapability = false;
 	hasWorkspaceFolderCapability = false;
@@ -97,7 +97,16 @@ export class Server {
 					prepareProvider: true
 				},
 				referencesProvider: true,
-				workspaceSymbolProvider: true
+				workspaceSymbolProvider: true,
+				semanticTokensProvider: {
+					legend: {
+						tokenTypes: SemanticTokenOsirisTypes,
+						tokenModifiers: []
+					},
+					full: {
+						delta: false
+					}
+				}
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ASTNode } from "../../parser/ast/nodes";
-import { DocumentSymbol, Position, WorkspaceSymbol } from "vscode-languageserver";
+import { DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { Mod } from "../mod";
 
 export abstract class Resource {
@@ -11,6 +11,7 @@ export abstract class Resource {
 	protected document?: TextDocument;
 	protected symbols: DocumentSymbol[] = [];
 	protected workspaceSymbols: WorkspaceSymbol[] = [];
+	protected semanticTokens: uinteger[] = [];
 	private valid = false;
 
 	constructor(mod: Mod, path: string) {
@@ -105,6 +106,11 @@ export abstract class Resource {
 	async getWorkspaceSymbols(): Promise<WorkspaceSymbol[]> {
 		if (!this.isValid()) await this.load();
 		return this.workspaceSymbols;
+	}
+
+	async getSemanticTokens(): Promise<uinteger[]> {
+		if (!this.isValid()) await this.load();
+		return this.semanticTokens;
 	}
 
 	async getSymbolsAt(position: Position): Promise<DocumentSymbol[]> {

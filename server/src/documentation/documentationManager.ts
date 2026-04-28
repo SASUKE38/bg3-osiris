@@ -31,12 +31,12 @@ export class DocumentationEntry {
  * Server component that provides mechanisms to scrape Osiris API
  * information from https://docs.baldursgate3.game.
  */
-export class DocumentationProvider extends ComponentBase {
+export class DocumentationManager extends ComponentBase {
 	readonly urlBase = new URL("https://docs.baldursgate3.game");
 	readonly urlPathName = "/index.php";
 	readonly urlSearchPrefix = "?title=";
 	readonly urlPageFromPrefix = "&pagefrom=";
-	readonly documentationCollection = new Map<string, DocumentationEntry>();
+	private readonly documentationCollection = new Map<string, DocumentationEntry>();
 
 	private static readonly collectionPath = join(__dirname, "builtInDocumentation.json");
 
@@ -69,13 +69,19 @@ export class DocumentationProvider extends ComponentBase {
 		);
 	}
 
+	async getDocumentation() {
+		if (!existsSync(DocumentationManager.collectionPath)) await this.getCategories();
+		await this.readDocumentationCollection();
+		return this.documentationCollection;
+	}
+
 	/**
 	 * Gets and logs Osiris API information for built in calls, events, and queries.
 	 */
 	async getCategories() {
-		await this.retrieveCategoryDocumentation(DocumentationProvider.callPages);
-		await this.retrieveCategoryDocumentation(DocumentationProvider.eventPages);
-		await this.retrieveCategoryDocumentation(DocumentationProvider.queryPages);
+		await this.retrieveCategoryDocumentation(DocumentationManager.callPages);
+		await this.retrieveCategoryDocumentation(DocumentationManager.eventPages);
+		await this.retrieveCategoryDocumentation(DocumentationManager.queryPages);
 	}
 
 	/**
@@ -190,12 +196,12 @@ export class DocumentationProvider extends ComponentBase {
 	}
 
 	/**
-	 * Writes {@link documentationCollection} to {@link DocumentationProvider.collectionPath} as JSON.
+	 * Writes {@link documentationCollection} to {@link DocumentationManager.collectionPath} as JSON.
 	 */
 	private async logDocumentationCollection() {
 		try {
 			writeFile(
-				DocumentationProvider.collectionPath,
+				DocumentationManager.collectionPath,
 				JSON.stringify(Object.fromEntries(this.documentationCollection), null, 4)
 			);
 		} catch (error) {
@@ -204,11 +210,11 @@ export class DocumentationProvider extends ComponentBase {
 	}
 
 	/**
-	 * Loads {@link DocumentationProvider.collectionPath} as JSON to {@link documentationCollection}.
+	 * Loads {@link DocumentationManager.collectionPath} as JSON to {@link documentationCollection}.
 	 */
 	private async readDocumentationCollection() {
-		if (existsSync(DocumentationProvider.collectionPath)) {
-			const json = await readFile(DocumentationProvider.collectionPath, { encoding: "utf-8" });
+		if (existsSync(DocumentationManager.collectionPath)) {
+			const json = await readFile(DocumentationManager.collectionPath, { encoding: "utf-8" });
 			Object.entries(JSON.parse(json)).forEach((entry) => {
 				this.documentationCollection.set(entry[0], entry[1] as DocumentationEntry);
 			});

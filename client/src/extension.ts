@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { DocumentSemanticTokensProvider } from "./semantics/documentSemanticTokensProvider";
 import { workspace, ExtensionContext, WorkspaceFolder, Uri, TextDocument } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind } from "vscode-languageclient/node";
 import { ComponentBase } from "./componentBase";
@@ -10,7 +9,7 @@ const clients = new Map<string, Client>();
 
 type ComponentContainer = new (context: ExtensionContext) => ComponentBase;
 
-const components: ComponentContainer[] = [StoryOutlineProvider, DocumentSemanticTokensProvider];
+const components: ComponentContainer[] = [StoryOutlineProvider];
 
 let _sortedWorkspaceFolders: string[] | undefined;
 function sortedWorkspaceFolders(): string[] {

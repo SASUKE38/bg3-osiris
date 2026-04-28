@@ -6,11 +6,15 @@ import {
 	PrepareRenameParams,
 	Range,
 	ReferenceParams,
+	SemanticTokens,
+	SemanticTokensParams,
 	SymbolKind,
 	WorkspaceSymbol
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/path/pathUtils";
+
+export const SemanticTokenOsirisTypes = ["call", "event", "query", "function", "enum", "enumMember"];
 
 /**
  * Server component that manages document symbols.
@@ -19,6 +23,7 @@ export class SymbolManager extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onDocumentSymbol(this.handleDocumentSymbol);
 		connection.onWorkspaceSymbol(this.handleWorkspaceSymbol);
+		connection.languages.semanticTokens.on(this.handleSemanticTokens);
 	}
 
 	private handleDocumentSymbol = async (document: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
@@ -34,6 +39,12 @@ export class SymbolManager extends ComponentBase {
 		}
 		return res;
 	};
+
+	private handleSemanticTokens = async(params: SemanticTokensParams): Promise<SemanticTokens> => {
+		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		if (!resource) return { data: [] };
+		return { data: await resource.getSemanticTokens() };
+	}
 
 	async getAllSymbols(): Promise<Map<string, DocumentSymbol[]>> {
 		const resources = this.server.modManager.getAllResources();

@@ -1475,5 +1475,10 @@
 			}
 		}
 	],
-	"semanticHighlighting": true
+	"semanticHighlighting": true,
+	"semanticTokenColors": {
+		"query": "#ff7b7b",
+		"call": "#6dcc5a",
+		"event": "#B267E6"
+	}
 }
