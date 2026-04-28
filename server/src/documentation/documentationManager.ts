@@ -75,6 +75,11 @@ export class DocumentationManager extends ComponentBase {
 		return this.documentationCollection;
 	}
 
+	async getDocumentationForFunction(name: string): Promise<DocumentationEntry | undefined> {
+		if (!existsSync(DocumentationManager.collectionPath)) await this.getDocumentation();
+		return this.documentationCollection.get(name);
+	}
+
 	/**
 	 * Gets and logs Osiris API information for built in calls, events, and queries.
 	 */
@@ -90,7 +95,7 @@ export class DocumentationManager extends ComponentBase {
 	 * @param category Array of triples of the form [search, page from, type]
 	 * that indicate category page information.
 	 */
-	async retrieveCategoryDocumentation(category: [string, string, string][]) {
+	private async retrieveCategoryDocumentation(category: [string, string, string][]) {
 		await Promise.all(category.map(this.retrieveCategoryPageDocumentation, this));
 		this.logDocumentationCollection();
 	}
@@ -101,7 +106,7 @@ export class DocumentationManager extends ComponentBase {
 	 * @param category Triple of the form [search, page from, type]
 	 * that indicates category page information.
 	 */
-	async retrieveCategoryPageDocumentation(category: [string, string, string]) {
+	private async retrieveCategoryPageDocumentation(category: [string, string, string]) {
 		const url = this.getSearchURL(category[0], category[1]);
 		const type = category[2];
 		const searchURLs: [string, string][] = [];
@@ -128,7 +133,7 @@ export class DocumentationManager extends ComponentBase {
 	 * @param urlPair Pair of the form [name, type] that indicates
 	 * information of an Osiris function signature.
 	 */
-	async retrieveFunctionDocumentation(urlPair: [string, string]) {
+	private async retrieveFunctionDocumentation(urlPair: [string, string]) {
 		const title = urlPair[0];
 		const type = urlPair[1];
 		const url = this.getSearchURL(title);

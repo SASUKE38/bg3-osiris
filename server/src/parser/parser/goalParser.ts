@@ -59,7 +59,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 	parse(): GoalNode {
 		this.consumeSequence({ expectedType: this.headerTypes });
 		const init = this.parseSignatureSection(TokenType.KBSECTION);
-		// this.consume({ expectedType: [TokenType.KBSECTION] });
+		this.consume({ expectedType: [TokenType.KBSECTION] });
 		const kb = this.parseKBSection();
 		this.consume({ expectedType: [TokenType.EXITSECTION] });
 		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
