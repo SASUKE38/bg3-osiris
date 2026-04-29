@@ -104,7 +104,8 @@ export class Server {
 						delta: false
 					}
 				},
-				hoverProvider: true
+				hoverProvider: true,
+				documentHighlightProvider: true
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {

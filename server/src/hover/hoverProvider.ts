@@ -12,7 +12,7 @@ export class HoverProvider extends ComponentBase {
 		const { modManager, documentationManager } = this.server;
 		const resource = modManager.findResource(decodePath(params.textDocument.uri));
 		const symbols = await resource?.getSymbolsAt(params.position);
-		if (symbols) {
+		if (symbols && symbols.length >= 1) {
 			const hoveredSymbol = symbols[symbols.length - 1];
 			switch (hoveredSymbol.kind) {
 				case SymbolKind.Function:
