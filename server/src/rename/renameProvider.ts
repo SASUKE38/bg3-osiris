@@ -27,8 +27,10 @@ export class RenameProvider extends ComponentBase {
 			const symbolsAt = await resource.getSymbolsAt(params.position);
 			const oldSymbol = symbolsAt[symbolsAt.length - 1];
 
-			if (oldSymbol.kind === SymbolKind.Variable || oldSymbol.kind === SymbolKind.Constant) {
-				return Promise.resolve(this.renameVariableOrConstant(params, symbolsAt, oldSymbol));
+			if (oldSymbol.kind === SymbolKind.Variable) {
+				return Promise.resolve(this.renameVariableOrKBConstant(params, symbolsAt, oldSymbol));
+			} else if (oldSymbol.kind === SymbolKind.Constant) {
+				return Promise.resolve(this.renameDeclarationConstant(params, symbolsAt, oldSymbol));
 			} else if (oldSymbol.kind === SymbolKind.Function) {
 				return await this.renameSignature(params, oldSymbol);
 			}
@@ -45,7 +47,7 @@ export class RenameProvider extends ComponentBase {
 			const encodedPath = encodePath(entry[0]);
 			res.changes![`${encodedPath}`] = [];
 			for (const section of entry[1]) {
-				for (const range of this.server.symbolManager.findSignatureUsages(section, oldSymbol)) {
+				for (const range of this.server.symbolManager.findNestedUses(section, oldSymbol)) {
 					res.changes![`${encodedPath}`].push({ range: range, newText: params.newName });
 				}
 			}
@@ -54,17 +56,42 @@ export class RenameProvider extends ComponentBase {
 		return res;
 	}
 
-	private renameVariableOrConstant(
+	private renameVariableOrKBConstant(
 		params: RenameParams,
 		symbolsAt: DocumentSymbol[],
 		oldSymbol: DocumentSymbol
 	): WorkspaceEdit {
 		const res: WorkspaceEdit = { changes: { [`${params.textDocument.uri}`]: [] } };
 
-		for (const range of this.server.symbolManager.findVariableOrConstantUses(symbolsAt, oldSymbol)) {
+		for (const range of this.server.symbolManager.findVariableUses(symbolsAt, oldSymbol)) {
 			res.changes![params.textDocument.uri].push({ range: range, newText: params.newName });
 		}
 
 		return res;
+	}
+
+	private renameDeclarationConstant(
+		params: RenameParams,
+		symbolsAt: DocumentSymbol[],
+		oldSymbol: DocumentSymbol
+	): WorkspaceEdit | null {
+		if (
+			symbolsAt.length > 0 &&
+			(symbolsAt[0].name === "INIT" || symbolsAt[0].name === "EXIT") &&
+			symbolsAt[0].kind === SymbolKind.Module
+		) {
+			const root = symbolsAt.find((symbol) => symbol.kind === SymbolKind.Function);
+			if (root) {
+				const res: WorkspaceEdit = { changes: { [`${params.textDocument.uri}`]: [] } };
+				for (const range of this.server.symbolManager.findNestedUses(root, oldSymbol)) {
+					res.changes![params.textDocument.uri].push({ range: range, newText: params.newName });
+				}
+				return res;
+			}
+		} else {
+			return this.renameVariableOrKBConstant(params, symbolsAt, oldSymbol);
+		}
+
+		return null;
 	}
 }

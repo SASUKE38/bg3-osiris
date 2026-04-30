@@ -40,11 +40,11 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	};
 
-	private handleSemanticTokens = async(params: SemanticTokensParams): Promise<SemanticTokens> => {
+	private handleSemanticTokens = async (params: SemanticTokensParams): Promise<SemanticTokens> => {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (!resource) return { data: [] };
 		return { data: await resource.getSemanticTokens() };
-	}
+	};
 
 	async getAllSymbols(): Promise<Map<string, DocumentSymbol[]>> {
 		const resources = this.server.modManager.getAllResources();
@@ -57,7 +57,7 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	}
 
-	findVariableOrConstantUses(symbolsAt: DocumentSymbol[], searchSymbol: DocumentSymbol): Range[] {
+	findVariableUses(symbolsAt: DocumentSymbol[], searchSymbol: DocumentSymbol): Range[] {
 		const res: Range[] = [];
 
 		for (let i = symbolsAt.length - 1; i >= 0; i--) {
@@ -78,7 +78,7 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	}
 
-	findSignatureUsages(rootSymbol: DocumentSymbol, searchSymbol: DocumentSymbol): Range[] {
+	findNestedUses(rootSymbol: DocumentSymbol, searchSymbol: DocumentSymbol): Range[] {
 		const res: Range[] = [];
 
 		function doTraversal(symbol: DocumentSymbol) {
@@ -87,7 +87,7 @@ export class SymbolManager extends ComponentBase {
 				if (child.name === searchSymbol.name) {
 					res.push(child.selectionRange);
 				} else {
-					if (child.kind != SymbolKind.Function) {
+					if (child.kind != searchSymbol.kind) {
 						doTraversal(child);
 					}
 				}

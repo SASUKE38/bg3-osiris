@@ -15,7 +15,7 @@ import { Resource } from "./resource";
 import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/path/pathUtils";
-import { SemanticTokenOsirisTypes } from '../../symbols/symbolManager';
+import { SemanticTokenOsirisTypes } from "../../symbols/symbolManager";
 
 export class GoalResource extends Resource {
 	/**
@@ -79,10 +79,14 @@ export class GoalResource extends Resource {
 							symbol.kind = SymbolKind.Function;
 							if (documentation.has(symbol.name)) {
 								const deltaLine = child.range.start.line - previousLine;
-								const deltaStartChar = previousLine === deltaLine ? child.range.start.character - previousStartChar : child.range.start.character;
-								const length = child.selectionRange.end.character - child.selectionRange.start.character
+								const deltaStartChar =
+									previousLine === deltaLine
+										? child.range.start.character - previousStartChar
+										: child.range.start.character;
+								const length =
+									child.selectionRange.end.character - child.selectionRange.start.character;
 								const type = SemanticTokenOsirisTypes.indexOf(documentation.get(symbol.name)!.type);
-								semanticTokens.push(...[deltaLine, deltaStartChar, length, type > 0 ? type : 0, 0])
+								semanticTokens.push(...[deltaLine, deltaStartChar, length, type > 0 ? type : 0, 0]);
 								previousLine = child.range.end.line;
 								previousStartChar = child.range.end.character;
 							}

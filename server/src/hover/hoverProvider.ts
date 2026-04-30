@@ -2,6 +2,7 @@ import { Connection, Hover, HoverParams, MarkupKind, SymbolKind, DocumentSymbol 
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/path/pathUtils";
 import { DocumentationEntry } from "../documentation/documentationManager";
+import { rangeContainsPosition } from "../utils/range/positionUtils";
 
 export class HoverProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
@@ -14,6 +15,7 @@ export class HoverProvider extends ComponentBase {
 		const symbols = await resource?.getSymbolsAt(params.position);
 		if (symbols && symbols.length >= 1) {
 			const hoveredSymbol = symbols[symbols.length - 1];
+			if (!rangeContainsPosition(hoveredSymbol.selectionRange, params.position)) return null;
 			switch (hoveredSymbol.kind) {
 				case SymbolKind.Function:
 					{
