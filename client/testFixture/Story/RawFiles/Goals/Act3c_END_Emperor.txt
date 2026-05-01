@@ -1,0 +1,157 @@
+Version 1
+SubGoalCombiner SGC_AND
+INITSECTION
+DB_END_GameFinale_CharacterPartneredDialogs((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, (DIALOGRESOURCE)END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c, (CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b);
+DB_END_GameFinale_FatesPositions((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b, (TRIGGER)S_END_FatesHalsinPoint_f38c0c01-cad9-4d02-ac61-3d5b7599712e)
+
+DB_END_General_FullPartyDialog(END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c, 0, 1, 1, 1, 1, 1, 2);
+
+DB_DialogBlockAttackButton(END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c);
+DB_DialogBlockTradeButton(END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c);
+
+DB_END_EmperorPartnershipFlags((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, 2, ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad);
+DB_END_EmperorPartnershipFlags((FLAG)ORI_State_PartneredWithEmperor_19ee118a-7edb-d8b7-2191-d9aae4451222);
+KBSECTION
+//REGION End Relationship Handling
+
+PROC
+PROC_END_GameFinale_EndRelationship((CHARACTER)_Player)
+AND
+DB_END_EmperorPartnershipFlags(_Flag)
+AND
+GetFlag(_Flag, _Player, 1)
+THEN
+ClearFlag(_Flag, _Player);
+
+PROC
+PROC_END_GameFinale_EndRelationship((CHARACTER)_Player, _)
+AND
+DB_END_EmperorPartnershipFlags(_Flag)
+AND
+GetFlag(_Flag, _Player, 1)
+THEN
+ClearFlag(_Flag, _Player);
+
+//END_REGION
+
+//REGION Emperor Cannot Finale Checks
+
+QRY
+QRY_END_GameFinale_CharacterCannotFinale((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b)
+AND
+DB_Emperor_Epilogue_Candidate((CHARACTER)_Player)
+AND
+DB_Avatars(_Player)
+AND
+DB_ORI_Partnered(_Player, _)
+THEN
+DB_NOOP(1);
+
+QRY
+QRY_END_GameFinale_CharacterCannotFinale((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b)
+AND
+DB_GlobalFlag(END_BrainBattle_Event_KillEmperor_187b621a-5f21-1715-753a-362f290e9eb0)
+THEN
+DB_NOOP(1);
+
+QRY
+QRY_END_GameFinale_CharacterCannotFinale((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b)
+AND
+DB_GlobalFlag(END_IllithidOptions_Event_EmperorBetrayal_411c2575-bfbc-449c-9762-edad4285aafd)
+THEN
+DB_NOOP(1);
+
+QRY
+QRY_END_GameFinale_CharacterCannotFinale((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b)
+AND
+DB_Emperor_Epilogue_Candidate(S_Player_Gale_ad9af97d-75da-406a-ae13-7071c563f604)
+AND
+DB_GlobalFlag(ORI_Gale_State_IsGod_ec94f9a4-b032-ce25-f4eb-ecf4ed37d65d)
+THEN
+DB_NOOP(1);
+
+QRY
+QRY_END_GameFinale_CharacterCannotFinale((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b)
+AND
+DB_Emperor_Epilogue_Candidate(_Player)
+AND
+GetFlag(END_GameFinale_Event_AccompanyKarlachToHell_35150cbf-2c72-1049-37ed-14dbc3736135, _Player, 1)
+THEN
+DB_NOOP(1);
+
+//END_REGION
+
+//REGION Handle Karlach in Avernus with Emperor
+
+PROC
+PROC_END_GameFinale_PlayQueuedDialog((DIALOGRESOURCE)END_GameFinale_KarlachInAvernus_b02dc7ba-cc1b-0260-182f-53daffeac30e)
+AND
+DB_GlobalFlag((FLAG)EPI_Emperor_State_Avernus_0f2a67c9-60fc-c234-9c5d-b7799e10d70c)
+AND
+QRY_StartDialog_Fixed((DIALOGRESOURCE)END_GameFinale_KarlachInAvernus_b02dc7ba-cc1b-0260-182f-53daffeac30e, S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c)
+THEN
+NOT DB_END_GameFinale_QueuedDialogAttempt(1);
+PROC_SetArmourSet((CHARACTER)S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c, ARMOURSET.Normal);
+TeleportTo(S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c, (TRIGGER)S_END_GodsAndMonsters_KarlachPoint_bd04365f-2e25-4c16-94e7-7889f266e740);
+TeleportTo(S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b, (TRIGGER)S_END_GodsAndMonsters_PartnerPoint_eba0ce04-3fe1-4543-8331-85bd03b1118e);
+Equip(S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c, S_END_KarlachGreatAxe_9b08e8e4-589a-496e-a4a1-561304ffecb2, 0, 0, 1);
+
+PROC
+PROC_StartDialog_AddExtraSpeakers((DIALOGRESOURCE)END_GameFinale_KarlachInAvernus_b02dc7ba-cc1b-0260-182f-53daffeac30e, _ID)
+AND
+DB_GlobalFlag((FLAG)EPI_Emperor_State_Avernus_0f2a67c9-60fc-c234-9c5d-b7799e10d70c)
+THEN
+PROC_DialogAddSpeakingActorAt(_ID, S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b, 12);
+
+IF
+FlagSet(END_GameFinale_Event_KarlachChoseDeath_f9900bec-33dc-44db-ac8c-666dd5b8eec1, _, _)
+AND
+DB_GlobalFlag((FLAG)EPI_Emperor_KarlachDeath_e6c12b28-b182-7181-81a4-8df7d5d3f31e)
+THEN
+DB_END_GameFinale_QueuedSoloSpeaker((DIALOGRESOURCE)END_GameFinale_DeathofKarlach_e419b950-b6ba-64bc-f041-1d07a602dfc4, (CHARACTER)S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c);
+DB_END_GameFinale_FatesGroupDialogues((DIALOGRESOURCE)END_GameFinale_DeathofKarlach_e419b950-b6ba-64bc-f041-1d07a602dfc4);
+
+//END_REGION
+
+//REGION Add Emperor if starting from Romance Fate
+
+PROC
+PROC_StartDialog_AddExtraSpeakers((DIALOGRESOURCE)END_GameFinale_DeathofKarlach_e419b950-b6ba-64bc-f041-1d07a602dfc4, _ID)
+AND
+DB_Avatars((CHARACTER)S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c)
+AND
+DB_GlobalFlag((FLAG)END_GameFinale_Event_KarlachChoseDeath_f9900bec-33dc-44db-ac8c-666dd5b8eec1)
+AND
+DB_GlobalFlag((FLAG)EPI_Emperor_KarlachDeath_e6c12b28-b182-7181-81a4-8df7d5d3f31e)
+THEN
+PROC_DialogAddSpeakingActorAt(_ID, S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b, 13);
+
+//END_REGION
+
+//REGION Resonance Stone Check
+
+IF
+DialogStarted((DIALOGRESOURCE)END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c, _ID)
+AND
+DB_DialogRequestCache_SpeakerList_Players(END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c, _ID, _Player, _)
+AND
+QRY_ItemInTeamMagicPocketsOrCampChest(S_COL_ResonanceStone_f487943a-3448-475d-a176-43cf2174a59c)
+THEN
+SetFlag((FLAG)END_GameFinale_HasMoonriseStone_92831a41-77c8-4f58-6c4e-969078a4e650, _Player);
+
+//END_REGION
+
+//REGION Make Karlach Unavailable if Death Chosen During Romance Fate
+
+IF
+DialogEnded((DIALOGRESOURCE)END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee-c299-2905468e957c, _)
+AND
+DB_GlobalFlag(ORI_Karlach_State_EngineBurnedOut_2cd8d398-d6ec-3227-2dfb-975127fb5393)
+THEN
+PROC_END_General_MakeAvatarUnavailable(S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c, 0);
+
+//END_REGION
+EXITSECTION
+
+ENDEXITSECTION
+ParentTargetEdge "Act3c"

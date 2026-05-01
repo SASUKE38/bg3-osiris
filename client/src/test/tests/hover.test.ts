@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { getDocUri, activate, toRange } from "../helper";
 
 suite("Should do hover", () => {
-	const docUri = getDocUri("hover.txt");
+	const docUri = getDocUri("Act3c_EPI_Emperor.txt");
 	const languageId = "osiris";
 	const descriptionHeader = "### Description";
 	const examplesHeader = "### Examples";
@@ -25,8 +25,8 @@ suite("Should do hover", () => {
 		expectedString.appendMarkdown(
 			seeAlsoHeader + "\n- ObjectGetTitle\n- ObjectSetTitleHidden\n- SetStoryDisplayName"
 		);
-		await testHover(docUri, new vscode.Position(18, 8), 1, [
-			{ contents: [expectedString], range: toRange(18, 0, 18, 14) }
+		await testHover(docUri, new vscode.Position(91, 8), 1, [
+			{ contents: [expectedString], range: toRange(91, 0, 91, 14) }
 		]);
 	});
 
@@ -46,8 +46,8 @@ suite("Should do hover", () => {
 			languageId
 		);
 		expectedString.appendMarkdown(seeAlsoHeader + "\n- FlagSet\n- FlagCleared");
-		await testHover(docUri, new vscode.Position(69, 0), 1, [
-			{ contents: [expectedString], range: toRange(69, 0, 69, 7) }
+		await testHover(docUri, new vscode.Position(114, 0), 1, [
+			{ contents: [expectedString], range: toRange(114, 0, 114, 7) }
 		]);
 	});
 
@@ -67,21 +67,21 @@ suite("Should do hover", () => {
 			languageId
 		);
 		expectedString.appendMarkdown(seeAlsoHeader + "\n- AttackedBy\n- MissedBy\n- CriticalHitBy");
-		await testHover(docUri, new vscode.Position(81, 8), 1, [
-			{ contents: [expectedString], range: toRange(81, 0, 81, 8) }
+		await testHover(docUri, new vscode.Position(202, 8), 1, [
+			{ contents: [expectedString], range: toRange(202, 0, 202, 8) }
 		]);
 	});
 
 	test("Hover over builtin parameter should display nothing", async () => {
-		await testHover(docUri, new vscode.Position(38, 35), 0, [{ contents: [] }]);
+		await testHover(docUri, new vscode.Position(199, 37), 0, [{ contents: [] }]);
 	});
 
 	test("Hover over builtin type should display nothing", async () => {
-		await testHover(docUri, new vscode.Position(71, 27), 0, [{ contents: [] }]);
+		await testHover(docUri, new vscode.Position(178, 27), 0, [{ contents: [] }]);
 	});
 
 	test("Hover over empty line should display nothing", async () => {
-		await testHover(docUri, new vscode.Position(9, 0), 0, [{ contents: [] }]);
+		await testHover(docUri, new vscode.Position(182, 0), 0, [{ contents: [] }]);
 	});
 });
 

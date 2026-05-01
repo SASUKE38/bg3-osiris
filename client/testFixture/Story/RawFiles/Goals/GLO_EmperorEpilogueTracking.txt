@@ -1,0 +1,71 @@
+Version 1
+SubGoalCombiner SGC_AND
+INITSECTION
+
+KBSECTION
+//REGION Debug
+
+IF
+TextEvent("emp_makepartner")
+AND
+GetHostCharacter(_Player)
+THEN
+DB_GlobalFlag((FLAG)CAMP_DaisyAcknowledgement_SexWithEmperor_933959fb-958b-59bc-3d5e-31e12f619d8d);
+DB_Emperor_Epilogue_Candidate((CHARACTER)_Player);
+SetFlag((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, _Player);
+DebugText(_Player, "Partnered with Emperor");
+
+//END_REGION
+
+//REGION For New Games or Haven't Yet Slept With Emperor
+
+IF
+DB_GlobalFlag((FLAG)CAMP_DaisyAcknowledgement_SexWithEmperor_933959fb-958b-59bc-3d5e-31e12f619d8d)
+AND
+DB_DialogName(CAMP_DaisyAcknowledgement_AvD_ROM_58e20a32-e432-1c93-9c75-97bebafc8b1b,_DialogId)
+AND
+DB_DialogPlayers(_DialogId,_Player,1)
+AND
+SysCount("DB_Emperor_Epilogue_Candidate", 1, _Count)
+AND
+_Count < 1
+THEN
+DB_Emperor_Epilogue_Candidate((CHARACTER)_Player);
+SetFlag((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, _Player);
+
+//END_REGION
+
+//REGION For Existing Game, Already Slept With Emperor
+
+IF
+SavegameLoaded()
+AND
+DB_GlobalFlag((FLAG)CAMP_DaisyAcknowledgement_SexWithEmperor_933959fb-958b-59bc-3d5e-31e12f619d8d)
+AND
+SysCount("DB_Emperor_Epilogue_Candidate", 1, _Count)
+AND
+_Count == 0
+AND
+GetHostCharacter(_Avatar)
+THEN
+DB_Emperor_Epilogue_Candidate((CHARACTER)_Avatar);
+SetFlag((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, _Avatar);
+
+//END_REGION
+
+//REGION Apply Foundry Brain Interaction to Global
+
+IF
+FlagSet((FLAG)LOW_SteelWatchFoundry_Event_BrainInteraction_07c0a5f5-f6e1-9063-1b5d-04f2ddbd5683, _, _)
+THEN
+SetFlag((FLAG)EPI_Emperor_InteractedWithFoundryBrains_e4ae6cea-24d3-59c8-0d2b-cdb2a2b2d4a2);
+
+IF
+TemplateUseFinished(_Player, (ITEMROOT)BOOK_LOW_SteelWatchFoundry_HowToBuildAWatcher_5ccec78c-e419-4b21-b561-83a740f9120e, _, 1)
+THEN
+SetFlag((FLAG)EPI_Emperor_InteractedWithFoundryBrains_e4ae6cea-24d3-59c8-0d2b-cdb2a2b2d4a2);
+
+//END_REGION
+EXITSECTION
+
+ENDEXITSECTION
