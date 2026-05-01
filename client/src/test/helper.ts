@@ -18,12 +18,18 @@ export async function activate(docUri: vscode.Uri) {
 	}
 }
 
+export function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
+	const start = new vscode.Position(sLine, sChar);
+	const end = new vscode.Position(eLine, eChar);
+	return new vscode.Range(start, end);
+}
+
 async function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export const getDocPath = (p: string) => {
-	return path.resolve(__dirname, "../../testFixture", p);
+	return path.resolve(__dirname, "../../testFixture", "Story", "RawFiles", "Goals", p);
 };
 export const getDocUri = (p: string) => {
 	return vscode.Uri.file(getDocPath(p));

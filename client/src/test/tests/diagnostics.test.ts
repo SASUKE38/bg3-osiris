@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
 import * as assert from "assert";
-import { getDocUri, activate } from "./helper";
+import { getDocUri, activate, toRange } from "../helper";
 
 suite("Should get diagnostics", () => {
 	const docUri = getDocUri("diagnostics.txt");
 
-	test("Diagnoses semicolon absence", async () => {
+	test("Line missing semicolon should produce error", async () => {
 		await testDiagnostics(docUri, [
 			{
 				message: "Unexpected token; expected ';'",
@@ -16,12 +16,6 @@ suite("Should get diagnostics", () => {
 		]);
 	});
 });
-
-function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
-	const start = new vscode.Position(sLine, sChar);
-	const end = new vscode.Position(eLine, eChar);
-	return new vscode.Range(start, end);
-}
 
 async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
 	await activate(docUri);
