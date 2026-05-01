@@ -62,7 +62,7 @@ export class HoverProvider extends ComponentBase {
 			const description = documentationEntry.description.replaceAll("\n", "  ");
 			const informationSplit = description.split("Further Information");
 			if (informationSplit.length > 1) {
-				return [informationSplit[0], "  #### Further Information  ", informationSplit[1]];
+				return ["### Description", informationSplit[0], "  #### Further Information  ", informationSplit[1]];
 			}
 			return ["### Description", description];
 		}

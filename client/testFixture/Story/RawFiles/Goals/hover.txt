@@ -78,6 +78,13 @@ DB_Dialogs(_SpawnedUs,(DIALOGRESOURCE)EPI_Epilogue_Us_6bacf635-b7d4-5286-e236-20
 DB_Epilogue_Us(_SpawnedUs);
 PROC_SetUsStatus();
 
+IF
+KilledBy((CHARACTER)_Char, _, _, _) 
+AND
+DB_Epilogue_Us(_Char)
+THEN
+PROC_EPI_Epilogue_TryStartViolentClosureDialog();
+
 //END_REGION
 EXITSECTION
 
