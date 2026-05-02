@@ -4,7 +4,7 @@ INITSECTION
 DB_EPI_Epilogue_PresentNPC((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b, (DIALOGRESOURCE)EPI_Epilogue_Emperor_b81cced4-003b-bd81-b0b1-8a828412c674,(TRIGGER)S_EPI_Volo_WritePointB_68a85b14-6be1-40cc-970e-8a18cae86078, "EPI_Emperor",(FLAG)EPI_Epilogue_State_EmperorPresent_5071fdae-a335-6a74-48fe-fec1bf8b207a);
 
 //REGION Emperor Letters
-DB_EPI_Epilogue_EmperorRootLetters((ITEMROOT)S_EPI_Epilogue_Letter_EmperorWasPartneredKarlach_44e9b9ac-f40e-4b64-b61e-c05ebd3488bd);
+     DB_EPI_Epilogue_EmperorRootLetters((ITEMROOT)S_EPI_Epilogue_Letter_EmperorWasPartneredKarlach_44e9b9ac-f40e-4b64-b61e-c05ebd3488bd);
 DB_EPI_Epilogue_EmperorRootLetters((ITEMROOT)S_EPI_Epilogue_Letter_EmperorWasPartnered_75cd9117-a7e5-4ad2-895e-d3367cfcb0e5);
 DB_EPI_Epilogue_EmperorRootLetters((ITEMROOT)S_EPI_Epilogue_Letter_EmperorWasPartneredMF_e53dd98a-0037-4871-8093-e94270dd2e97);
 
@@ -13,7 +13,7 @@ DB_EPI_Epilogue_EmperorVanillaLetters((ITEM)S_EPI_Letter_EmperorAllies_9c3e2dfb-
 DB_EPI_Epilogue_EmperorVanillaLetters((ITEM)S_EPI_Letter_EmperorPlayerMF_646bc376-97dc-420c-8804-318c29b73e47);
 DB_EPI_Epilogue_EmperorVanillaLetters((ITEM)S_EPI_Letter_Emperor_9eecd32e-ade2-4397-ac3e-cdc9f091e05e);
 
-DB_EPI_Epilogue_EmperorLetterRemovalFlags((FLAG)EPI_Epilogue_State_EmperorWasPartnered_138bd4c9-3fb8-af68-fad3-791098e9baf2);
+  DB_EPI_Epilogue_EmperorLetterRemovalFlags((FLAG)EPI_Epilogue_State_EmperorWasPartnered_138bd4c9-3fb8-af68-fad3-791098e9baf2);
 DB_EPI_Epilogue_EmperorLetterRemovalFlags((FLAG)EPI_Epilogue_State_EmperorRomanceContinued_8d6a5e8a-f639-fd9b-250a-12ff6cd3c87c);
 
 //END_REGION

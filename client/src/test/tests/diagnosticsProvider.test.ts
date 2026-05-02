@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as assert from "assert";
 import { getDocUri, activate, toRange } from "../helper";
 
-suite("Should get diagnostics", () => {
+suite("Diagnostics Provider", () => {
 	const docUri = getDocUri("Act3c_END_Emperor.txt");
 
 	test("Line missing semicolon should produce error", async () => {

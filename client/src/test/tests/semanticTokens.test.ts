@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as assert from "assert";
 import { getDocUri, activate } from "../helper";
 
-suite("Should get semantic tokens", () => {
+suite("Semantic Tokens", () => {
 	const docUri = getDocUri("Act3c_EPI_Emperor.txt");
 
 	test("Builtins should be semantic tokens", async () => {
