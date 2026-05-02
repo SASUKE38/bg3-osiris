@@ -71,7 +71,7 @@ DB_EPI_Epilogue_EmperorReactionADs((CHARACTER)S_Player_Karlach_2c76687d-93a2-477
 DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_Player_Astarion_c7c13742-bacd-460a-8f65-f864fe41f255);
 DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_GLO_JergalAvatar_0133f2ad-e121-4590-b5f0-a79413919805);
 DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_FOR_Courier_Dog_3059f69c-068d-4e28-8491-55953c027901);
-DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_FOR_OwlBear_Cub_001_c66b2865-6613-4372-b97a-e330c1d75d09);
+         DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_FOR_OwlBear_Cub_001_c66b2865-6613-4372-b97a-e330c1d75d09);
 DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_GLO_Volo_2af25a85-5b9a-4794-85d3-0bd4c4d262fa);
 DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_EPI_TerrifiedThief_85d6a92c-dc66-4f26-b6b7-1feb8301fa4c);
 DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_EPI_DivineBard_4a0c8230-f2f0-4bf0-89bc-b16989ea824c);

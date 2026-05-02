@@ -11,6 +11,8 @@ DB_DialogBlockTradeButton(END_GameFinale_RomanceFates_Emperor_4810b665-1b34-adee
 
 DB_END_EmperorPartnershipFlags((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, 2, ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad);
 DB_END_EmperorPartnershipFlags((FLAG)ORI_State_PartneredWithEmperor_19ee118a-7edb-d8b7-2191-d9aae4451222);
+
+DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c);
 KBSECTION
 //REGION End Relationship Handling
 
@@ -152,6 +154,8 @@ PROC_END_General_MakeAvatarUnavailable(S_Player_Karlach_2c76687d-93a2-477b-8b18-
 
 //END_REGION
 EXITSECTION
+
+NOT DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c);
 
 ENDEXITSECTION
 ParentTargetEdge "Act3c"
