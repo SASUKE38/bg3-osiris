@@ -20,10 +20,17 @@ import { SemanticTokenOsirisTypes, SymbolManager } from "./symbols/symbolManager
 import { RenameProvider } from "./rename/renameProvider";
 import { ReferencesProvider } from "./references/referencesProvider";
 import { HoverProvider } from "./hover/hoverProvider";
+import { DefinitionsProvider } from "./definitions/definitionsProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
-const components: ComponentContainer[] = [DiagnosticProvider, RenameProvider, ReferencesProvider, HoverProvider];
+const components: ComponentContainer[] = [
+	DiagnosticProvider,
+	RenameProvider,
+	ReferencesProvider,
+	HoverProvider,
+	DefinitionsProvider
+];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
 let globalSettings: ExampleSettings = defaultSettings;
@@ -105,7 +112,9 @@ export class Server {
 					}
 				},
 				hoverProvider: true,
-				documentHighlightProvider: true
+				documentHighlightProvider: true,
+				definitionProvider: true,
+				implementationProvider: true
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {

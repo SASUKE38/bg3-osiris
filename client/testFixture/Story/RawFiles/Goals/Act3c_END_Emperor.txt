@@ -153,6 +153,12 @@ THEN
 PROC_END_General_MakeAvatarUnavailable(S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c, 0);
 
 //END_REGION
+
+QRY
+QRY_EPI_Epilogue_EmperorRootLetterIsValid((ITEMROOT)S_EPI_Epilogue_Letter_EmperorWasPartneredMF_e53dd98a-0037-4871-8093-e94270dd2e97)
+THEN
+DB_NOOP(1);
+
 EXITSECTION
 
 NOT DB_EPI_Epilogue_MindFlayerUrge_AstarionIgnoreNPC((CHARACTER)S_Player_Karlach_2c76687d-93a2-477b-8b18-8a14b549304c);
