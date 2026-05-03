@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as assert from "assert";
 import { getDocUri, activate, toRange } from "../helper";
 
-suite("Hover", () => {
+suite("Hover Provider", () => {
 	const docUri = getDocUri("Act3c_EPI_Emperor.txt");
 	const languageId = "osiris";
 	const descriptionHeader = "### Description";

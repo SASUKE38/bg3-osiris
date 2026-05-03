@@ -96,7 +96,7 @@ export class ReferencesProvider extends ComponentBase {
 	}
 
 	private async findNestedHighlights(resource: Resource, searchSymbol: DocumentSymbol): Promise<DocumentHighlight[]> {
-		let res: DocumentHighlight[] = [];
+		const res: DocumentHighlight[] = [];
 
 		for (const section of await resource.getSymbols()) {
 			for (const range of this.server.symbolManager.findNestedUses(section, searchSymbol)) {
