@@ -6,6 +6,7 @@ import { Element } from "domhandler";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
+import { DocumentSymbol } from 'vscode-languageserver';
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -69,13 +70,14 @@ export class DocumentationManager extends ComponentBase {
 		);
 	}
 
+	//#region Documentaion Retrieval
 	async getDocumentation() {
 		if (!existsSync(DocumentationManager.collectionPath)) await this.getCategories();
 		await this.readDocumentationCollection();
 		return this.documentationCollection;
 	}
 
-	async getDocumentationForFunction(name: string): Promise<DocumentationEntry | undefined> {
+	async getDocumentationEntryForSignature(name: string): Promise<DocumentationEntry | undefined> {
 		if (!existsSync(DocumentationManager.collectionPath)) await this.getDocumentation();
 		return this.documentationCollection.get(name);
 	}
@@ -225,4 +227,73 @@ export class DocumentationManager extends ComponentBase {
 			});
 		}
 	}
+	//#endregion
+
+	//#region Signature Documentation
+	async getSignatureDocumentation(symbol: DocumentSymbol): Promise<string[]> {
+		const documentationSignature = await this.getDocumentationEntryForSignature(symbol.name);
+		return [
+			"```osiris",
+			this.getSignatureLabel(symbol, documentationSignature),
+			"```",
+			...this.getSignatureDescription(documentationSignature),
+			...this.getSignatureExample(documentationSignature),
+			...this.getSignatureSeeAlso(documentationSignature)
+		]
+	}
+	
+	private getSignatureLabel(symbol: DocumentSymbol, documentationEntry?: DocumentationEntry): string {
+		if (documentationEntry) {
+			const definitionString = documentationEntry.fullDefinitions;
+			const definitions = this.trimSignatureType(definitionString.split("\n"));
+			const res = definitions.find((definition) => {
+				return definition.split(",").length === symbol.children?.length;
+			});
+			return `${documentationEntry.type} ${res ? res : definitions ? definitions[0] : ""}`;
+		} else {
+			return symbol.name;
+		}
+	}
+
+	private getSignatureDescription(documentationEntry?: DocumentationEntry): string[] {
+		if (documentationEntry?.description) {
+			const description = documentationEntry.description.replaceAll("\n", "  ");
+			const informationSplit = description.split("Further Information");
+			if (informationSplit.length > 1) {
+				return ["### Description", informationSplit[0], "  #### Further Information  ", informationSplit[1]];
+			}
+			return ["### Description", description];
+		}
+		return [];
+	}
+
+	private getSignatureExample(documentationEntry?: DocumentationEntry): string[] {
+		if (documentationEntry?.examples) {
+			return ["### Examples", "```osiris", documentationEntry.examples, "```"];
+		}
+		return [];
+	}
+
+	private getSignatureSeeAlso(documentationEntry?: DocumentationEntry): string[] {
+		if (documentationEntry?.seeAlso.length) {
+			const list = documentationEntry.seeAlso.split("\n");
+			list.forEach((value, index) => {
+				list[index] = `- ${value}`;
+			});
+			return ["### See Also  ", ...list];
+		}
+		return [];
+	}
+
+	private trimSignatureType(signatures: string[]): string[] {
+		signatures.forEach((value, index) => {
+			if (value.startsWith("call ")) {
+				signatures[index] = value.substring(5);
+			} else if (value.startsWith("event ") || value.startsWith("query ")) {
+				signatures[index] = value.substring(6);
+			}
+		});
+		return signatures;
+	}
+	//#endregion
 }
