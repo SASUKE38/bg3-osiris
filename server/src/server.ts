@@ -21,6 +21,7 @@ import { RenameProvider } from "./rename/renameProvider";
 import { ReferencesProvider } from "./references/referencesProvider";
 import { HoverProvider } from "./hover/hoverProvider";
 import { DefinitionsProvider } from "./definitions/definitionsProvider";
+import { SignatureHelpProvider } from "./signatureHelp/signatureHelpProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
@@ -29,7 +30,8 @@ const components: ComponentContainer[] = [
 	RenameProvider,
 	ReferencesProvider,
 	HoverProvider,
-	DefinitionsProvider
+	DefinitionsProvider,
+	SignatureHelpProvider
 ];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
@@ -114,7 +116,8 @@ export class Server {
 				hoverProvider: true,
 				documentHighlightProvider: true,
 				definitionProvider: true,
-				implementationProvider: true
+				implementationProvider: true,
+				signatureHelpProvider: { triggerCharacters: ["("] }
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {
