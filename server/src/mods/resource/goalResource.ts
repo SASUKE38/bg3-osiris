@@ -101,14 +101,6 @@ export class GoalResource extends Resource {
 							symbol.name = (child as IdentifierNode).value;
 							symbol.kind = symbol.name.startsWith("_") ? SymbolKind.Variable : SymbolKind.Constant;
 							break;
-						case ASTNodeKind.STRING_NODE:
-							symbol.name = (child as StringNode).value;
-							symbol.kind = SymbolKind.String;
-							break;
-						case ASTNodeKind.NUMBER_NODE:
-							symbol.name = (child as NumberNode).value.toString();
-							symbol.kind = SymbolKind.Number;
-							break;
 						case ASTNodeKind.ENUM_TYPE_NODE:
 							symbol.name = (child as EnumTypeNode).type;
 							symbol.kind = SymbolKind.Enum;

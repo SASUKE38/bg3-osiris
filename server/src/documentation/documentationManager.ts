@@ -6,7 +6,7 @@ import { Element } from "domhandler";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { DocumentSymbol } from 'vscode-languageserver';
+import { DocumentSymbol } from "vscode-languageserver";
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -236,16 +236,21 @@ export class DocumentationManager extends ComponentBase {
 			"```osiris",
 			this.getSignatureLabel(symbol, documentationSignature),
 			"```",
-			...this.getSignatureDescription(documentationSignature),
-			...this.getSignatureExample(documentationSignature),
-			...this.getSignatureSeeAlso(documentationSignature)
-		]
+			...this.getSignatureDocumentationBody(documentationSignature)
+		];
 	}
-	
+
+	getSignatureDocumentationBody(entry?: DocumentationEntry) {
+		return [
+			...this.getSignatureDescription(entry),
+			...this.getSignatureExample(entry),
+			...this.getSignatureSeeAlso(entry)
+		];
+	}
+
 	private getSignatureLabel(symbol: DocumentSymbol, documentationEntry?: DocumentationEntry): string {
 		if (documentationEntry) {
-			const definitionString = documentationEntry.fullDefinitions;
-			const definitions = this.trimSignatureType(definitionString.split("\n"));
+			const definitions = this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"));
 			const res = definitions.find((definition) => {
 				return definition.split(",").length === symbol.children?.length;
 			});
@@ -253,6 +258,17 @@ export class DocumentationManager extends ComponentBase {
 		} else {
 			return symbol.name;
 		}
+	}
+
+	getAllSignatureLabels(documentationEntry: DocumentationEntry) {
+		return this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"))
+			.filter((value) => value.length > 0)
+			.map((value) => `${documentationEntry.type} ${value}`)
+			.sort((a, b) => {
+				const aLength = a.split(",");
+				const bLength = b.split(",");
+				return aLength === bLength ? 0 : aLength < bLength ? -1 : 1;
+			});
 	}
 
 	private getSignatureDescription(documentationEntry?: DocumentationEntry): string[] {

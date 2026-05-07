@@ -91,9 +91,6 @@ export class Server {
 		const result: InitializeResult = {
 			capabilities: {
 				textDocumentSync: TextDocumentSyncKind.Incremental,
-				completionProvider: {
-					resolveProvider: true
-				},
 				diagnosticProvider: {
 					interFileDependencies: false,
 					workspaceDiagnostics: false

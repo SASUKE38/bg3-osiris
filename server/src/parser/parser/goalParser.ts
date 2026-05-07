@@ -267,21 +267,14 @@ export class GoalParser extends ParserBase<GoalNode> {
 				})
 			);
 		}
-		this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
+		const endToken = this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 
 		return new SignatureNode(
 			name.value,
 			parameters,
 			{
 				start: name.range.start,
-				end: {
-					line:
-						parameters.length == 0 ? name.range.end.line : parameters[parameters.length - 1].range.end.line,
-					character:
-						parameters.length == 0
-							? name.range.end.character + 2
-							: parameters[parameters.length - 1].range.end.character + 1
-				}
+				end: endToken.token.range.end
 			},
 			{
 				start: name.range.start,
