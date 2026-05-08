@@ -99,9 +99,9 @@ async function testHover(
 		position
 	)) as vscode.Hover[];
 
+	assert.ok(actualHoverList.length === expectedLength);
 	expectedHoverList.forEach((expectedItem, i) => {
 		const actualItem = actualHoverList[i];
-		assert.ok(actualHoverList.length === expectedLength);
 		if (expectedLength > 0) {
 			for (let i = 0; i < actualHoverList.length; i++) {
 				assert.strictEqual(

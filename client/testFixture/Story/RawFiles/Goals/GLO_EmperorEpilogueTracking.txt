@@ -65,6 +65,19 @@ TemplateUseFinished(_Player, (ITEMROOT)BOOK_LOW_SteelWatchFoundry_HowToBuildAWat
 THEN
 SetFlag((FLAG)EPI_Emperor_InteractedWithFoundryBrains_e4ae6cea-24d3-59c8-0d2b-cdb2a2b2d4a2);
 
+IF
+FlagSet()
+THEN
+DB_NOOP(1);
+
+IF
+SavegameLoaded()
+AND
+DB_Players(_Player)
+THEN
+SetFlag((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, );
+
+
 //END_REGION
 EXITSECTION
 

@@ -23,19 +23,54 @@ export class SignatureHelpProvider extends ComponentBase {
 		const nodesAt = await resource?.getNodesAt(params.position);
 		const signature = nodesAt?.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE);
 		const entry = await documentationManager.getDocumentationEntryForSignature((signature as SignatureNode)?.name);
-		if (entry && resource) {
-			const signatures = documentationManager.getAllSignatureLabels(entry);
-			const activeSignature = signatures.findIndex(
-				(value) => value.split(",").length === (signature as SignatureNode).parameters.length
+
+		if (
+			signature &&
+			entry &&
+			resource &&
+			this.validSignatureHelpPosition(resource, signature as SignatureNode, params.position)
+		) {
+			const signatures = this.getSignatureInformation(
+				signature as SignatureNode,
+				documentationManager.getAllSignatureLabels(entry),
+				entry
+			).sort((a, b) => {
+				if (a.parameters && b.parameters) {
+					return a.parameters.length === b.parameters.length
+						? 0
+						: a.parameters.length < b.parameters.length
+							? -1
+							: 1;
+				} else {
+					return 0;
+				}
+			});
+			const activeSignatureAndParameter = this.getActiveSignatureAndParameter(
+				resource,
+				params.position,
+				signature as SignatureNode
 			);
 			return {
-				signatures: this.getSignatureInformation(signature as SignatureNode, signatures, entry),
-				activeSignature: activeSignature > 0 ? activeSignature : 0,
-				activeParameter: this.getActiveParameter(resource, params.position, signature as SignatureNode)
+				signatures,
+				activeSignature: activeSignatureAndParameter,
+				activeParameter: activeSignatureAndParameter
 			};
 		}
+
 		return null;
 	};
+
+	private validSignatureHelpPosition(resource: GoalResource, signature: SignatureNode, position: Position): boolean {
+		const textDocument = resource.getTextDocument();
+		if (textDocument) {
+			const cursorOffset = textDocument.offsetAt(position);
+			const startOffset = textDocument.offsetAt(signature.selectionRange.start);
+			const endOffset = textDocument.offsetAt(signature.selectionRange.end);
+
+			return !(cursorOffset > startOffset && cursorOffset <= endOffset);
+		}
+		return false;
+	}
 
 	private getSignatureInformation(
 		signature: SignatureNode,
@@ -44,7 +79,7 @@ export class SignatureHelpProvider extends ComponentBase {
 	): SignatureInformation[] {
 		return signatures.map((value) => {
 			return {
-				label: value,
+				label: value.trim(),
 				documentation: {
 					kind: "markdown",
 					value: this.server.documentationManager.getSignatureDocumentationBody(entry).join("\n")
@@ -60,11 +95,13 @@ export class SignatureHelpProvider extends ComponentBase {
 		entry: DocumentationEntry
 	): ParameterInformation[] {
 		return definition.split(",").map((value, i) => {
+			value = value.trim();
+			value = value.endsWith(")") ? value.substring(0, value.length - 1) : value;
 			return { label: i === 0 ? value.substring(entry.type.length + name.length + 2) : value };
 		});
 	}
 
-	private getActiveParameter(resource: GoalResource, position: Position, signature: SignatureNode) {
+	private getActiveSignatureAndParameter(resource: GoalResource, position: Position, signature: SignatureNode) {
 		let res = 0;
 		const textDocument = resource.getTextDocument();
 		if (textDocument) {
