@@ -18,10 +18,28 @@ export async function activate(docUri: vscode.Uri) {
 	}
 }
 
-export function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
+export function toRange(sLine: number, sChar: number, eLine: number, eChar: number): vscode.Range {
 	const start = new vscode.Position(sLine, sChar);
 	const end = new vscode.Position(eLine, eChar);
 	return new vscode.Range(start, end);
+}
+
+export function toDocumentationMarkdownString(
+	description: string,
+	examples: string,
+	...seeAlso: string[]
+): vscode.MarkdownString {
+	const res = new vscode.MarkdownString();
+	res.appendMarkdown("### Description\n");
+	res.appendMarkdown(description);
+	res.appendMarkdown("### Examples");
+	res.appendCodeblock(examples, "osiris");
+	res.appendMarkdown("### See Also  ");
+	for (const bullet of seeAlso) {
+		res.appendMarkdown(`\n- ${bullet}`);
+	}
+
+	return res;
 }
 
 async function sleep(ms: number) {

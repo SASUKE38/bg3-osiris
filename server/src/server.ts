@@ -114,7 +114,7 @@ export class Server {
 				documentHighlightProvider: true,
 				definitionProvider: true,
 				implementationProvider: true,
-				signatureHelpProvider: { triggerCharacters: ["("] }
+				signatureHelpProvider: { triggerCharacters: ["(", ","] }
 			}
 		};
 		if (this.hasWorkspaceFolderCapability) {

@@ -77,6 +77,26 @@ DB_Players(_Player)
 THEN
 SetFlag((FLAG)ORI_State_EmperorRomanceCandidate_99da3e22-019f-96c3-d910-685cf576dfad, );
 
+IF
+SavegameLoaded()
+AND
+DB_Players(_Caster)
+THEN
+UseSpell((GUIDSTRING)_Caster, "SomeSpell", _, _);
+
+IF
+SavegameLoaded()
+AND
+DB_Players(_Player)
+THEN
+AddSpell();
+
+IF
+SavegameLoaded()
+AND
+DB_Players(_Caster)
+THEN
+UseSpell((GUIDSTRING)_Caster, "SomeSpell", _, _, _);
 
 //END_REGION
 EXITSECTION

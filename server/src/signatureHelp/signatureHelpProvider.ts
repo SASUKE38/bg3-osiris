@@ -10,7 +10,7 @@ import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/path/pathUtils";
 import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
 import { DocumentationEntry } from "../documentation/documentationManager";
-import { GoalResource } from "../mods/resource/goalResource";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
 export class SignatureHelpProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
@@ -21,14 +21,15 @@ export class SignatureHelpProvider extends ComponentBase {
 		const { documentationManager } = this.server;
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resource?.getNodesAt(params.position);
+		const textDocument = resource?.getTextDocument();
 		const signature = nodesAt?.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE);
 		const entry = await documentationManager.getDocumentationEntryForSignature((signature as SignatureNode)?.name);
 
 		if (
 			signature &&
 			entry &&
-			resource &&
-			this.validSignatureHelpPosition(resource, signature as SignatureNode, params.position)
+			textDocument &&
+			this.validSignatureHelpPosition(textDocument, signature as SignatureNode, params.position)
 		) {
 			const signatures = this.getSignatureInformation(
 				signature as SignatureNode,
@@ -45,31 +46,31 @@ export class SignatureHelpProvider extends ComponentBase {
 					return 0;
 				}
 			});
-			const activeSignatureAndParameter = this.getActiveSignatureAndParameter(
-				resource,
-				params.position,
-				signature as SignatureNode
-			);
 			return {
 				signatures,
-				activeSignature: activeSignatureAndParameter,
-				activeParameter: activeSignatureAndParameter
+				activeSignature: this.getActiveSignature(
+					textDocument,
+					params.position,
+					signature as SignatureNode,
+					signatures
+				),
+				activeParameter: this.getActiveParameter(textDocument, params.position, signature as SignatureNode)
 			};
 		}
 
 		return null;
 	};
 
-	private validSignatureHelpPosition(resource: GoalResource, signature: SignatureNode, position: Position): boolean {
-		const textDocument = resource.getTextDocument();
-		if (textDocument) {
-			const cursorOffset = textDocument.offsetAt(position);
-			const startOffset = textDocument.offsetAt(signature.selectionRange.start);
-			const endOffset = textDocument.offsetAt(signature.selectionRange.end);
+	private validSignatureHelpPosition(
+		textDocument: TextDocument,
+		signature: SignatureNode,
+		position: Position
+	): boolean {
+		const cursorOffset = textDocument.offsetAt(position);
+		const startOffset = textDocument.offsetAt(signature.selectionRange.start);
+		const endOffset = textDocument.offsetAt(signature.selectionRange.end);
 
-			return !(cursorOffset > startOffset && cursorOffset <= endOffset);
-		}
-		return false;
+		return !(cursorOffset > startOffset && cursorOffset <= endOffset);
 	}
 
 	private getSignatureInformation(
@@ -101,17 +102,43 @@ export class SignatureHelpProvider extends ComponentBase {
 		});
 	}
 
-	private getActiveSignatureAndParameter(resource: GoalResource, position: Position, signature: SignatureNode) {
+	private getActiveSignature(
+		textDocument: TextDocument,
+		position: Position,
+		signature: SignatureNode,
+		signatures: SignatureInformation[]
+	): number {
 		let res = 0;
-		const textDocument = resource.getTextDocument();
-		if (textDocument) {
-			const cursorOffset = textDocument.offsetAt(position);
-			for (const child of signature.getNodeChildren()) {
-				if (!child) break;
-				const childOffset = textDocument.offsetAt(child.range.end);
-				if (cursorOffset > childOffset) res += 1;
-				else break;
+		for (const value of signatures) {
+			if (value.parameters) {
+				if (value.parameters.length >= signature.parameters.length) {
+					if (value.parameters.length === signature.parameters.length) {
+						const cursorOffset = textDocument.offsetAt(position);
+						const lastParameterOffset = textDocument.offsetAt(
+							signature.parameters[signature.parameters.length - 1].range.end
+						);
+						if (cursorOffset > lastParameterOffset) {
+							return res + 1;
+						}
+						return res;
+					}
+				}
 			}
+			res += 1;
+		}
+
+		return 0;
+	}
+
+	private getActiveParameter(textDocument: TextDocument, position: Position, signature: SignatureNode): number {
+		let res = 0;
+		const cursorOffset = textDocument.offsetAt(position);
+
+		for (const child of signature.getNodeChildren()) {
+			if (!child) break;
+			const childOffset = textDocument.offsetAt(child.range.end);
+			if (cursorOffset > childOffset) res += 1;
+			else break;
 		}
 
 		return res;
