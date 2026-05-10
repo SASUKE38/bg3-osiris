@@ -1,5 +1,6 @@
 import {
 	Connection,
+	MarkupKind,
 	ParameterInformation,
 	Position,
 	SignatureHelp,
@@ -18,50 +19,31 @@ export class SignatureHelpProvider extends ComponentBase {
 	}
 
 	private handleSignatureHelp = async (params: SignatureHelpParams): Promise<SignatureHelp | null> => {
-		const { documentationManager } = this.server;
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const { documentationManager, modManager } = this.server;
+		const resource = modManager.findResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resource?.getNodesAt(params.position);
 		const textDocument = resource?.getTextDocument();
-		const signature = nodesAt?.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE);
-		const entry = await documentationManager.getDocumentationEntryForSignature((signature as SignatureNode)?.name);
+		const signature = nodesAt?.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE) as
+			| SignatureNode
+			| undefined;
 
-		if (
-			signature &&
-			entry &&
-			textDocument &&
-			this.validSignatureHelpPosition(textDocument, signature as SignatureNode, params.position)
-		) {
-			const signatures = this.getSignatureInformation(
-				signature as SignatureNode,
-				documentationManager.getAllSignatureLabels(entry),
-				entry
-			).sort((a, b) => {
-				if (a.parameters && b.parameters) {
-					return a.parameters.length === b.parameters.length
-						? 0
-						: a.parameters.length < b.parameters.length
-							? -1
-							: 1;
-				} else {
-					return 0;
-				}
-			});
-			return {
-				signatures,
-				activeSignature: this.getActiveSignature(
-					textDocument,
-					params.position,
-					signature as SignatureNode,
-					signatures
-				),
-				activeParameter: this.getActiveParameter(textDocument, params.position, signature as SignatureNode)
-			};
+		if (signature && textDocument && this.isValidSignatureHelpPosition(textDocument, signature, params.position)) {
+			const entry = await documentationManager.getDocumentationEntryForSignature(signature.name);
+			if (entry) {
+				const signatures = this.getSignatures(signature, entry);
+				const activeParameter = this.getActiveParameter(textDocument, signature, params.position);
+				return {
+					signatures,
+					activeSignature: this.getActiveSignature(signatures, signature, activeParameter),
+					activeParameter
+				};
+			}
 		}
 
 		return null;
 	};
 
-	private validSignatureHelpPosition(
+	private isValidSignatureHelpPosition(
 		textDocument: TextDocument,
 		signature: SignatureNode,
 		position: Position
@@ -73,21 +55,27 @@ export class SignatureHelpProvider extends ComponentBase {
 		return !(cursorOffset > startOffset && cursorOffset <= endOffset);
 	}
 
-	private getSignatureInformation(
-		signature: SignatureNode,
-		signatures: string[],
-		entry: DocumentationEntry
-	): SignatureInformation[] {
-		return signatures.map((value) => {
-			return {
-				label: value.trim(),
-				documentation: {
-					kind: "markdown",
-					value: this.server.documentationManager.getSignatureDocumentationBody(entry).join("\n")
-				},
-				parameters: this.getParameterInformation((signature as SignatureNode).name, value, entry)
-			};
-		});
+	private getSignatures(signature: SignatureNode, entry: DocumentationEntry): SignatureInformation[] {
+		const { documentationManager } = this.server;
+		return documentationManager
+			.getAllSignatureLabels(entry)
+			.map((value) => {
+				return {
+					label: value.trim(),
+					documentation: {
+						kind: MarkupKind.Markdown,
+						value: this.server.documentationManager.getSignatureDocumentationBody(entry).join("\n")
+					},
+					parameters: this.getParameterInformation(signature.name, value, entry)
+				};
+			})
+			.sort((a, b) => {
+				return a.parameters.length === b.parameters.length
+					? 0
+					: a.parameters.length < b.parameters.length
+						? -1
+						: 1;
+			});
 	}
 
 	private getParameterInformation(
@@ -103,34 +91,19 @@ export class SignatureHelpProvider extends ComponentBase {
 	}
 
 	private getActiveSignature(
-		textDocument: TextDocument,
-		position: Position,
+		signatures: SignatureInformation[],
 		signature: SignatureNode,
-		signatures: SignatureInformation[]
+		activeParameter: number
 	): number {
-		let res = 0;
-		for (const value of signatures) {
-			if (value.parameters) {
-				if (value.parameters.length >= signature.parameters.length) {
-					if (value.parameters.length === signature.parameters.length) {
-						const cursorOffset = textDocument.offsetAt(position);
-						const lastParameterOffset = textDocument.offsetAt(
-							signature.parameters[signature.parameters.length - 1].range.end
-						);
-						if (cursorOffset > lastParameterOffset) {
-							return res + 1;
-						}
-						return res;
-					}
-				}
-			}
-			res += 1;
-		}
-
-		return 0;
+		if (signatures[0].parameters?.length && signature.parameters.length < signatures[0].parameters?.length)
+			return 0;
+		const index = signatures.findIndex((value) => {
+			return value.parameters?.length === Math.max(signature.parameters.length, activeParameter + 1);
+		});
+		return index >= 0 ? index : signatures.length - 1;
 	}
 
-	private getActiveParameter(textDocument: TextDocument, position: Position, signature: SignatureNode): number {
+	private getActiveParameter(textDocument: TextDocument, signature: SignatureNode, position: Position): number {
 		let res = 0;
 		const cursorOffset = textDocument.offsetAt(position);
 
