@@ -3,6 +3,7 @@ import {
 	MarkupKind,
 	ParameterInformation,
 	Position,
+	ServerCapabilities,
 	SignatureHelp,
 	SignatureHelpParams,
 	SignatureInformation
@@ -16,6 +17,12 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 export class SignatureHelpProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onSignatureHelp(this.handleSignatureHelp);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			signatureHelpProvider: { triggerCharacters: ["(", ","] }
+		};
 	}
 
 	private handleSignatureHelp = async (params: SignatureHelpParams): Promise<SignatureHelp | null> => {

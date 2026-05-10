@@ -1,4 +1,4 @@
-import { Connection, Hover, HoverParams, MarkupKind, SymbolKind } from "vscode-languageserver";
+import { Connection, Hover, HoverParams, MarkupKind, ServerCapabilities, SymbolKind } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/path/pathUtils";
 import { rangeContainsPosition } from "../utils/range/positionUtils";
@@ -6,6 +6,12 @@ import { rangeContainsPosition } from "../utils/range/positionUtils";
 export class HoverProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onHover(this.handleHover);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			hoverProvider: true
+		};
 	}
 
 	private handleHover = async (params: HoverParams): Promise<Hover | null> => {

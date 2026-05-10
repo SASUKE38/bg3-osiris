@@ -1,4 +1,11 @@
-import { Connection, DefinitionParams, DocumentSymbol, Location, SymbolKind } from "vscode-languageserver";
+import {
+	Connection,
+	DefinitionParams,
+	DocumentSymbol,
+	Location,
+	ServerCapabilities,
+	SymbolKind
+} from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath, encodePath } from "../utils/path/pathUtils";
 
@@ -6,6 +13,13 @@ export class DefinitionsProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onDefinition(this.handleDefinition);
 		connection.onImplementation(this.handleDefinition);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			definitionProvider: true,
+			implementationProvider: true
+		};
 	}
 
 	private handleDefinition = async (params: DefinitionParams): Promise<Location[] | null> => {

@@ -1,4 +1,4 @@
-import { Connection } from "vscode-languageserver";
+import { Connection, ServerCapabilities } from "vscode-languageserver";
 import { Server } from "./server";
 
 export abstract class ComponentBase {
@@ -9,4 +9,6 @@ export abstract class ComponentBase {
 	}
 
 	initializeComponent?(connection: Connection): void;
+
+	abstract getCapabilities(): Partial<ServerCapabilities>;
 }

@@ -1,4 +1,10 @@
-import { Connection, CreateFilesParams, DeleteFilesParams, TextDocumentChangeEvent } from "vscode-languageserver";
+import {
+	Connection,
+	CreateFilesParams,
+	DeleteFilesParams,
+	ServerCapabilities,
+	TextDocumentChangeEvent
+} from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "./mod";
 import { dirname, join } from "path";
@@ -40,6 +46,10 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
 		if (rootFolder) this.mod = await this.createModFromPath(decodePath(rootFolder.uri));
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {};
 	}
 
 	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {

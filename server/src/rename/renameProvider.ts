@@ -5,6 +5,7 @@ import {
 	PrepareRenameParams,
 	Range,
 	RenameParams,
+	ServerCapabilities,
 	SymbolKind,
 	WorkspaceEdit
 } from "vscode-languageserver";
@@ -15,6 +16,14 @@ export class RenameProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onPrepareRename(this.handlePrepareRename);
 		connection.onRenameRequest(this.handleRenameRequest);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			renameProvider: {
+				prepareProvider: true
+			}
+		};
 	}
 
 	private handlePrepareRename = async (params: PrepareRenameParams): Promise<Range | null> => {

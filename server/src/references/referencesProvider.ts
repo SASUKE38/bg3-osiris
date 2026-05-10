@@ -5,6 +5,7 @@ import {
 	DocumentSymbol,
 	Location,
 	ReferenceParams,
+	ServerCapabilities,
 	SymbolKind
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
@@ -15,6 +16,13 @@ export class ReferencesProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onReferences(this.handleReferences);
 		connection.onDocumentHighlight(this.handleDocumentHighlight);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			referencesProvider: true,
+			documentHighlightProvider: true
+		};
 	}
 
 	private handleReferences = async (params: ReferenceParams): Promise<Location[] | null> => {

@@ -6,7 +6,7 @@ import { Element } from "domhandler";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { DocumentSymbol } from "vscode-languageserver";
+import { DocumentSymbol, ServerCapabilities } from "vscode-languageserver";
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -68,6 +68,10 @@ export class DocumentationManager extends ComponentBase {
 				return Promise.reject(error);
 			}
 		);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {};
 	}
 
 	//#region Documentaion Retrieval

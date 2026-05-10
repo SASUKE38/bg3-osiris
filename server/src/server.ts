@@ -8,7 +8,8 @@ import {
 	InitializeResult,
 	Connection,
 	DidChangeConfigurationParams,
-	WorkspaceFolder
+	WorkspaceFolder,
+	ServerCapabilities
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -16,12 +17,13 @@ import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
 import { ComponentBase } from "./componentBase";
 import { ModManager } from "./mods/modManager";
 import { DocumentationManager } from "./documentation/documentationManager";
-import { SemanticTokenOsirisTypes, SymbolManager } from "./symbols/symbolManager";
+import { SymbolManager } from "./symbols/symbolManager";
 import { RenameProvider } from "./rename/renameProvider";
 import { ReferencesProvider } from "./references/referencesProvider";
 import { HoverProvider } from "./hover/hoverProvider";
 import { DefinitionsProvider } from "./definitions/definitionsProvider";
 import { SignatureHelpProvider } from "./signatureHelp/signatureHelpProvider";
+import { CallHierarchyProvider } from './callHierarchy/callHierarchyProvider';
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
@@ -31,7 +33,8 @@ const components: ComponentContainer[] = [
 	ReferencesProvider,
 	HoverProvider,
 	DefinitionsProvider,
-	SignatureHelpProvider
+	SignatureHelpProvider,
+	CallHierarchyProvider
 ];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
@@ -89,33 +92,16 @@ export class Server {
 		);
 
 		const result: InitializeResult = {
-			capabilities: {
-				textDocumentSync: TextDocumentSyncKind.Incremental,
-				diagnosticProvider: {
-					interFileDependencies: false,
-					workspaceDiagnostics: false
-				},
-				documentSymbolProvider: true,
-				renameProvider: {
-					prepareProvider: true
-				},
-				referencesProvider: true,
-				workspaceSymbolProvider: true,
-				semanticTokensProvider: {
-					legend: {
-						tokenTypes: SemanticTokenOsirisTypes,
-						tokenModifiers: []
-					},
-					full: {
-						delta: false
-					}
-				},
-				hoverProvider: true,
-				documentHighlightProvider: true,
-				definitionProvider: true,
-				implementationProvider: true,
-				signatureHelpProvider: { triggerCharacters: ["(", ","] }
-			}
+			capabilities: this.components.reduce(
+				(capabilities, component) => ({
+					...capabilities,
+					...component.getCapabilities()
+				}),
+				{
+					textDocumentSync: TextDocumentSyncKind.Incremental,
+					...this.symbolManager.getCapabilities()
+				} as ServerCapabilities
+			)
 		};
 		if (this.hasWorkspaceFolderCapability) {
 			result.capabilities.workspace = {

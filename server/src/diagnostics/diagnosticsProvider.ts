@@ -1,4 +1,10 @@
-import { Connection, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind } from "vscode-languageserver";
+import {
+	Connection,
+	Diagnostic,
+	DocumentDiagnosticReport,
+	DocumentDiagnosticReportKind,
+	ServerCapabilities
+} from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Server } from "../server";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -6,6 +12,15 @@ import { GoalLexer } from "../parser/lexer/goalLexer";
 import { GoalParser } from "../parser/parser/goalParser";
 
 export class DiagnosticProvider extends ComponentBase {
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			diagnosticProvider: {
+				interFileDependencies: false,
+				workspaceDiagnostics: false
+			}
+		};
+	}
+
 	constructor(server: Server) {
 		super(server);
 

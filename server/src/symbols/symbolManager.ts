@@ -8,6 +8,7 @@ import {
 	ReferenceParams,
 	SemanticTokens,
 	SemanticTokensParams,
+	ServerCapabilities,
 	SymbolKind,
 	WorkspaceSymbol
 } from "vscode-languageserver";
@@ -24,6 +25,22 @@ export class SymbolManager extends ComponentBase {
 		connection.onDocumentSymbol(this.handleDocumentSymbol);
 		connection.onWorkspaceSymbol(this.handleWorkspaceSymbol);
 		connection.languages.semanticTokens.on(this.handleSemanticTokens);
+	}
+
+	getCapabilities(): Partial<ServerCapabilities> {
+		return {
+			documentSymbolProvider: true,
+			workspaceSymbolProvider: true,
+			semanticTokensProvider: {
+				legend: {
+					tokenTypes: SemanticTokenOsirisTypes,
+					tokenModifiers: []
+				},
+				full: {
+					delta: false
+				}
+			}
+		};
 	}
 
 	private handleDocumentSymbol = async (document: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
