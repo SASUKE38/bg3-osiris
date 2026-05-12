@@ -23,7 +23,7 @@ import { ReferencesProvider } from "./references/referencesProvider";
 import { HoverProvider } from "./hover/hoverProvider";
 import { DefinitionsProvider } from "./definitions/definitionsProvider";
 import { SignatureHelpProvider } from "./signatureHelp/signatureHelpProvider";
-import { CallHierarchyProvider } from './callHierarchy/callHierarchyProvider';
+import { CallHierarchyProvider } from "./callHierarchy/callHierarchyProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
