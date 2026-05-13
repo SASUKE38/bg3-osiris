@@ -6,10 +6,8 @@ import {
 	ComparisonNode,
 	EnumTypeNode,
 	IdentifierNode,
-	NumberNode,
 	RuleNode,
-	SignatureNode,
-	StringNode
+	SignatureNode
 } from "../../parser/ast/nodes";
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";

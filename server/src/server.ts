@@ -24,6 +24,7 @@ import { HoverProvider } from "./hover/hoverProvider";
 import { DefinitionsProvider } from "./definitions/definitionsProvider";
 import { SignatureHelpProvider } from "./signatureHelp/signatureHelpProvider";
 import { CallHierarchyProvider } from "./callHierarchy/callHierarchyProvider";
+import { CompletionProvider } from "./completion/completionProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
@@ -34,7 +35,8 @@ const components: ComponentContainer[] = [
 	HoverProvider,
 	DefinitionsProvider,
 	SignatureHelpProvider,
-	CallHierarchyProvider
+	CallHierarchyProvider,
+	CompletionProvider
 ];
 
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
