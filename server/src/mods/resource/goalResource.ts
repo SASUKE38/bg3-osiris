@@ -7,7 +7,8 @@ import {
 	EnumTypeNode,
 	IdentifierNode,
 	RuleNode,
-	SignatureNode
+	SignatureNode,
+	StringNode
 } from "../../parser/ast/nodes";
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
@@ -98,6 +99,10 @@ export class GoalResource extends Resource {
 						case ASTNodeKind.IDENTIFIER_NODE:
 							symbol.name = (child as IdentifierNode).value;
 							symbol.kind = symbol.name.startsWith("_") ? SymbolKind.Variable : SymbolKind.Constant;
+							break;
+						case ASTNodeKind.STRING_NODE:
+							symbol.name = (child as StringNode).value ? (child as StringNode).value : "empty string";
+							symbol.kind = SymbolKind.String;
 							break;
 						case ASTNodeKind.ENUM_TYPE_NODE:
 							symbol.name = (child as EnumTypeNode).type;

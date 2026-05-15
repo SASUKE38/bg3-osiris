@@ -318,8 +318,8 @@ suite("Call Hierarchy Provider", () => {
 						selectionRange: toRange(70, 0, 70, 7)
 					},
 					fromRanges: [toRange(70, 0, 70, 7)]
-				},
-			])
+				}
+			]);
 		});
 	});
 });
@@ -366,7 +366,7 @@ async function testIncomingCalls(
 		expectedIncomingCallsList.forEach((expectedCall, i) => {
 			testCallHierarchyItem(actualIncomingCalls[i].from, expectedCall.from);
 			testCallRanges(actualIncomingCalls[i].fromRanges, expectedCall.fromRanges);
-		})
+		});
 	}
 }
 
@@ -393,7 +393,7 @@ async function testOutgoingCalls(
 		expectedOutgoingCallsList.forEach((expectedCall, i) => {
 			testCallHierarchyItem(actualOutgoingCalls[i].to, expectedCall.to);
 			testCallRanges(actualOutgoingCalls[i].fromRanges, expectedCall.fromRanges);
-		})
+		});
 	}
 }
 
@@ -408,6 +408,6 @@ function testCallHierarchyItem(actualCall: vscode.CallHierarchyItem, expectedCal
 function testCallRanges(actualRanges: vscode.Range[], expectedRanges: vscode.Range[]) {
 	assert.ok(actualRanges.length === expectedRanges.length);
 	expectedRanges.forEach((range, i) => {
-		assert.deepStrictEqual(actualRanges[i], range)
-	})
+		assert.deepStrictEqual(actualRanges[i], range);
+	});
 }

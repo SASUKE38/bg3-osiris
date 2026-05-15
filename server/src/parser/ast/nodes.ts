@@ -91,7 +91,7 @@ export class ParameterNode extends ASTNode {
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
 		yield this.type;
-		yield this.content;
+		if (this.content.kind != ASTNodeKind.UNKNOWN) yield this.content;
 	}
 }
 

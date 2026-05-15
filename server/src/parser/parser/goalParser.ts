@@ -266,6 +266,12 @@ export class GoalParser extends ParserBase<GoalNode> {
 					expectedMessage: expectedMessage.parameter
 				})
 			);
+			const prev = parameters[parameters.length - 1];
+			const range = {
+				start: prev ? prev.range.end : name.range.end,
+				end: this.peek().range.start
+			};
+			parameters.push(new ParameterNode(new UnknownNode(range), range, range));
 		}
 		const endToken = this.consume({ expectedType: [TokenType.CLOSE_PARENTHESIS] });
 
