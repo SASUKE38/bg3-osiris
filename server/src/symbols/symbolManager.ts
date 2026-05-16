@@ -43,12 +43,23 @@ export class SymbolManager extends ComponentBase {
 		};
 	}
 
-	private handleDocumentSymbol = async (document: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
-		const resource = this.server.modManager.findResource(decodePath(document.textDocument.uri));
+	/**
+	 * The handler for the Document Symbol request.
+	 *
+	 * @param params The {@link DocumentSymbolParams} for this request.
+	 * @returns An {@link Array} of {@link DocumentSymbol} instances in this mod.
+	 */
+	private handleDocumentSymbol = async (params: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
+		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (!resource) return Promise.resolve([]);
 		return await resource.getSymbols();
 	};
 
+	/**
+	 * The handler for the Workspace Symbol request.
+	 *
+	 * @returns An {@link Array} of {@link WorkspaceSymbol} instances in this mod.
+	 */
 	private handleWorkspaceSymbol = async (): Promise<WorkspaceSymbol[]> => {
 		let res: WorkspaceSymbol[] = [];
 		for (const resource of this.server.modManager.getAllResources()) {
@@ -57,12 +68,24 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	};
 
+	/**
+	 * The handler for the Semantic Tokens request.
+	 *
+	 * @param params The {@link SemanticTokensParams} for this request.
+	 * @returns A {@link SemanticTokens} instance of the Semantic Tokens for a given document.
+	 */
 	private handleSemanticTokens = async (params: SemanticTokensParams): Promise<SemanticTokens> => {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (!resource) return { data: [] };
 		return { data: await resource.getSemanticTokens() };
 	};
 
+	/**
+	 * Returns all of the symbols in this mod.
+	 *
+	 * @returns A {@link Map} with URI keys and {@link Array} of {@link DocumentSymbol} instance values
+	 * that represent the Document Symbols for each document URI.
+	 */
 	async getAllSymbols(): Promise<Map<string, DocumentSymbol[]>> {
 		const resources = this.server.modManager.getAllResources();
 		const res = new Map<string, DocumentSymbol[]>();
@@ -74,6 +97,14 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	}
 
+	/**
+	 * Finds instances of a variable within a given symbol's children. It is assumed that the given symbol contains
+	 * a rule.
+	 *
+	 * @param symbolsAt The {@link Array} of symbols to search.
+	 * @param searchSymbol The symbol to search for.
+	 * @returns An {@link Array} of {@link Range} instances that represent the positions of discovered variables.
+	 */
 	findVariableUses(symbolsAt: DocumentSymbol[], searchSymbol: DocumentSymbol): Range[] {
 		const res: Range[] = [];
 
@@ -95,6 +126,12 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	}
 
+	/**
+	 *
+	 * @param rootSymbol The root {@link DocumentSymbol} to search in.
+	 * @param searchSymbol The {@link searchSymbol} to look for.
+	 * @returns An {@link Array} of {@link Range} instances that represent the positions of discovered symbols.
+	 */
 	findNestedUses(rootSymbol: DocumentSymbol, searchSymbol: DocumentSymbol): Range[] {
 		const res: Range[] = [];
 
@@ -115,6 +152,13 @@ export class SymbolManager extends ComponentBase {
 		return res;
 	}
 
+	/**
+	 * Determines if the given attempt to rename a symbol or finds its references is valid. That is, determines
+	 * if the request's position is over the symbol's name.
+	 *
+	 * @param params The {@link PrepareRenameParams} or {@link ReferenceParams} to examine.
+	 * @returns A {@link Range} instance if the given parameters contain a valid position or null otherwise.
+	 */
 	async validateRenameOrReferences(params: PrepareRenameParams | ReferenceParams): Promise<Range | null> {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (resource) {

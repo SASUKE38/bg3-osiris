@@ -3,6 +3,9 @@ import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/path/pathUtils";
 import { rangeContainsPosition } from "../utils/range/positionUtils";
 
+/**
+ * Server component that manages hover requests.
+ */
 export class HoverProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onHover(this.handleHover);
@@ -14,6 +17,12 @@ export class HoverProvider extends ComponentBase {
 		};
 	}
 
+	/**
+	 * The handler for the Hover request.
+	 *
+	 * @param params The {@link HoverParams} for this request.
+	 * @returns A {@link Hover} instance if the request has a valid position and text document, null otherwise.
+	 */
 	private handleHover = async (params: HoverParams): Promise<Hover | null> => {
 		const { modManager, documentationManager } = this.server;
 		const resource = modManager.findResource(decodePath(params.textDocument.uri));

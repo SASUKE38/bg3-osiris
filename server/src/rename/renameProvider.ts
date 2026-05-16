@@ -12,6 +12,9 @@ import {
 import { ComponentBase } from "../componentBase";
 import { decodePath, encodePath } from "../utils/path/pathUtils";
 
+/**
+ * Server component that handles rename requests.
+ */
 export class RenameProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onPrepareRename(this.handlePrepareRename);
@@ -26,10 +29,22 @@ export class RenameProvider extends ComponentBase {
 		};
 	}
 
+	/**
+	 * The handler for the Prepare Rename request.
+	 *
+	 * @param params The {@link PrepareRenameParams} for this request.
+	 * @returns A {@link Range} instance if this is a valid request, null otherwise.
+	 */
 	private handlePrepareRename = async (params: PrepareRenameParams): Promise<Range | null> => {
 		return await this.server.symbolManager.validateRenameOrReferences(params);
 	};
 
+	/**
+	 * The handler for the Rename request.
+	 *
+	 * @param params The {@link RenameParams} for this request.
+	 * @returns A {@link WorkspaceEdit} if this request is valid, null otherwise.
+	 */
 	private handleRenameRequest = async (params: RenameParams): Promise<WorkspaceEdit | null> => {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (resource) {
@@ -48,6 +63,13 @@ export class RenameProvider extends ComponentBase {
 		return null;
 	};
 
+	/**
+	 * Renames a symbol in the mod.
+	 *
+	 * @param params The {@link RenameParams} for this request.
+	 * @param oldSymbol The symbol to be renamed.
+	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation.
+	 */
 	private async renameSignature(params: RenameParams, oldSymbol: DocumentSymbol): Promise<WorkspaceEdit> {
 		const allSymbols = await this.server.symbolManager.getAllSymbols();
 		const res: WorkspaceEdit = { changes: {} };
@@ -65,6 +87,14 @@ export class RenameProvider extends ComponentBase {
 		return res;
 	}
 
+	/**
+	 * Renames a variable or constant.
+	 *
+	 * @param params The {@link RenameParams} for this request.
+	 * @param symbolsAt The symbols at the request's position.
+	 * @param oldSymbol The symbol to be renamed.
+	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation.
+	 */
 	private renameVariableOrKBConstant(
 		params: RenameParams,
 		symbolsAt: DocumentSymbol[],
@@ -79,6 +109,14 @@ export class RenameProvider extends ComponentBase {
 		return res;
 	}
 
+	/**
+	 * Renames a declaration constant.
+	 *
+	 * @param params The {@link RenameParams} for this request.
+	 * @param symbolsAt The symbols at the request's position.
+	 * @param oldSymbol The symbol to be renamed.
+	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation if it is successful, null otherwise.
+	 */
 	private renameDeclarationConstant(
 		params: RenameParams,
 		symbolsAt: DocumentSymbol[],

@@ -14,6 +14,9 @@ import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
 import { DocumentationEntry } from "../documentation/documentationManager";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
+/**
+ * Server component that manages Signature Help.
+ */
 export class SignatureHelpProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onSignatureHelp(this.handleSignatureHelp);
@@ -25,6 +28,12 @@ export class SignatureHelpProvider extends ComponentBase {
 		};
 	}
 
+	/**
+	 * The handler for the Signature Help request.
+	 *
+	 * @param params The {@link SignatureHelpParams} for this request.
+	 * @returns A {@link SignatureHelp} instance if one could be constructed from the given parameters.
+	 */
 	private handleSignatureHelp = async (params: SignatureHelpParams): Promise<SignatureHelp | null> => {
 		const { documentationManager, modManager } = this.server;
 		const resource = modManager.findResource(decodePath(params.textDocument.uri));
@@ -50,6 +59,15 @@ export class SignatureHelpProvider extends ComponentBase {
 		return null;
 	};
 
+	/**
+	 * Determines if the given combination of text document, signature node, and position can construct
+	 * a valid {@link SignatureHelp}.
+	 *
+	 * @param textDocument The document that contains that is the subject of the Signature Help request.
+	 * @param signature The node at which the request is made.
+	 * @param position The position at which the request is made.
+	 * @returns True if this position can be used to construct a {@link SignatureHelp}, false otherwise.
+	 */
 	private isValidSignatureHelpPosition(
 		textDocument: TextDocument,
 		signature: SignatureNode,
@@ -62,6 +80,13 @@ export class SignatureHelpProvider extends ComponentBase {
 		return !(cursorOffset > startOffset && cursorOffset <= endOffset);
 	}
 
+	/**
+	 * Obtains the {@link SignatureInformation} {@link Array} for a given signature.
+	 *
+	 * @param signature The node at which the request was made.
+	 * @param entry The {@link DocumentationEntry} for this signature.
+	 * @returns An {@link Array} of {@link SignatureInformation} instances for this signature.
+	 */
 	private getSignatures(signature: SignatureNode, entry: DocumentationEntry): SignatureInformation[] {
 		const { documentationManager } = this.server;
 		return documentationManager
@@ -85,6 +110,15 @@ export class SignatureHelpProvider extends ComponentBase {
 			});
 	}
 
+	/**
+	 * Returns an {@link Array} of {@link ParameterInformation} instances constructed from the given
+	 * signature's documentation.
+	 *
+	 * @param name The signature's name.
+	 * @param definition The full definition of this signature.
+	 * @param entry The {@link DocumentationEntry} for this signature.
+	 * @returns
+	 */
 	private getParameterInformation(
 		name: string,
 		definition: string,
@@ -97,6 +131,14 @@ export class SignatureHelpProvider extends ComponentBase {
 		});
 	}
 
+	/**
+	 * Obtains the index of the active signature based on the active parameter and number of parameters.
+	 *
+	 * @param signatures The {@link Array} of {@link SignatureInformation} from which to extract the active signature.
+	 * @param signature The node at which the request was made.
+	 * @param activeParameter The index of the active parameter.
+	 * @returns The index of the active signature.
+	 */
 	private getActiveSignature(
 		signatures: SignatureInformation[],
 		signature: SignatureNode,
@@ -110,6 +152,14 @@ export class SignatureHelpProvider extends ComponentBase {
 		return index >= 0 ? index : signatures.length - 1;
 	}
 
+	/**
+	 * Obtains the index of the active parameter based on the position of the request.
+	 *
+	 * @param textDocument The document that contains the request.
+	 * @param signature The node at which the request was made.
+	 * @param position The position at which the request was made.
+	 * @returns The index of the active parameter.
+	 */
 	private getActiveParameter(textDocument: TextDocument, signature: SignatureNode, position: Position): number {
 		let res = 0;
 		const cursorOffset = textDocument.offsetAt(position);
