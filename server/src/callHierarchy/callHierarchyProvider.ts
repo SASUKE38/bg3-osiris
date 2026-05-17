@@ -13,6 +13,9 @@ import { ComponentBase } from "../componentBase";
 import { decodePath, encodePath } from "../utils/path/pathUtils";
 import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
 
+/**
+ * Server component that handles Call Hierarchy requests.
+ */
 export class CallHierarchyProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.languages.callHierarchy.onPrepare(this.handlePrepare);
@@ -26,6 +29,13 @@ export class CallHierarchyProvider extends ComponentBase {
 		};
 	}
 
+	/**
+	 * The handler for the Prepare Call Hierarchy request.
+	 *
+	 * @param params The {@link CallHierarchyPrepareParams} for this request.
+	 * @returns An {@link Array} of {@link CallHierarchyItem} instances if the location of this request can be used
+	 * for creating a call hierarchy, null otherwise.
+	 */
 	private handlePrepare = async (params: CallHierarchyPrepareParams): Promise<CallHierarchyItem[] | null> => {
 		const resoure = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resoure?.getNodesAt(params.position);
@@ -47,6 +57,12 @@ export class CallHierarchyProvider extends ComponentBase {
 	};
 
 	// callers of
+	/**
+	 *
+	 * @param params The {@link CallHierarchyIncomingCallsParams} for this request.
+	 * @returns An {@link Array} of {@link CallHierarchyIncomingCall} instances that contain the incoming call
+	 * information for this request.
+	 */
 	private handleIncomingCalls = async (
 		params: CallHierarchyIncomingCallsParams
 	): Promise<CallHierarchyIncomingCall[]> => {
@@ -81,6 +97,12 @@ export class CallHierarchyProvider extends ComponentBase {
 	};
 
 	// calls from
+	/**
+	 *
+	 * @param params The {@link CallHierarchyOutgoingCallsParams} for this request.
+	 * @returns An {@link Array} of {@link CallHierarchyOutgoingCall} instances that contain the outgoing call
+	 * information for this request.
+	 */
 	private handleOutgoingCalls = async (
 		params: CallHierarchyOutgoingCallsParams
 	): Promise<CallHierarchyOutgoingCall[]> => {

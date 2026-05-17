@@ -29,7 +29,7 @@ export class DocumentationEntry {
 }
 
 /**
- * Server component that provides mechanisms to scrape Osiris API
+ * Server component that provides mechanisms to scrape and store Osiris API
  * information from https://docs.baldursgate3.game.
  */
 export class DocumentationManager extends ComponentBase {
@@ -75,12 +75,23 @@ export class DocumentationManager extends ComponentBase {
 	}
 
 	//#region Documentaion Retrieval
+	/**
+	 * Gets the documentation for built-in functions.
+	 *
+	 * @returns A filled map of built-in function signatures (keys) and their documentation entries (values).
+	 */
 	async getDocumentation() {
 		if (!existsSync(DocumentationManager.collectionPath)) await this.getCategories();
 		await this.readDocumentationCollection();
 		return this.documentationCollection;
 	}
 
+	/**
+	 * Retrieves the documentation entry for a given signature.
+	 *
+	 * @param name The signature name whose entry should be retrieved.
+	 * @returns The requested entry or undefined if none could be found.
+	 */
 	async getDocumentationEntryForSignature(name: string): Promise<DocumentationEntry | undefined> {
 		if (!existsSync(DocumentationManager.collectionPath)) await this.getDocumentation();
 		return this.documentationCollection.get(name);
@@ -234,6 +245,13 @@ export class DocumentationManager extends ComponentBase {
 	//#endregion
 
 	//#region Signature Documentation
+
+	/**
+	 * Gets the documentation for a given built-in signature.
+	 *
+	 * @param symbol The signature to process.
+	 * @returns An {@link Array} where each entry is a line of the signature's documentation.
+	 */
 	async getSignatureDocumentation(symbol: DocumentSymbol): Promise<string[]> {
 		const documentationSignature = await this.getDocumentationEntryForSignature(symbol.name);
 		return [
@@ -244,7 +262,12 @@ export class DocumentationManager extends ComponentBase {
 		];
 	}
 
-	getSignatureDocumentationBody(entry?: DocumentationEntry) {
+	/**
+	 *
+	 * @param entry The entry to process.
+	 * @returns An {@link Array} where each entry is a line of the signature's documentation body.
+	 */
+	getSignatureDocumentationBody(entry?: DocumentationEntry): string[] {
 		return [
 			...this.getSignatureDescription(entry),
 			...this.getSignatureExample(entry),
@@ -252,6 +275,14 @@ export class DocumentationManager extends ComponentBase {
 		];
 	}
 
+	/**
+	 * Gets the label for a signature. That is, gets the type of the signature, the signature name, and the names
+	 * of all parameters.
+	 *
+	 * @param symbol The symbol whose label should be obtained.
+	 * @param documentationEntry The entry to search in.
+	 * @returns The signature's label.
+	 */
 	private getSignatureLabel(symbol: DocumentSymbol, documentationEntry?: DocumentationEntry): string {
 		if (documentationEntry) {
 			const definitions = this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"));
@@ -264,7 +295,13 @@ export class DocumentationManager extends ComponentBase {
 		}
 	}
 
-	getAllSignatureLabels(documentationEntry: DocumentationEntry) {
+	/**
+	 * Gets all of the possible labels a signature could have as specified by the documentation.
+	 *
+	 * @param documentationEntry The entry to search in.
+	 * @returns An {@link Array} where each entry is a signature label.
+	 */
+	getAllSignatureLabels(documentationEntry: DocumentationEntry): string[] {
 		return this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"))
 			.filter((value) => value.length > 0)
 			.map((value) => `${documentationEntry.type} ${value}`)
@@ -275,6 +312,12 @@ export class DocumentationManager extends ComponentBase {
 			});
 	}
 
+	/**
+	 * Gets the description for a signature.
+	 *
+	 * @param documentationEntry The entry to search in.
+	 * @returns An {@link Array} where each entry is a line of the signature's description.
+	 */
 	private getSignatureDescription(documentationEntry?: DocumentationEntry): string[] {
 		if (documentationEntry?.description) {
 			const description = documentationEntry.description.replaceAll("\n", "  ");
@@ -287,6 +330,12 @@ export class DocumentationManager extends ComponentBase {
 		return [];
 	}
 
+	/**
+	 * Gets the examples for a signature.
+	 *
+	 * @param documentationEntry The entry to search in.
+	 * @returns An {@link Array} where each entry is a segment of the signature's examples.
+	 */
 	private getSignatureExample(documentationEntry?: DocumentationEntry): string[] {
 		if (documentationEntry?.examples) {
 			return ["### Examples", "```osiris", documentationEntry.examples, "```"];
@@ -294,6 +343,12 @@ export class DocumentationManager extends ComponentBase {
 		return [];
 	}
 
+	/**
+	 * Gets the See Also section for a signature.
+	 *
+	 * @param documentationEntry The entry to search in.
+	 * @returns An {@link Array} where each entry is a segment of the signature's See Also.
+	 */
 	private getSignatureSeeAlso(documentationEntry?: DocumentationEntry): string[] {
 		if (documentationEntry?.seeAlso.length) {
 			const list = documentationEntry.seeAlso.split("\n");
@@ -305,6 +360,13 @@ export class DocumentationManager extends ComponentBase {
 		return [];
 	}
 
+	/**
+	 * Trims call, event, or query from the beginning of a collection of signatures.
+	 *
+	 * @param signatures The signatures to process.
+	 * @returns An {@link Array} of strings were each entry is the original signature but with
+	 * the signature type trimmed from the beginning of the signature.
+	 */
 	private trimSignatureType(signatures: string[]): string[] {
 		signatures.forEach((value, index) => {
 			if (value.startsWith("call ")) {

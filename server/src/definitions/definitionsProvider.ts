@@ -9,6 +9,9 @@ import {
 import { ComponentBase } from "../componentBase";
 import { decodePath, encodePath } from "../utils/path/pathUtils";
 
+/**
+ * Server component that handles Definition and Implementation requests.
+ */
 export class DefinitionsProvider extends ComponentBase {
 	initializeComponent(connection: Connection): void {
 		connection.onDefinition(this.handleDefinition);
@@ -22,6 +25,12 @@ export class DefinitionsProvider extends ComponentBase {
 		};
 	}
 
+	/**
+	 * The handler for the Definition and Implementation requests.
+	 *
+	 * @param params The {@link DefinitionParams} for this request.
+	 * @returns An {@link Array} of {@link Location} instances that contain the definitions found for the request.
+	 */
 	private handleDefinition = async (params: DefinitionParams): Promise<Location[] | null> => {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (resource) {
@@ -41,6 +50,15 @@ export class DefinitionsProvider extends ComponentBase {
 		return null;
 	};
 
+	/**
+	 * Finds variable definitions for a given symbol.
+	 *
+	 * @param document The URI for this request.
+	 * @param symbolsAt The symbols at this request's position.
+	 * @param searchSymbol The symbol to search for.
+	 * @returns An {@link Array} of {@link Location} instances if definitions can be found for this
+	 * request, null otherwise.
+	 */
 	private getVariableDefinition(
 		document: string,
 		symbolsAt: DocumentSymbol[],
@@ -50,6 +68,12 @@ export class DefinitionsProvider extends ComponentBase {
 		return uses.length > 0 ? [Location.create(document, uses[0])] : null;
 	}
 
+	/**
+	 * Finds signature definitions for a given symbol.
+	 *
+	 * @param searchSymbol The symbol to search for.
+	 * @returns An {@link Array} of {@link Location} instances containing the definitions for this request.
+	 */
 	private async getSignatureDefinitions(searchSymbol: DocumentSymbol): Promise<Location[]> {
 		const symbols = await this.server.symbolManager.getAllSymbols();
 		const res: Location[] = [];
