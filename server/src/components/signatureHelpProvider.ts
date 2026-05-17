@@ -9,9 +9,9 @@ import {
 	SignatureInformation
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath } from "../utils/path/pathUtils";
+import { decodePath } from "../utils/pathUtils";
 import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
-import { DocumentationEntry } from "../documentation/documentationManager";
+import { DocumentationEntry } from "./documentationManager";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 /**

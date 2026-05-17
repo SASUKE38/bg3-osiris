@@ -10,7 +10,7 @@ import {
 	WorkspaceEdit
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath, encodePath } from "../utils/path/pathUtils";
+import { decodePath, encodePath } from "../utils/pathUtils";
 
 /**
  * Server component that handles rename requests.

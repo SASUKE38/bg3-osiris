@@ -13,18 +13,18 @@ import {
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { DiagnosticProvider } from "./diagnostics/diagnosticsProvider";
+import { DiagnosticProvider } from "./components/diagnostics/diagnosticsProvider";
 import { ComponentBase } from "./componentBase";
-import { ModManager } from "./mods/modManager";
-import { DocumentationManager } from "./documentation/documentationManager";
-import { SymbolManager } from "./symbols/symbolManager";
-import { RenameProvider } from "./rename/renameProvider";
-import { ReferencesProvider } from "./references/referencesProvider";
-import { HoverProvider } from "./hover/hoverProvider";
-import { DefinitionsProvider } from "./definitions/definitionsProvider";
-import { SignatureHelpProvider } from "./signatureHelp/signatureHelpProvider";
-import { CallHierarchyProvider } from "./callHierarchy/callHierarchyProvider";
-import { CompletionProvider } from "./completion/completionProvider";
+import { ModManager } from "./components/modManager";
+import { DocumentationManager } from "./components/documentationManager";
+import { SymbolManager } from "./components/symbolManager";
+import { RenameProvider } from "./components/renameProvider";
+import { ReferencesProvider } from "./components/referencesProvider";
+import { HoverProvider } from "./components/hoverProvider";
+import { DefinitionsProvider } from "./components/definitionsProvider";
+import { SignatureHelpProvider } from "./components/signatureHelpProvider";
+import { CallHierarchyProvider } from "./components/callHierarchyProvider";
+import { CompletionProvider } from "./components/completionProvider";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 

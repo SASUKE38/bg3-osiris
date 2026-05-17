@@ -1,5 +1,5 @@
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
-import { Token, TokenType, typeReadableMapping } from "../parser/tokens";
+import { Token, TokenType, typeReadableMapping } from "../../parser/tokens";
 
 interface RuleMissingActionsParams {
 	rule: Token;

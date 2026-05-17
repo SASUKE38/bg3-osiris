@@ -5,11 +5,11 @@ import {
 	DocumentDiagnosticReportKind,
 	ServerCapabilities
 } from "vscode-languageserver";
-import { ComponentBase } from "../componentBase";
-import { Server } from "../server";
+import { ComponentBase } from "../../componentBase";
+import { Server } from "../../server";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { GoalLexer } from "../parser/lexer/goalLexer";
-import { GoalParser } from "../parser/parser/goalParser";
+import { GoalLexer } from "../../parser/lexer/goalLexer";
+import { GoalParser } from "../../parser/parser/goalParser";
 
 export class DiagnosticProvider extends ComponentBase {
 	getCapabilities(): Partial<ServerCapabilities> {

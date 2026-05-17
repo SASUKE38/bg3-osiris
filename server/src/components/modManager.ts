@@ -6,7 +6,7 @@ import {
 	TextDocumentChangeEvent
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { Mod } from "./mod";
+import { Mod } from "../mods/mod";
 import { dirname, join } from "path";
 import {
 	collectAttributes,
@@ -16,17 +16,17 @@ import {
 	getNodeChildren,
 	LSXMLParserFactory,
 	ParseLSXML
-} from "../utils/lsXML/lsXML";
+} from "../utils/lsXML";
 import {
 	ModMetaModuleInfo,
 	ModMetaModuleShortDesc,
 	ModMetaPublishVersion,
 	ModMetaScript,
 	ModMetaScriptParameter
-} from "./modMeta";
+} from "../mods/modMeta";
 import { existsSync, readdirSync } from "fs";
-import { Resource } from "./resource/resource";
-import { decodePath } from "../utils/path/pathUtils";
+import { Resource } from "../mods/resource/resource";
+import { decodePath } from "../utils/pathUtils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 /**

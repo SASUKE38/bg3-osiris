@@ -1,7 +1,7 @@
 import { Diagnostic, Range } from "vscode-languageserver";
 import { IdentifierNode, StringNode, NumberNode, TypeNode, OperatorNode, TypeEnumMemberNode } from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
-import { expectedMessage, unexpectedTokenDiagnosticFactory } from "../../diagnostics/message";
+import { expectedMessage, unexpectedTokenDiagnosticFactory } from "../../components/diagnostics/message";
 
 export interface ConsumeParams {
 	expectedType: TokenType[];

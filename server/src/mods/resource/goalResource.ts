@@ -15,8 +15,8 @@ import { GoalParser } from "../../parser/parser/goalParser";
 import { Resource } from "./resource";
 import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
-import { encodePath } from "../../utils/path/pathUtils";
-import { SemanticTokenOsirisTypes } from "../../symbols/symbolManager";
+import { encodePath } from "../../utils/pathUtils";
+import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
 
 export class GoalResource extends Resource {
 	/**

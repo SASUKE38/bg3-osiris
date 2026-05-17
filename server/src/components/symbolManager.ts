@@ -13,7 +13,7 @@ import {
 	WorkspaceSymbol
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath } from "../utils/path/pathUtils";
+import { decodePath } from "../utils/pathUtils";
 
 export const SemanticTokenOsirisTypes = ["call", "event", "query", "function", "enum", "enumMember"];
 

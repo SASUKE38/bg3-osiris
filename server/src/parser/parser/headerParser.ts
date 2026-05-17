@@ -1,4 +1,4 @@
-import { expectedMessage, unexpectedTokenDiagnosticFactory } from "../../diagnostics/message";
+import { expectedMessage, unexpectedTokenDiagnosticFactory } from "../../components/diagnostics/message";
 import {
 	AliasTypeNode,
 	EnumTypeNode,

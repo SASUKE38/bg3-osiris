@@ -19,7 +19,7 @@ import {
 	expectedMessage,
 	ruleMissingActionsDiagnosticFactory,
 	unexpectedTokenDiagnosticFactory
-} from "../../diagnostics/message";
+} from "../../components/diagnostics/message";
 import { ParserBase } from "./parserBase";
 
 export class GoalParser extends ParserBase<GoalNode> {

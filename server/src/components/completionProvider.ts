@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
 	CompletionItem,
 	CompletionItemKind,
@@ -8,9 +9,9 @@ import {
 	SymbolKind
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath } from "../utils/path/pathUtils";
+import { decodePath } from "../utils/pathUtils";
 import { ASTNode, ASTNodeKind, IdentifierNode } from "../parser/ast/nodes";
-import { DocumentationEntry } from "../documentation/documentationManager";
+import { DocumentationEntry } from "./documentationManager";
 import { Resource } from "../mods/resource/resource";
 
 export class CompletionProvider extends ComponentBase {

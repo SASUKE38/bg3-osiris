@@ -1,7 +1,7 @@
 import { Connection, Hover, HoverParams, MarkupKind, ServerCapabilities, SymbolKind } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath } from "../utils/path/pathUtils";
-import { rangeContainsPosition } from "../utils/range/positionUtils";
+import { decodePath } from "../utils/pathUtils";
+import { rangeContainsPosition } from "../utils/positionUtils";
 
 /**
  * Server component that manages hover requests.

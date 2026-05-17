@@ -10,7 +10,7 @@ import {
 	SymbolKind
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath, encodePath } from "../utils/path/pathUtils";
+import { decodePath, encodePath } from "../utils/pathUtils";
 import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
 
 /**
