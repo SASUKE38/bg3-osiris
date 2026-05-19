@@ -26,15 +26,27 @@ export class GoalResource extends Resource {
 	 * @returns The loaded {@link ASTNode} or `undefined` if {@link document} is `undefined`.
 	 */
 	async load(): Promise<ASTNode | undefined> {
+		function doParse(thisArg: GoalResource, document: TextDocument) {
+			const parser = new GoalParser(new GoalLexer(document).tokenize());
+			const root = parser.parse();
+			thisArg.ast = root;
+			thisArg.diagnostics = parser.diagnostics;
+			thisArg.mod.manager.updateCallsAndDefinitions(
+				thisArg.name,
+				parser.calledSignatures,
+				parser.definedSignatures
+			);
+		}
+
 		if (this.document) {
 			if (!this.isValid()) {
-				this.ast = new GoalParser(new GoalLexer(this.document).tokenize()).parse();
+				doParse(this, this.document);
 			}
 		} else {
 			// console.error(`Tried loading goal resource ${this.path} without a document.`);
 			const content = await readFile(this.path, { encoding: "utf-8" });
 			const document = TextDocument.create(this.path, "osiris", 1, content);
-			this.ast = new GoalParser(new GoalLexer(document).tokenize()).parse();
+			doParse(this, document);
 		}
 		await this.loadSymbols();
 		this.validate();

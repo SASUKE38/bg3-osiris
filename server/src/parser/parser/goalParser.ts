@@ -21,6 +21,7 @@ import {
 	unexpectedTokenDiagnosticFactory
 } from "../../components/diagnostics/message";
 import { ParserBase } from "./parserBase";
+import { Range } from "vscode-languageserver";
 
 export class GoalParser extends ParserBase<GoalNode> {
 	private parameterTypes: TokenType[] = [
@@ -55,6 +56,9 @@ export class GoalParser extends ParserBase<GoalNode> {
 		TokenType.GREATER_THAN,
 		TokenType.GREATER_THAN_OR_EQUAL
 	];
+
+	calledSignatures: [string, Range][] = [];
+	definedSignatures = new Set<string>();
 
 	parse(): GoalNode {
 		this.consumeSequence({ expectedType: this.headerTypes });
@@ -102,6 +106,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 	private parseRule(): RuleNode {
 		const ruleStart = this.pop();
 		const call = this.parseSignature();
+		this.definedSignatures.add(call.name);
 		const conditions: (SignatureNode | ComparisonNode)[] = [];
 		const actions: SignatureNode[] = [];
 		while (!this.atTokenType(TokenType.THEN)) {
@@ -135,7 +140,18 @@ export class GoalParser extends ParserBase<GoalNode> {
 			if (this.peek().type == TokenType.NOT) {
 				this.pop();
 			}
-			actions.push(this.parseSignature());
+			const action = this.parseSignature();
+			this.calledSignatures.push([
+				action.name,
+				{
+					start: action.range.start,
+					end: {
+						line: action.range.start.line,
+						character: action.range.start.character + action.name.length - 1
+					}
+				}
+			]);
+			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 		}
 		if (actions.length == 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ rule: ruleStart }));

@@ -31,7 +31,7 @@ export class Mod {
 
 	createResource(file: string) {
 		if (this.path) {
-			this.files.push(new GoalResource(this, join(this.path, "Story", "RawFiles", "Goals", file)));
+			this.files.push(new GoalResource(this, file, join(this.path, "Story", "RawFiles", "Goals", file)));
 		}
 	}
 

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ASTNode } from "../../parser/ast/nodes";
-import { DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
+import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { Mod } from "../mod";
 
 export abstract class Resource {
 	readonly path;
+	readonly name;
 	readonly mod;
 	protected ast?: ASTNode;
 	protected document?: TextDocument;
@@ -13,9 +14,11 @@ export abstract class Resource {
 	protected workspaceSymbols: WorkspaceSymbol[] = [];
 	protected semanticTokens: uinteger[] = [];
 	private valid = false;
+	diagnostics: Diagnostic[] = [];
 
-	constructor(mod: Mod, path: string) {
+	constructor(mod: Mod, name: string, path: string) {
 		this.mod = mod;
+		this.name = name;
 		this.path = path;
 	}
 

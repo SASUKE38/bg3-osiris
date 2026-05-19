@@ -10,6 +10,7 @@ import { Server } from "../../server";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
+import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
 
 export class DiagnosticProvider extends ComponentBase {
 	getCapabilities(): Partial<ServerCapabilities> {
@@ -35,10 +36,17 @@ export class DiagnosticProvider extends ComponentBase {
 		const lexer = new GoalLexer(textDocument);
 		lexer.tokenize();
 		const parser = new GoalParser(lexer.tokens);
-		parser.parse();
+		const root = parser.parse();
 		// console.log(node);
+		const analyzerTest = new UnknownSymbolAnalyzer(textDocument, this.server.modManager);
+		this.server.modManager.updateCallsAndDefinitions(
+			textDocument.uri,
+			parser.calledSignatures,
+			parser.definedSignatures
+		);
+		// analyzerTest.analyze(root);
 
-		return parser.diagnostics;
+		return [...analyzerTest.analyze(root), ...parser.diagnostics];
 	}
 
 	initializeComponent(connection: Connection): void {

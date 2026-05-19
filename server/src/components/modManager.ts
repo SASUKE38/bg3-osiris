@@ -2,6 +2,7 @@ import {
 	Connection,
 	CreateFilesParams,
 	DeleteFilesParams,
+	Range,
 	ServerCapabilities,
 	TextDocumentChangeEvent
 } from "vscode-languageserver";
@@ -34,6 +35,9 @@ import { TextDocument } from "vscode-languageserver-textdocument";
  */
 export class ModManager extends ComponentBase {
 	mod?: Mod;
+	calledSignatureToFileMap = new Map<string, Set<string>>();
+	fileToCalledSignatureMap = new Map<string, [string, Range][]>();
+	definedSignatures = new Map<string, Set<string>>();
 
 	private readonly xmlParser = LSXMLParserFactory();
 
@@ -89,6 +93,17 @@ export class ModManager extends ComponentBase {
 			return this.mod.getAllResources();
 		}
 		return [];
+	}
+
+	updateCallsAndDefinitions(fileName: string, calledSymbols: [string, Range][], definedSymbols: Set<string>) {
+		this.fileToCalledSignatureMap.set(fileName, calledSymbols);
+		this.definedSignatures.set(fileName, definedSymbols);
+		for (const name of calledSymbols) {
+			if (!this.calledSignatureToFileMap.has(name[0])) {
+				this.calledSignatureToFileMap.set(name[0], new Set<string>());
+			}
+			(this.calledSignatureToFileMap.get(name[0]) as Set<string>).add(fileName);
+		}
 	}
 
 	/**
