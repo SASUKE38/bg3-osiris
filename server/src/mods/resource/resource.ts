@@ -104,6 +104,7 @@ export abstract class Resource {
 		return await this.load();
 	}
 
+	// TODO: Combine these
 	async getSymbols(): Promise<DocumentSymbol[]> {
 		if (!this.isValid()) await this.load();
 		return this.symbols;
@@ -117,6 +118,11 @@ export abstract class Resource {
 	async getSemanticTokens(): Promise<uinteger[]> {
 		if (!this.isValid()) await this.load();
 		return this.semanticTokens;
+	}
+
+	async getDiagnostics(): Promise<Diagnostic[]> {
+		if (!this.isValid()) await this.load();
+		return this.diagnostics;
 	}
 
 	async getSymbolsAt(position: Position): Promise<DocumentSymbol[]> {

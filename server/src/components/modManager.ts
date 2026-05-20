@@ -1,11 +1,4 @@
-import {
-	Connection,
-	CreateFilesParams,
-	DeleteFilesParams,
-	Range,
-	ServerCapabilities,
-	TextDocumentChangeEvent
-} from "vscode-languageserver";
+import { Connection, CreateFilesParams, DeleteFilesParams, Range, ServerCapabilities } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "../mods/mod";
 import { dirname, join } from "path";
@@ -28,7 +21,6 @@ import {
 import { existsSync, readdirSync } from "fs";
 import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
-import { TextDocument } from "vscode-languageserver-textdocument";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -42,9 +34,7 @@ export class ModManager extends ComponentBase {
 	private readonly xmlParser = LSXMLParserFactory();
 
 	async initializeComponent(connection: Connection): Promise<void> {
-		const { documents, rootFolder } = this.server;
-		documents.onDidOpen(this.handleDidOpen);
-		documents.onDidChangeContent(this.handleDidChangeContent);
+		const { rootFolder } = this.server;
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
@@ -54,17 +44,6 @@ export class ModManager extends ComponentBase {
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
 	}
-
-	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(decodePath(event.document.uri));
-		if (file && event.document.version >= file.getTextDocument().version) file.setTextDocument(event.document);
-	};
-
-	private handleDidChangeContent = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(decodePath(event.document.uri));
-		file?.setTextDocument(event.document);
-		file?.invalidate();
-	};
 
 	private handleDeleteFiles = (params: DeleteFilesParams) => {};
 

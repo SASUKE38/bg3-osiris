@@ -1,71 +1,52 @@
-import {
-	Connection,
-	Diagnostic,
-	DocumentDiagnosticReport,
-	DocumentDiagnosticReportKind,
-	ServerCapabilities
-} from "vscode-languageserver";
+import { Connection, ServerCapabilities, TextDocumentChangeEvent } from "vscode-languageserver";
 import { ComponentBase } from "../../componentBase";
-import { Server } from "../../server";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { GoalLexer } from "../../parser/lexer/goalLexer";
-import { GoalParser } from "../../parser/parser/goalParser";
-import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
+import { decodePath } from "../../utils/pathUtils";
 
 export class DiagnosticProvider extends ComponentBase {
+	connection?: Connection;
+
 	getCapabilities(): Partial<ServerCapabilities> {
-		return {
-			diagnosticProvider: {
-				interFileDependencies: false,
-				workspaceDiagnostics: false
-			}
-		};
+		return {};
 	}
 
-	constructor(server: Server) {
-		super(server);
-
-		const { documents } = this.server;
-
-		documents.onDidChangeContent((change) => {
-			this.validateTextDocument(change.document);
-		});
-	}
-
-	async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-		const lexer = new GoalLexer(textDocument);
-		lexer.tokenize();
-		const parser = new GoalParser(lexer.tokens);
-		const root = parser.parse();
-		// console.log(node);
-		const analyzerTest = new UnknownSymbolAnalyzer(textDocument, this.server.modManager);
-		this.server.modManager.updateCallsAndDefinitions(
-			textDocument.uri,
-			parser.calledSignatures,
-			parser.definedSignatures
-		);
-		// analyzerTest.analyze(root);
-
-		return [...analyzerTest.analyze(root), ...parser.diagnostics];
+	async validateTextDocument(textDocument: TextDocument) {
+		const resource = this.server.modManager.findResource(decodePath(textDocument.uri));
+		if (resource) {
+			await this.connection?.sendDiagnostics({
+				uri: textDocument.uri,
+				diagnostics: await resource.getDiagnostics()
+			});
+		}
 	}
 
 	initializeComponent(connection: Connection): void {
+		this.connection = connection;
 		const { documents } = this.server;
-		connection.languages.diagnostics.on(async (params) => {
-			const document = documents.get(params.textDocument.uri);
-			if (document !== undefined) {
-				return {
-					kind: DocumentDiagnosticReportKind.Full,
-					items: await this.validateTextDocument(document)
-				} satisfies DocumentDiagnosticReport;
-			} else {
-				// We don't know the document. We can either try to read it from disk
-				// or we don't report problems for it.
-				return {
-					kind: DocumentDiagnosticReportKind.Full,
-					items: []
-				} satisfies DocumentDiagnosticReport;
+		documents.onDidOpen(this.handleDidOpen);
+		documents.onDidChangeContent(this.handleDidChangeContent);
+	}
+
+	handleDidOpen = async (event: TextDocumentChangeEvent<TextDocument>) => {
+		const file = this.server.modManager.findResource(decodePath(event.document.uri));
+		if (file) {
+			if (event.document.version >= file.getTextDocument().version) {
+				file.setTextDocument(event.document);
 			}
-		});
+			this.handleDiagnostics(event);
+		}
+	};
+
+	handleDidChangeContent = async (event: TextDocumentChangeEvent<TextDocument>) => {
+		const file = this.server.modManager.findResource(decodePath(event.document.uri));
+		if (file) {
+			file.setTextDocument(event.document);
+			file.invalidate();
+			this.handleDiagnostics(event);
+		}
+	};
+
+	handleDiagnostics(event: TextDocumentChangeEvent<TextDocument>) {
+		this.validateTextDocument(event.document);
 	}
 }
