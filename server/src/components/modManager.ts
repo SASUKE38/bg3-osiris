@@ -44,7 +44,6 @@ export class ModManager extends ComponentBase {
 	async initializeComponent(connection: Connection): Promise<void> {
 		const { documents, rootFolder } = this.server;
 		documents.onDidOpen(this.handleDidOpen);
-		documents.onDidClose(this.handleDidClose);
 		documents.onDidChangeContent(this.handleDidChangeContent);
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
@@ -58,17 +57,13 @@ export class ModManager extends ComponentBase {
 
 	private handleDidOpen = (event: TextDocumentChangeEvent<TextDocument>) => {
 		const file = this.findResource(decodePath(event.document.uri));
-		if (file) file.setTextDocument(event.document);
-	};
-
-	private handleDidClose = (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.findResource(decodePath(event.document.uri));
-		if (file) file.removeTextDocment();
+		if (file && event.document.version >= file.getTextDocument().version) file.setTextDocument(event.document);
 	};
 
 	private handleDidChangeContent = (event: TextDocumentChangeEvent<TextDocument>) => {
 		const file = this.findResource(decodePath(event.document.uri));
-		if (file) file.invalidate();
+		file?.setTextDocument(event.document);
+		file?.invalidate();
 	};
 
 	private handleDeleteFiles = (params: DeleteFilesParams) => {};

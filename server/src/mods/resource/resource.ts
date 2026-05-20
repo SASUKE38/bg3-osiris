@@ -3,13 +3,14 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { ASTNode } from "../../parser/ast/nodes";
 import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { Mod } from "../mod";
+import { readFileSync } from "fs";
 
 export abstract class Resource {
 	readonly path;
 	readonly name;
 	readonly mod;
 	protected ast?: ASTNode;
-	protected document?: TextDocument;
+	protected document: TextDocument;
 	protected symbols: DocumentSymbol[] = [];
 	protected workspaceSymbols: WorkspaceSymbol[] = [];
 	protected semanticTokens: uinteger[] = [];
@@ -20,6 +21,8 @@ export abstract class Resource {
 		this.mod = mod;
 		this.name = name;
 		this.path = path;
+
+		this.document = TextDocument.create(path, "osiris", 1, readFileSync(path, { encoding: "utf-8" }));
 	}
 
 	abstract load(): Promise<ASTNode | undefined>;
@@ -50,9 +53,9 @@ export abstract class Resource {
 	/**
 	 * Removes the {@link TextDocument} assiocated with this resource.
 	 */
-	removeTextDocment() {
-		this.document = undefined;
-	}
+	// removeTextDocment() {
+	// 	this.document = undefined;
+	// }
 
 	getTextDocument() {
 		return this.document;
