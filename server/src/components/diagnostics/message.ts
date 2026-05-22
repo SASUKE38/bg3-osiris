@@ -1,5 +1,6 @@
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { Token, TokenType, typeReadableMapping } from "../../parser/tokens";
+import { DiagnosticCode } from "./diagnosticCode";
 
 interface RuleMissingActionsParams {
 	rule: Token;
@@ -10,7 +11,8 @@ export function ruleMissingActionsDiagnosticFactory({ rule }: RuleMissingActions
 		source: "Osiris",
 		range: rule.range,
 		message: "Rule must contain at least one signature in THEN clause",
-		severity: DiagnosticSeverity.Error
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.RuleMissingActions
 	};
 }
 
@@ -54,6 +56,7 @@ export function unexpectedTokenDiagnosticFactory({
 		source: "Osiris",
 		range: actualToken.range,
 		message: message,
-		severity: DiagnosticSeverity.Error
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnexpectedToken
 	};
 }

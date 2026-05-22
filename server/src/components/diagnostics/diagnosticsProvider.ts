@@ -2,6 +2,7 @@ import { Connection, ServerCapabilities, TextDocumentChangeEvent } from "vscode-
 import { ComponentBase } from "../../componentBase";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { decodePath } from "../../utils/pathUtils";
+import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
 
 /*
 === Header Only ===
@@ -51,6 +52,8 @@ GameObjectNameMismatch 29
 export class DiagnosticProvider extends ComponentBase {
 	connection?: Connection;
 
+	private readonly analyzers = [UnknownSymbolAnalyzer];
+
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
 	}
@@ -83,11 +86,13 @@ export class DiagnosticProvider extends ComponentBase {
 
 	async handleDiagnostics(event: TextDocumentChangeEvent<TextDocument>) {
 		const resource = this.server.modManager.findResource(decodePath(event.document.uri));
-		if (resource) {
-			await this.connection?.sendDiagnostics({
-				uri: event.document.uri,
-				diagnostics: await resource.getDiagnostics()
-			});
-		}
+		if (!resource) return [];
+		const semanticDiagnostics = (await Promise.all(
+			this.analyzers.map(async (analyzer) => new analyzer(resource, this.server.modManager).analyze())
+		)).flat(1);
+		this.connection?.sendDiagnostics({
+			uri: event.document.uri,
+			diagnostics: [...semanticDiagnostics, ...(await resource.getData("diagnostics"))]
+		});
 	}
 }

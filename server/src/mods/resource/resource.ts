@@ -104,25 +104,13 @@ export abstract class Resource {
 		return await this.load();
 	}
 
-	// TODO: Combine these
-	async getSymbols(): Promise<DocumentSymbol[]> {
+	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
+	async getData(data: "semanticTokens"): Promise<uinteger[]>;
+	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
+	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
+	async getData(data: "diagnostics" | "semanticTokens" | "workspaceSymbols" | "symbols") {
 		if (!this.isValid()) await this.load();
-		return this.symbols;
-	}
-
-	async getWorkspaceSymbols(): Promise<WorkspaceSymbol[]> {
-		if (!this.isValid()) await this.load();
-		return this.workspaceSymbols;
-	}
-
-	async getSemanticTokens(): Promise<uinteger[]> {
-		if (!this.isValid()) await this.load();
-		return this.semanticTokens;
-	}
-
-	async getDiagnostics(): Promise<Diagnostic[]> {
-		if (!this.isValid()) await this.load();
-		return this.diagnostics;
+		return this[data];
 	}
 
 	async getSymbolsAt(position: Position): Promise<DocumentSymbol[]> {

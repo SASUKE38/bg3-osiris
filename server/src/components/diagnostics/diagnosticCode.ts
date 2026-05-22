@@ -121,5 +121,12 @@ export const enum DiagnosticCode {
 
 	// The database is possibly used in an incorrect way.
 	// (Deleted and read, but not written)
-	UnwrittenDatabase = "W35"
+	UnwrittenDatabase = "W35",
+
+	/* Custom */
+	// Encountered unexpected token during parsing
+	UnexpectedToken = "E36",
+
+	// A rule has no actions
+	RuleMissingActions = "E37"
 }

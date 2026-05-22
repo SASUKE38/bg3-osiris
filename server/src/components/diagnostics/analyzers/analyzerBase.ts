@@ -1,13 +1,16 @@
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { ASTNode } from "../../../parser/ast/nodes";
+import { Resource } from "../../../mods/resource/resource";
+import { ModManager } from "../../modManager";
 
 export abstract class AnalyzerBase {
-	document: TextDocument;
+	resource: Resource;
+	modManager: ModManager;
 
-	constructor(document: TextDocument) {
-		this.document = document;
+	constructor(resource: Resource, modManager: ModManager) {
+		this.resource = resource;
+		this.modManager = modManager;
 	}
 
-	abstract analyze(root: ASTNode): Diagnostic[];
+	abstract analyze(): Promise<Diagnostic[]>;
 }

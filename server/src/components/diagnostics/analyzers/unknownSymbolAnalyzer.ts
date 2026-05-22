@@ -1,20 +1,14 @@
 import { Diagnostic, Location } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
 import { ASTNode, ASTNodeKind, RuleNode } from "../../../parser/ast/nodes";
-import { ModManager } from "../../modManager";
-import { TextDocument } from "vscode-languageserver-textdocument";
 
 export class UnknownSymbolAnalyzer extends AnalyzerBase {
-	private readonly modManager;
 	unresolvedSymbols = new Map<string, Location[]>();
 
-	constructor(document: TextDocument, modManager: ModManager) {
-		super(document);
-		this.modManager = modManager;
-	}
-
-	analyze(root: ASTNode): Diagnostic[] {
+	async analyze(): Promise<Diagnostic[]> {
 		const res: Diagnostic[] = [];
+		const document = this.resource.getTextDocument();
+		const root = await this.resource.getRootNode();
 		const { calledSignatureToFileMap } = this.modManager;
 		const { fileToCalledSignatureMap } = this.modManager;
 		const { definedSignatures } = this.modManager;
@@ -25,7 +19,8 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 			});
 		});
 
-		function doAnalysis(node: ASTNode, thisArg: UnknownSymbolAnalyzer) {
+		function doAnalysis(thisArg: UnknownSymbolAnalyzer, node?: ASTNode) {
+			if (!node) return;
 			for (const child of node.getNodeChildren()) {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
@@ -36,10 +31,10 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 							if (thisArg.unresolvedSymbols.has(signature.name)) {
 								thisArg.unresolvedSymbols
 									.get(signature.name)
-									?.push({ uri: thisArg.document.uri, range: signature.range });
+									?.push({ uri: document.uri, range: signature.range });
 							} else {
 								thisArg.unresolvedSymbols.set(signature.name, [
-									{ uri: thisArg.document.uri, range: signature.range }
+									{ uri: document.uri, range: signature.range }
 								]);
 							}
 							res.push({
@@ -50,11 +45,11 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 					}
 				}
 
-				doAnalysis(child, thisArg);
+				doAnalysis(thisArg, child);
 			}
 		}
 
-		doAnalysis(root, this);
+		doAnalysis(this, root);
 		return res;
 	}
 }

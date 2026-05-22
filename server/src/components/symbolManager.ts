@@ -52,7 +52,7 @@ export class SymbolManager extends ComponentBase {
 	private handleDocumentSymbol = async (params: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (!resource) return Promise.resolve([]);
-		return await resource.getSymbols();
+		return await resource.getData("symbols");
 	};
 
 	/**
@@ -63,7 +63,7 @@ export class SymbolManager extends ComponentBase {
 	private handleWorkspaceSymbol = async (): Promise<WorkspaceSymbol[]> => {
 		let res: WorkspaceSymbol[] = [];
 		for (const resource of this.server.modManager.getAllResources()) {
-			res = [...res, ...(await resource.getWorkspaceSymbols())];
+			res = [...res, ...(await resource.getData("workspaceSymbols"))];
 		}
 		return res;
 	};
@@ -77,7 +77,7 @@ export class SymbolManager extends ComponentBase {
 	private handleSemanticTokens = async (params: SemanticTokensParams): Promise<SemanticTokens> => {
 		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
 		if (!resource) return { data: [] };
-		return { data: await resource.getSemanticTokens() };
+		return { data: await resource.getData("semanticTokens") };
 	};
 
 	/**
@@ -91,7 +91,7 @@ export class SymbolManager extends ComponentBase {
 		const res = new Map<string, DocumentSymbol[]>();
 
 		for (const resource of resources) {
-			res.set(resource.path, await resource.getSymbols());
+			res.set(resource.path, await resource.getData("symbols"));
 		}
 
 		return res;
