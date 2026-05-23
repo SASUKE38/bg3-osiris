@@ -5,6 +5,8 @@ import { ComparisonNode } from "../../parser/ast/nodes";
 
 const diagnosticSource = "Osiris";
 
+//#region Comparisons
+
 interface StringLtGtComparisonParams {
 	comparison: ComparisonNode;
 }
@@ -34,6 +36,24 @@ export function binaryOperationSameRhsLhsDiagnosticFactory({
 		code: DiagnosticCode.BinaryOperationSameRhsLhs
 	};
 }
+
+interface RiskyComparisonParams {
+	comparison: ComparisonNode;
+}
+
+export function riskyComparisonDiagnosticFactory({ comparison }: RiskyComparisonParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range: comparison.range,
+		message: "Comparisons between GUIDSTRING and string are known to have unwanted side effects",
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.RiskyComparison
+	};
+}
+
+//#endregion
+
+//#region Syntax
 
 interface RuleMissingActionsParams {
 	rule: Token;
@@ -93,3 +113,4 @@ export function unexpectedTokenDiagnosticFactory({
 		code: DiagnosticCode.UnexpectedToken
 	};
 }
+//#endregion

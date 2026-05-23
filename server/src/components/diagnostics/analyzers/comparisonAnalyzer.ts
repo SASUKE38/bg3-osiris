@@ -1,13 +1,11 @@
 import { Diagnostic } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
+import { ASTNode, ASTNodeKind, ComparisonNode, IdentifierNode, SingletonNode } from "../../../parser/ast/nodes";
 import {
-	ASTNode,
-	ASTNodeKind,
-	ComparisonNode,
-	IdentifierNode,
-	SingletonNode
-} from "../../../parser/ast/nodes";
-import { binaryOperationSameRhsLhsDiagnosticFactory, stringLtGtComparisonDiagnosticFactory } from "../message";
+	binaryOperationSameRhsLhsDiagnosticFactory,
+	riskyComparisonDiagnosticFactory,
+	stringLtGtComparisonDiagnosticFactory
+} from "../message";
 
 export class ComparisonAnalyzer extends AnalyzerBase {
 	private readonly nonEqualityOperators = ["<", ">", "<=", ">="];
@@ -24,6 +22,7 @@ export class ComparisonAnalyzer extends AnalyzerBase {
 				if (child.kind === ASTNodeKind.COMPARISON_NODE) {
 					thisArg.verifyNoStringLtGtComparison(res, child as ComparisonNode, thisArg);
 					thisArg.verifyNobinaryOperationSameRhsLhs(res, child as ComparisonNode, thisArg);
+					thisArg.verifyNoRiskyComparison(res, child as ComparisonNode);
 				} else {
 					doAnalysis(child, thisArg);
 				}
@@ -62,6 +61,23 @@ export class ComparisonAnalyzer extends AnalyzerBase {
 				(left as SingletonNode<number>).value === (right as SingletonNode<number>).value)
 		) {
 			res.push(binaryOperationSameRhsLhsDiagnosticFactory({ comparison: child }));
+		}
+	}
+
+	// RiskyComparison 34
+	private verifyNoRiskyComparison(res: Diagnostic[], child: ComparisonNode) {
+		const left = child.left;
+		const right = child.right;
+
+		if (
+			(left.kind === ASTNodeKind.STRING_NODE &&
+				right.kind === ASTNodeKind.IDENTIFIER_NODE &&
+				!(right as IdentifierNode).value.startsWith("_")) ||
+			(right.kind === ASTNodeKind.STRING_NODE &&
+				left.kind === ASTNodeKind.IDENTIFIER_NODE &&
+				!(left as IdentifierNode).value.startsWith("_"))
+		) {
+			res.push(riskyComparisonDiagnosticFactory({ comparison: child }));
 		}
 	}
 }
