@@ -1,6 +1,39 @@
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { Token, TokenType, typeReadableMapping } from "../../parser/tokens";
 import { DiagnosticCode } from "./diagnosticCode";
+import { ComparisonNode } from "../../parser/ast/nodes";
+
+const diagnosticSource = "Osiris";
+
+interface StringLtGtComparisonParams {
+	comparison: ComparisonNode;
+}
+
+export function stringLtGtComparisonDiagnosticFactory({ comparison }: StringLtGtComparisonParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range: comparison.range,
+		message: "Less than/greater than comparison uses a string or GUIDSTRING",
+		severity: DiagnosticSeverity.Warning,
+		code: DiagnosticCode.StringLtGtComparison
+	};
+}
+
+interface BinaryOperationSameRhsLhsParams {
+	comparison: ComparisonNode;
+}
+
+export function binaryOperationSameRhsLhsDiagnosticFactory({
+	comparison
+}: BinaryOperationSameRhsLhsParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range: comparison.range,
+		message: "Binary operation has the same value on both sides",
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.BinaryOperationSameRhsLhs
+	};
+}
 
 interface RuleMissingActionsParams {
 	rule: Token;
@@ -8,7 +41,7 @@ interface RuleMissingActionsParams {
 
 export function ruleMissingActionsDiagnosticFactory({ rule }: RuleMissingActionsParams): Diagnostic {
 	return {
-		source: "Osiris",
+		source: diagnosticSource,
 		range: rule.range,
 		message: "Rule must contain at least one signature in THEN clause",
 		severity: DiagnosticSeverity.Error,
@@ -53,7 +86,7 @@ export function unexpectedTokenDiagnosticFactory({
 		}
 	}
 	return {
-		source: "Osiris",
+		source: diagnosticSource,
 		range: actualToken.range,
 		message: message,
 		severity: DiagnosticSeverity.Error,

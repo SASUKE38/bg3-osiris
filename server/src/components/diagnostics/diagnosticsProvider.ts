@@ -3,6 +3,7 @@ import { ComponentBase } from "../../componentBase";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { decodePath } from "../../utils/pathUtils";
 import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
+import { ComparisonAnalyzer } from "./analyzers/comparisonAnalyzer";
 
 /*
 === Header Only ===
@@ -12,32 +13,41 @@ TypeIdInvalid 3
 IntrinsicTypeIdInvalid 4
 UnresolvedTypeInSignature 6
 
-=== Parser Updates ===
+=== Analyzers ===
+-- Goal Arrangement --
 GoalAlreadyDefined 7
 UnresolvedGoal 8
+
+-- Types --
+UnresolvedVariableType 9
+UnresolvedSignature 10
+
+-- Function Placements and Naming --
 InvalidProcDefinition 13
 InvalidSymbolInFact 14
 InvalidSymbolInStatement 15
 CanOnlyDeleteFromDatabase 16
 InvalidSymbolInInitialCondition 17
 InvalidFunctionTypeInCondition 18
-StringLtGtComparison 20
 RuleNamingStyle 23
 DbNamingStyle 26
-ProcTypeMismatch 30
-CastToUnrelatedType 31
-BinaryOperationSameRhsLhs 33
+
+-- Symbol Resolving --
+UnresolvedSymbol 19
+UnusedDatabaseWarning 25
+UnwrittenDatabase 35
+
+-- Comparisons --
+*StringLtGtComparison 20
+*BinaryOperationSameRhsLhs 33
 RiskyComparison 34
 
-=== Analyzer-Specific ===
-UnresolvedVariableType 9
-UnresolvedSignature 10
+-- Parameters --
 LocalTypeMismatch 11
-UnresolvedSymbol 19
 ParamNotBound 24
-UnusedDatabaseWarning 25
+ProcTypeMismatch 30
+CastToUnrelatedType 31
 CastToUnrelatedGuidAlias 32
-UnwrittenDatabase 35
 
 === Unknown or Not Possible in Context ===
 SignatureAlreadyDefined 5
@@ -52,7 +62,7 @@ GameObjectNameMismatch 29
 export class DiagnosticProvider extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [UnknownSymbolAnalyzer];
+	private readonly analyzers = [ComparisonAnalyzer];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
@@ -87,9 +97,11 @@ export class DiagnosticProvider extends ComponentBase {
 	async handleDiagnostics(event: TextDocumentChangeEvent<TextDocument>) {
 		const resource = this.server.modManager.findResource(decodePath(event.document.uri));
 		if (!resource) return [];
-		const semanticDiagnostics = (await Promise.all(
-			this.analyzers.map(async (analyzer) => new analyzer(resource, this.server.modManager).analyze())
-		)).flat(1);
+		const semanticDiagnostics = (
+			await Promise.all(
+				this.analyzers.map(async (analyzer) => new analyzer(resource, this.server.modManager).analyze())
+			)
+		).flat(1);
 		this.connection?.sendDiagnostics({
 			uri: event.document.uri,
 			diagnostics: [...semanticDiagnostics, ...(await resource.getData("diagnostics"))]

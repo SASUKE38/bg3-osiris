@@ -12,7 +12,8 @@ import {
 	StringNode,
 	NumberNode,
 	UnknownNode,
-	ASTNode
+	ASTNode,
+	GoalFooterNode
 } from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import {
@@ -47,7 +48,6 @@ export class GoalParser extends ParserBase<GoalNode> {
 		TokenType.IDENTIFIER,
 		TokenType.INITSECTION
 	];
-	private footerTypes: TokenType[] = [TokenType.ENDEXITSECTION, TokenType.PARENT_TARGET_EDGE, TokenType.STRING];
 	private operatorTypes: TokenType[] = [
 		TokenType.EQUAL,
 		TokenType.NOT_EQUAL,
@@ -67,8 +67,9 @@ export class GoalParser extends ParserBase<GoalNode> {
 		const kb = this.parseKBSection();
 		this.consume({ expectedType: [TokenType.EXITSECTION] });
 		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
-		this.consumeSequence({ expectedType: this.footerTypes });
-		return new GoalNode(init, kb, exit, this.getTokenRange());
+		this.consume({ expectedType: [TokenType.ENDEXITSECTION] });
+		const footer = this.parseGoalFooter();
+		return new GoalNode(init, kb, exit, footer, this.getTokenRange());
 	}
 
 	private parseKBSection(): KBSectionNode {
@@ -101,6 +102,20 @@ export class GoalParser extends ParserBase<GoalNode> {
 			start: sectionStart.range.start,
 			end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
 		});
+	}
+
+	private parseGoalFooter(): GoalFooterNode {
+		const parentTargetEdge = this.consume({ expectedType: [TokenType.PARENT_TARGET_EDGE] });
+		const parent = this.consume({ expectedType: [TokenType.STRING] });
+		return new GoalFooterNode(
+			parent.matched
+				? new StringNode(parent.token.value, parent.token.range)
+				: new UnknownNode(parent.token.range),
+			{
+				start: parentTargetEdge.token.range.start,
+				end: parent.token.range.end
+			}
+		);
 	}
 
 	private parseRule(): RuleNode {

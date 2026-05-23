@@ -1,5 +1,4 @@
 import { Diagnostic } from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
 import { Resource } from "../../../mods/resource/resource";
 import { ModManager } from "../../modManager";
 

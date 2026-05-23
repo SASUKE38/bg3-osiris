@@ -16,6 +16,7 @@ export enum ASTNodeKind {
 	GOAL_NODE,
 	SIGNATURE_SECTION_NODE,
 	KB_SECTION_NODE,
+	GOAL_FOOTER_NODE,
 	TYPE_NODE,
 	RULE_NODE,
 	COMPARISON_NODE,
@@ -127,18 +128,40 @@ export class GoalNode extends ASTNode {
 	init: SignatureSectionNode;
 	kb: KBSectionNode;
 	exit: SignatureSectionNode;
+	footer: GoalFooterNode;
 
-	constructor(init: SignatureSectionNode, kb: KBSectionNode, exit: SignatureSectionNode, range: Range) {
+	constructor(
+		init: SignatureSectionNode,
+		kb: KBSectionNode,
+		exit: SignatureSectionNode,
+		footer: GoalFooterNode,
+		range: Range
+	) {
 		super(range, range);
 		this.init = init;
 		this.kb = kb;
 		this.exit = exit;
+		this.footer = footer;
 	}
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
 		yield this.init;
 		yield this.kb;
 		yield this.exit;
+	}
+}
+
+export class GoalFooterNode extends ASTNode {
+	kind = ASTNodeKind.GOAL_FOOTER_NODE;
+	parentTargetEdge: ASTNode;
+
+	constructor(parentTargetEdge: ASTNode, range: Range) {
+		super(range, parentTargetEdge.range);
+		this.parentTargetEdge = parentTargetEdge;
+	}
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield this.parentTargetEdge;
 	}
 }
 
