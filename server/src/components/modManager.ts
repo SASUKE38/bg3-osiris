@@ -38,7 +38,14 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
-		if (rootFolder) this.mod = await this.createModFromPath(decodePath(rootFolder.uri));
+		if (rootFolder) { 
+			this.mod = await this.createModFromPath(decodePath(rootFolder.uri));
+			if (this.mod) {
+				for (const resource of this.mod.getAllResources()) {
+					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
+				}
+			}
+		}
 	}
 
 	getCapabilities(): Partial<ServerCapabilities> {

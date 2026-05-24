@@ -13,7 +13,7 @@ import {
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { DiagnosticProvider } from "./components/diagnostics/diagnosticsProvider";
+import { DiagnosticManager } from "./components/diagnostics/diagnosticsManager";
 import { ComponentBase } from "./componentBase";
 import { ModManager } from "./components/modManager";
 import { DocumentationManager } from "./components/documentationManager";
@@ -29,7 +29,6 @@ import { CompletionProvider } from "./components/completionProvider";
 type ComponentContainer = new (server: Server) => ComponentBase;
 
 const components: ComponentContainer[] = [
-	DiagnosticProvider,
 	RenameProvider,
 	ReferencesProvider,
 	HoverProvider,
@@ -55,6 +54,7 @@ export class Server {
 	components: ComponentBase[];
 	modManager: ModManager = new ModManager(this);
 	symbolManager: SymbolManager = new SymbolManager(this);
+	diagnosticManager: DiagnosticManager = new DiagnosticManager(this);
 	documentationManager: DocumentationManager = new DocumentationManager(this);
 	rootFolder?: WorkspaceFolder;
 	hasConfigurationCapability = false;
@@ -129,6 +129,7 @@ export class Server {
 		this.connection.onNotification("running", () => {
 			this.components.push(this.modManager);
 			this.components.push(this.symbolManager);
+			this.components.push(this.diagnosticManager);
 			this.components.forEach((component) => component.initializeComponent?.(this.connection));
 		});
 	};

@@ -4,6 +4,7 @@ import { ASTNode } from "../../parser/ast/nodes";
 import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
+import { encodePath } from '../../utils/pathUtils';
 
 export abstract class Resource {
 	readonly path;
@@ -22,7 +23,7 @@ export abstract class Resource {
 		this.name = name;
 		this.path = path;
 
-		this.document = TextDocument.create(path, "osiris", 1, readFileSync(path, { encoding: "utf-8" }));
+		this.document = TextDocument.create(encodePath(path), "osiris", 1, readFileSync(path, { encoding: "utf-8" }));
 	}
 
 	abstract load(): Promise<ASTNode | undefined>;
@@ -49,13 +50,6 @@ export abstract class Resource {
 	setTextDocument(document: TextDocument) {
 		this.document = document;
 	}
-
-	/**
-	 * Removes the {@link TextDocument} assiocated with this resource.
-	 */
-	// removeTextDocment() {
-	// 	this.document = undefined;
-	// }
 
 	getTextDocument() {
 		return this.document;

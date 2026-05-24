@@ -4,6 +4,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { decodePath } from "../../utils/pathUtils";
 import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
 import { ComparisonAnalyzer } from "./analyzers/comparisonAnalyzer";
+import { Resource } from '../../mods/resource/resource';
 
 /*
 === Header Only ===
@@ -59,7 +60,7 @@ GameObjectTypeMismatch 28
 GameObjectNameMismatch 29
 */
 
-export class DiagnosticProvider extends ComponentBase {
+export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
 	private readonly analyzers = [ComparisonAnalyzer];
@@ -81,7 +82,7 @@ export class DiagnosticProvider extends ComponentBase {
 			if (event.document.version >= file.getTextDocument().version) {
 				file.setTextDocument(event.document);
 			}
-			this.handleDiagnostics(event);
+			this.handleDiagnostics(event.document);
 		}
 	};
 
@@ -90,20 +91,20 @@ export class DiagnosticProvider extends ComponentBase {
 		if (file) {
 			file.setTextDocument(event.document);
 			file.invalidate();
-			this.handleDiagnostics(event);
+			this.handleDiagnostics(event.document);
 		}
 	};
 
-	async handleDiagnostics(event: TextDocumentChangeEvent<TextDocument>) {
-		const resource = this.server.modManager.findResource(decodePath(event.document.uri));
-		if (!resource) return [];
+	async handleDiagnostics(document: TextDocument): Promise<void> {
+		const resource = this.server.modManager.findResource(decodePath(document.uri));
+		if (!resource) return;
 		const semanticDiagnostics = (
 			await Promise.all(
 				this.analyzers.map(async (analyzer) => new analyzer(resource, this.server.modManager).analyze())
 			)
 		).flat(1);
 		this.connection?.sendDiagnostics({
-			uri: event.document.uri,
+			uri: document.uri,
 			diagnostics: [...semanticDiagnostics, ...(await resource.getData("diagnostics"))]
 		});
 	}
