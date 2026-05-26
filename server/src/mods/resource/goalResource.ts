@@ -17,6 +17,7 @@ import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from 
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
+import { Signature } from "../signature";
 
 export class GoalResource extends Resource {
 	/**
@@ -48,7 +49,7 @@ export class GoalResource extends Resource {
 			const document = TextDocument.create(this.path, "osiris", 1, content);
 			doParse(this, document);
 		}
-		await this.loadSymbols();
+		await Promise.all([this.loadSymbols(), this.loadSignatures()]);
 		this.validate();
 		return Promise.resolve(this.ast);
 	}
@@ -141,5 +142,50 @@ export class GoalResource extends Resource {
 		this.workspaceSymbols = workspaceSymbols;
 		this.semanticTokens = semanticTokens;
 		return [symbols, workspaceSymbols];
+	}
+
+	async loadSignatures() {
+		const root = this.ast;
+		if (!root) return;
+
+		function getSignatures(node: ASTNode, thisArg: GoalResource) {
+			for (const child of node.getNodeChildren()) {
+				if (!child) continue;
+				if (child.kind === ASTNodeKind.RULE_NODE) {
+					const rule = child as RuleNode;
+					extractSignatures([rule.call], thisArg, false, true);
+					extractSignatures(rule.conditions, thisArg, true, false);
+					extractSignatures(rule.actions, thisArg, false, false);
+				} else {
+					getSignatures(child, thisArg);
+				}
+			}
+		}
+
+		function extractSignatures(
+			signatures: (SignatureNode | ComparisonNode)[],
+			thisArg: GoalResource,
+			areDatabasesRead: boolean,
+			isDefinition: boolean
+		) {
+			for (let signature of signatures) {
+				if (signature.kind === ASTNodeKind.COMPARISON_NODE) continue;
+				signature = signature as SignatureNode;
+				const entry = thisArg.signatures.has(signature.name)
+					? thisArg.signatures.get(signature.name)
+					: new Signature(signature.name, signature.name.startsWith("DB_"));
+				const location: Location = { uri: thisArg.path, range: signature.range };
+				entry!.locations.push(location);
+				entry!.hasDefinition =
+					(entry!.name.startsWith("PROC_") || entry!.name.startsWith("QRY_")) &&
+					(entry!.hasDefinition || isDefinition);
+				if (areDatabasesRead && entry!.isDatabase) entry!.reads.push(location);
+				else if (entry!.isDatabase) entry!.writes.push(location);
+				thisArg.signatures.set(signature.name, entry as Signature);
+			}
+		}
+
+		this.signatures.clear();
+		getSignatures(root, this);
 	}
 }

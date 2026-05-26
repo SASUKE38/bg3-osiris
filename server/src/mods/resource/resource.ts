@@ -4,7 +4,8 @@ import { ASTNode } from "../../parser/ast/nodes";
 import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
-import { encodePath } from '../../utils/pathUtils';
+import { encodePath } from "../../utils/pathUtils";
+import { Signature } from "../signature";
 
 export abstract class Resource {
 	readonly path;
@@ -15,6 +16,7 @@ export abstract class Resource {
 	protected symbols: DocumentSymbol[] = [];
 	protected workspaceSymbols: WorkspaceSymbol[] = [];
 	protected semanticTokens: uinteger[] = [];
+	protected signatures = new Map<string, Signature>();
 	private valid = false;
 	diagnostics: Diagnostic[] = [];
 
