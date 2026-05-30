@@ -11,13 +11,7 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 		const root = await this.resource.getRootNode();
 		const { calledSignatureToFileMap } = this.modManager;
 		const { fileToCalledSignatureMap } = this.modManager;
-		const { definedSignatures } = this.modManager;
-		const definitions = new Set<string>();
-		definedSignatures.forEach((set) => {
-			set.forEach((definition) => {
-				definitions.add(definition);
-			});
-		});
+		const signatures = await this.modManager.getAllDefinedSignatures();
 
 		function doAnalysis(thisArg: UnknownSymbolAnalyzer, node?: ASTNode) {
 			if (!node) return;
@@ -25,7 +19,10 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					for (const signature of (child as RuleNode).actions) {
-						if (definitions.has(signature.name)) {
+						if (
+							signatures.has(signature.name) &&
+							signatures.get(signature.name)?.definitions.length !== 0
+						) {
 							thisArg.unresolvedSymbols.delete(signature.name);
 						} else {
 							if (thisArg.unresolvedSymbols.has(signature.name)) {

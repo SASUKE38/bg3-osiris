@@ -21,15 +21,19 @@ import {
 import { existsSync, readdirSync } from "fs";
 import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
+import { Signature } from "../mods/signature";
+import { isArrayEqual } from "../utils/isArrayEqual";
 
 /**
  * Server component that manages mod loading and tracking.
  */
 export class ModManager extends ComponentBase {
 	mod?: Mod;
+
 	calledSignatureToFileMap = new Map<string, Set<string>>();
-	fileToCalledSignatureMap = new Map<string, [string, Range][]>();
-	definedSignatures = new Map<string, Set<string>>();
+	fileToCalledSignatureMap = new Map<string, Set<string>>();
+	definedSignatureToFileMap = new Map<string, Set<string>>();
+	fileToDefinedSignatureMap = new Map<string, Set<string>>();
 
 	private readonly xmlParser = LSXMLParserFactory();
 
@@ -38,7 +42,7 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
-		if (rootFolder) { 
+		if (rootFolder) {
 			this.mod = await this.createModFromPath(decodePath(rootFolder.uri));
 			if (this.mod) {
 				for (const resource of this.mod.getAllResources()) {
@@ -76,15 +80,47 @@ export class ModManager extends ComponentBase {
 		return [];
 	}
 
-	updateCallsAndDefinitions(fileName: string, calledSymbols: [string, Range][], definedSymbols: Set<string>) {
-		this.fileToCalledSignatureMap.set(fileName, calledSymbols);
-		this.definedSignatures.set(fileName, definedSymbols);
-		for (const name of calledSymbols) {
-			if (!this.calledSignatureToFileMap.has(name[0])) {
-				this.calledSignatureToFileMap.set(name[0], new Set<string>());
+	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
+		const res = new Map<string, Signature>();
+		for (const resource of this.getAllResources()) {
+			for (const signature of (await resource.getData("signatures")).values()) {
+				if (res.has(signature.name)) {
+					const entrySignature = res.get(signature.name) as Signature;
+					entrySignature.definitions = [...entrySignature.definitions, ...signature.definitions];
+					entrySignature.calls = [...entrySignature.calls, ...signature.calls];
+					entrySignature.reads = [...entrySignature.reads, ...signature.reads];
+					entrySignature.writes = [...entrySignature.writes, ...signature.writes];
+					for (const parameterCollection of signature.parameters) {
+						if (!entrySignature.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
+							entrySignature.parameters.push(parameterCollection);
+						}
+					}
+				} else {
+					res.set(signature.name, signature.getCopy());
+				}
 			}
-			(this.calledSignatureToFileMap.get(name[0]) as Set<string>).add(fileName);
 		}
+		return res;
+	}
+
+	async updateSignatures(path: string, calledSignatures: Set<string>, definedSignatures: Set<string>) {
+		function addEntries(signatureSet: Set<string>, map: Map<string, Set<string>>) {
+			for (const entry of map) {
+				entry[1].delete(path);
+			}
+
+			for (const signature of signatureSet) {
+				if (!map.has(signature)) {
+					map.set(signature, new Set<string>());
+				}
+				(map.get(signature) as Set<string>).add(path);
+			}
+		}
+
+		this.fileToCalledSignatureMap.set(path, new Set<string>(calledSignatures));
+		this.fileToDefinedSignatureMap.set(path, new Set<string>(definedSignatures));
+		addEntries(calledSignatures, this.calledSignatureToFileMap);
+		addEntries(definedSignatures, this.definedSignatureToFileMap);
 	}
 
 	/**

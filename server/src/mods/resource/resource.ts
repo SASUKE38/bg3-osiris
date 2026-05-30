@@ -17,6 +17,8 @@ export abstract class Resource {
 	protected workspaceSymbols: WorkspaceSymbol[] = [];
 	protected semanticTokens: uinteger[] = [];
 	protected signatures = new Map<string, Signature>();
+	protected definedSignatures = new Set<string>();
+	protected calledSignatures = new Set<string>();
 	private valid = false;
 	diagnostics: Diagnostic[] = [];
 
@@ -100,11 +102,12 @@ export abstract class Resource {
 		return await this.load();
 	}
 
+	async getData(data: "signatures"): Promise<Map<string, Signature>>;
 	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
 	async getData(data: "semanticTokens"): Promise<uinteger[]>;
 	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
 	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
-	async getData(data: "diagnostics" | "semanticTokens" | "workspaceSymbols" | "symbols") {
+	async getData(data: "diagnostics" | "semanticTokens" | "workspaceSymbols" | "symbols" | "signatures") {
 		if (!this.isValid()) await this.load();
 		return this[data];
 	}

@@ -57,9 +57,6 @@ export class GoalParser extends ParserBase<GoalNode> {
 		TokenType.GREATER_THAN_OR_EQUAL
 	];
 
-	calledSignatures: [string, Range][] = [];
-	definedSignatures = new Set<string>();
-
 	parse(): GoalNode {
 		this.consumeSequence({ expectedType: this.headerTypes });
 		const init = this.parseSignatureSection(TokenType.KBSECTION);
@@ -121,7 +118,6 @@ export class GoalParser extends ParserBase<GoalNode> {
 	private parseRule(): RuleNode {
 		const ruleStart = this.pop();
 		const call = this.parseSignature();
-		this.definedSignatures.add(call.name);
 		const conditions: (SignatureNode | ComparisonNode)[] = [];
 		const actions: SignatureNode[] = [];
 		while (!this.atTokenType(TokenType.THEN)) {
@@ -156,16 +152,6 @@ export class GoalParser extends ParserBase<GoalNode> {
 				this.pop();
 			}
 			const action = this.parseSignature();
-			this.calledSignatures.push([
-				action.name,
-				{
-					start: action.range.start,
-					end: {
-						line: action.range.start.line,
-						character: action.range.start.character + action.name.length - 1
-					}
-				}
-			]);
 			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 		}

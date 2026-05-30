@@ -1,9 +1,24 @@
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { Token, TokenType, typeReadableMapping } from "../../parser/tokens";
 import { DiagnosticCode } from "./diagnosticCode";
-import { ComparisonNode } from "../../parser/ast/nodes";
+import { ComparisonNode, SignatureNode } from "../../parser/ast/nodes";
 
 const diagnosticSource = "Osiris";
+
+interface UnusedDatabaseWarningParams {
+	signature: SignatureNode;
+	isRead: boolean;
+}
+
+export function unusedDatabaseWarningDiagnosticFactory({ signature, isRead }: UnusedDatabaseWarningParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range: signature.selectionRange,
+		message: `'${signature.name}' is ${isRead ? "read from" : "written to"} but not ${isRead ? "written to" : "read from."}`,
+		severity: DiagnosticSeverity.Warning,
+		code: DiagnosticCode.UnusedDatabaseWarning
+	};
+}
 
 //#region Comparisons
 

@@ -4,7 +4,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { decodePath } from "../../utils/pathUtils";
 import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
 import { ComparisonAnalyzer } from "./analyzers/comparisonAnalyzer";
-import { Resource } from '../../mods/resource/resource';
+import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
 
 /*
 === Header Only ===
@@ -35,13 +35,13 @@ DbNamingStyle 26
 
 -- Symbol Resolving --
 UnresolvedSymbol 19
-UnusedDatabaseWarning 25
+*UnusedDatabaseWarning 25
 UnwrittenDatabase 35
 
 -- Comparisons --
 *StringLtGtComparison 20
 *BinaryOperationSameRhsLhs 33
-RiskyComparison 34
+*RiskyComparison 34
 
 -- Parameters --
 LocalTypeMismatch 11
@@ -63,7 +63,7 @@ GameObjectNameMismatch 29
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [ComparisonAnalyzer];
+	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};

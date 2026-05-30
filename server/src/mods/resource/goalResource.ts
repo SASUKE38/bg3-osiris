@@ -8,6 +8,7 @@ import {
 	IdentifierNode,
 	RuleNode,
 	SignatureNode,
+	SignatureSectionNode,
 	StringNode
 } from "../../parser/ast/nodes";
 import { GoalLexer } from "../../parser/lexer/goalLexer";
@@ -18,6 +19,7 @@ import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
 import { Signature } from "../signature";
+import { isArrayEqual } from "../../utils/isArrayEqual";
 
 export class GoalResource extends Resource {
 	/**
@@ -32,11 +34,6 @@ export class GoalResource extends Resource {
 			const root = parser.parse();
 			thisArg.ast = root;
 			thisArg.diagnostics = parser.diagnostics;
-			thisArg.mod.manager.updateCallsAndDefinitions(
-				thisArg.name,
-				parser.calledSignatures,
-				parser.definedSignatures
-			);
 		}
 
 		if (this.document) {
@@ -44,12 +41,12 @@ export class GoalResource extends Resource {
 				doParse(this, this.document);
 			}
 		} else {
-			// console.error(`Tried loading goal resource ${this.path} without a document.`);
 			const content = await readFile(this.path, { encoding: "utf-8" });
 			const document = TextDocument.create(this.path, "osiris", 1, content);
 			doParse(this, document);
 		}
 		await Promise.all([this.loadSymbols(), this.loadSignatures()]);
+		this.mod.manager.updateSignatures(this.path, this.calledSignatures, this.definedSignatures);
 		this.validate();
 		return Promise.resolve(this.ast);
 	}
@@ -153,9 +150,12 @@ export class GoalResource extends Resource {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					const rule = child as RuleNode;
-					extractSignatures([rule.call], thisArg, false, true);
-					extractSignatures(rule.conditions, thisArg, true, false);
+					extractSignatures([rule.call], thisArg, true, true);
+					extractSignatures(rule.conditions, thisArg, false, true);
 					extractSignatures(rule.actions, thisArg, false, false);
+				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
+					const signatures = child as SignatureSectionNode;
+					extractSignatures(signatures.content, thisArg, false, false);
 				} else {
 					getSignatures(child, thisArg);
 				}
@@ -165,27 +165,51 @@ export class GoalResource extends Resource {
 		function extractSignatures(
 			signatures: (SignatureNode | ComparisonNode)[],
 			thisArg: GoalResource,
-			areDatabasesRead: boolean,
-			isDefinition: boolean
+			isDefinition = false,
+			isRead = false
 		) {
 			for (let signature of signatures) {
-				if (signature.kind === ASTNodeKind.COMPARISON_NODE) continue;
+				if (signature.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
 				signature = signature as SignatureNode;
 				const entry = thisArg.signatures.has(signature.name)
 					? thisArg.signatures.get(signature.name)
-					: new Signature(signature.name, signature.name.startsWith("DB_"));
-				const location: Location = { uri: thisArg.path, range: signature.range };
-				entry!.locations.push(location);
-				entry!.hasDefinition =
-					(entry!.name.startsWith("PROC_") || entry!.name.startsWith("QRY_")) &&
-					(entry!.hasDefinition || isDefinition);
-				if (areDatabasesRead && entry!.isDatabase) entry!.reads.push(location);
-				else if (entry!.isDatabase) entry!.writes.push(location);
-				thisArg.signatures.set(signature.name, entry as Signature);
+					: new Signature(signature.name, getSignatureType(signature.name));
+				const locationArray =
+					entry?.type === "database"
+						? isRead
+							? entry.reads
+							: entry.writes
+						: isDefinition
+							? entry?.definitions
+							: entry?.calls;
+				locationArray?.push({ uri: thisArg.path, range: signature.range });
+				if (isDefinition) {
+					const parameterCollection: string[] = [];
+					for (const parameter of signature.parameters) {
+						const type = parameter.type ? parameter.type.value : "";
+						parameterCollection.push(type);
+					}
+					if (!entry?.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
+						entry?.parameters.push(parameterCollection);
+					}
+				}
+				thisArg.signatures.set(signature.name, entry!);
+
+				if (isDefinition) thisArg.definedSignatures.add(signature.name);
+				else thisArg.calledSignatures.add(signature.name);
 			}
 		}
 
+		function getSignatureType(name: string) {
+			if (name.startsWith("PROC_")) return "proc";
+			else if (name.startsWith("QRY")) return "query";
+			else if (name.startsWith("DB_")) return "database";
+			else return "builtin";
+		}
+
 		this.signatures.clear();
+		this.calledSignatures.clear();
+		this.definedSignatures.clear();
 		getSignatures(root, this);
 	}
 }
