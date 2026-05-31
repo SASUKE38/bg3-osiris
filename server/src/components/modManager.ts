@@ -23,12 +23,15 @@ import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
+import { Dependency } from '../mods/dependency';
 
 /**
  * Server component that manages mod loading and tracking.
  */
 export class ModManager extends ComponentBase {
 	mod?: Mod;
+
+	readonly baseMods = ["Shared", "SharedDev", "Gustav", "GustavDev"];
 
 	calledSignatureToFileMap = new Map<string, Set<string>>();
 	fileToCalledSignatureMap = new Map<string, Set<string>>();
@@ -43,7 +46,7 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
 		if (rootFolder) {
-			this.mod = await this.createModFromPath(decodePath(rootFolder.uri));
+			this.mod = await this.createModFromPath(decodePath(rootFolder.uri)) as Mod;
 			if (this.mod) {
 				for (const resource of this.mod.getAllResources()) {
 					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
@@ -82,14 +85,17 @@ export class ModManager extends ComponentBase {
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
 		const res = new Map<string, Signature>();
-		for (const resource of this.getAllResources()) {
+		const activeFiles = this.mod?.getAllActiveFiles();
+		if (!activeFiles) return res;
+
+		for (const resource of activeFiles) {
 			for (const signature of (await resource.getData("signatures")).values()) {
 				if (res.has(signature.name)) {
 					const entrySignature = res.get(signature.name) as Signature;
-					entrySignature.definitions = [...entrySignature.definitions, ...signature.definitions];
-					entrySignature.calls = [...entrySignature.calls, ...signature.calls];
-					entrySignature.reads = [...entrySignature.reads, ...signature.reads];
-					entrySignature.writes = [...entrySignature.writes, ...signature.writes];
+					entrySignature.isDefined = entrySignature.isDefined || signature.isDefined;
+					entrySignature.isCalled = entrySignature.isCalled || signature.isCalled;
+					entrySignature.isRead = entrySignature.isRead || signature.isRead;
+					entrySignature.isWritten = entrySignature.isWritten || signature.isWritten;
 					for (const parameterCollection of signature.parameters) {
 						if (!entrySignature.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
 							entrySignature.parameters.push(parameterCollection);
@@ -128,11 +134,9 @@ export class ModManager extends ComponentBase {
 	 *
 	 * @param path The path of the mod to load. Should contain the mod's meta.lsx.
 	 */
-	async createModFromPath(path: string): Promise<Mod | undefined> {
+	async createModFromPath(path: string, isDependency?: boolean): Promise<Dependency | undefined> {
 		const meta = this.readModMeta(path);
-		if (meta) {
-			return await this.createMod(meta, path);
-		}
+		return await this.createMod(path, meta, isDependency);
 	}
 
 	/**
@@ -142,8 +146,8 @@ export class ModManager extends ComponentBase {
 	 * @param path The path to the mod directory to load. Should contain the mod's meta.lsx.
 	 * @returns The loaded {@link Mod}.
 	 */
-	private async createMod(meta: ModMetaModuleInfo, path: string): Promise<Mod> {
-		const mod = new Mod(meta, path, this);
+	private async createMod(path: string, meta?: ModMetaModuleInfo, isDependency?: boolean): Promise<Dependency> {
+		const mod = isDependency ? new Dependency(path, this, meta) : new Mod(path, this, meta);
 		await mod.initialize();
 		return Promise.resolve(mod);
 	}
@@ -152,9 +156,11 @@ export class ModManager extends ComponentBase {
 	 * Retrieves metadata associated with a given mod directory.
 	 *
 	 * @param path The path to the mod whose metadata should be loaded. Should contain the mod's meta.lsx.
-	 * @returns The mod's metadata as an {@link ModMetaModuleInfo}.
+	 * @returns The mod's metadata as a {@link ModMetaModuleInfo}.
 	 */
 	readModMeta(path: string): ModMetaModuleInfo | undefined {
+		if (this.baseMods.find((value) => path.endsWith(value))) return undefined;
+
 		const metaPath = join(path, "meta.lsx");
 		if (!existsSync(metaPath)) {
 			console.error(`Couldn't find meta.lsx for ${path}`);

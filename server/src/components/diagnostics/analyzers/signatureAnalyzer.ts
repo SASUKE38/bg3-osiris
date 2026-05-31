@@ -18,14 +18,14 @@ export class SignatureAnalyzer extends AnalyzerBase {
 					if (signatures.has((child as SignatureNode).name)) {
 						const signature = signatures.get((child as SignatureNode).name) as Signature;
 						if (signature.type === "database") {
-							if (signature.reads.length === 0 && signature.writes.length > 0) {
+							if (!signature.isRead && signature.isWritten) {
 								res.push(
 									unusedDatabaseWarningDiagnosticFactory({
 										signature: child as SignatureNode,
 										isRead: false
 									})
 								);
-							} else if (signature.writes.length === 0 && signature.reads.length > 0) {
+							} else if (!signature.isWritten && signature.isRead) {
 								res.push(
 									unusedDatabaseWarningDiagnosticFactory({
 										signature: child as SignatureNode,

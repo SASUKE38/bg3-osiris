@@ -1,24 +1,12 @@
-import { readdir } from "fs/promises";
 import { ModMetaModuleInfo } from "./modMeta";
 import { dirname, join } from "path";
 import { Resource } from "./resource/resource";
-import { GoalResource } from "./resource/goalResource";
-import { ModManager } from "../components/modManager";
 import { readdirSync } from "fs";
+import { Dependency } from './dependency';
 
-export class Mod {
-	readonly meta: ModMetaModuleInfo;
-	readonly manager: ModManager;
-	private readonly dependencyFiles: Resource[] = [];
-	private readonly files: Resource[] = [];
-	private readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
-	private path: string;
-
-	constructor(meta: ModMetaModuleInfo, path: string, manager: ModManager) {
-		this.meta = meta;
-		this.manager = manager;
-		this.path = path;
-	}
+export class Mod extends Dependency {
+	private readonly dependencies: Dependency[] = [];
+	private readonly activeFiles = new Map<string, Resource>();
 
 	/**
 	 * Initializes this {@link Mod}.
@@ -26,25 +14,29 @@ export class Mod {
 	 * @param directory This mod's path.
 	 */
 	async initialize() {
-		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
-			if (this.path) {
-				this.files.push(new GoalResource(this, file, join(this.path, this.goalSubdirectory, file)));
+		super.initialize();
+
+		if (this.meta) {
+			for (const dependency of this.findDependencies(this.meta, this.path)) {
+				const mod = await this.manager.createModFromPath(dependency, true);
+				if (!mod) continue;
+
+				this.dependencies.push(mod);
+				this.setActiveFiles(mod.getAllResources());
 			}
 		}
 
-		for (const dependency of this.findDependencies(this.meta, this.path)) {
-			for (const file of await readdir(join(dependency, this.goalSubdirectory))) {
-				this.dependencyFiles.push(new GoalResource(this, file, join(dependency, this.goalSubdirectory, file)));
-			}
+		this.setActiveFiles(this.getAllResources());
+	}
+
+	private setActiveFiles(resources: Resource[]) {
+		for (const resource of resources) {
+			this.activeFiles.set(resource.name, resource);
 		}
 	}
 
-	getResource(path: string): Resource | undefined {
-		return this.files.find((file) => file.path == path);
-	}
-
-	getAllResources(): Resource[] {
-		return this.files;
+	getAllActiveFiles() {
+		return this.activeFiles.values();
 	}
 
 	/**
@@ -55,30 +47,33 @@ export class Mod {
 	 * Should contain the mod's meta.lsx.
 	 * @returns A set of dependency folders.
 	 */
-	private findDependencies(meta: ModMetaModuleInfo, path: string, fullRes?: Set<string>): Set<string> {
-		const res = fullRes ? fullRes : new Set<string>();
-		if (meta.dependencies) {
-			const modDir = dirname(path);
-			const contents = readdirSync(modDir);
-			for (const dependency of meta.dependencies) {
-				const dependencyFolder = contents.find((item) => {
-					return (
-						dependency.name + "_" + dependency.uuid === item ||
-						dependency.uuid === item ||
-						dependency.name === item
-					);
-				});
-				if (!dependencyFolder) {
-					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
-					continue;
-				}
-				const loadedMeta = this.manager.readModMeta(join(modDir, dependencyFolder));
-				if (loadedMeta) {
-					this.findDependencies(loadedMeta, join(modDir, dependencyFolder), res);
-				}
+	private findDependencies(meta: ModMetaModuleInfo, path: string, fullRes?: string[]): string[] {
+		const res = fullRes ? fullRes : [];
+		if (!meta.dependencies) return res;
 
-				res.add(join(modDir, dependencyFolder));
+		const modDir = dirname(path);
+		const contents = readdirSync(modDir);
+		for (const dependency of meta.dependencies) {
+			const dependencyFolder = contents.find((item) => {
+				return (
+					dependency.name + "_" + dependency.uuid === item ||
+					dependency.uuid === item ||
+					dependency.name === item
+				);
+			});
+			
+			if (!dependencyFolder) {
+				console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
+				continue;
 			}
+
+			const dependencyPath = join(modDir, dependencyFolder);
+			const loadedMeta = this.manager.readModMeta(dependencyPath);
+			if (loadedMeta) {
+				this.findDependencies(loadedMeta, dependencyPath, res);
+			}
+
+			if (!res.find((value) => value === dependencyPath)) res.push(dependencyPath);
 		}
 		return res;
 	}

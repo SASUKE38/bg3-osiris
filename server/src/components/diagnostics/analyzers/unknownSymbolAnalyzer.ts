@@ -21,7 +21,7 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 					for (const signature of (child as RuleNode).actions) {
 						if (
 							signatures.has(signature.name) &&
-							signatures.get(signature.name)?.definitions.length !== 0
+							signatures.get(signature.name)?.isDefined
 						) {
 							thisArg.unresolvedSymbols.delete(signature.name);
 						} else {

@@ -174,15 +174,13 @@ export class GoalResource extends Resource {
 				const entry = thisArg.signatures.has(signature.name)
 					? thisArg.signatures.get(signature.name)
 					: new Signature(signature.name, getSignatureType(signature.name));
-				const locationArray =
-					entry?.type === "database"
-						? isRead
-							? entry.reads
-							: entry.writes
-						: isDefinition
-							? entry?.definitions
-							: entry?.calls;
-				locationArray?.push({ uri: thisArg.path, range: signature.range });
+				if (entry?.type === "database") {
+					if (isRead) entry.isRead = true;
+					else entry.isWritten = true;
+				} else if (entry) {
+					if (isDefinition) entry.isDefined = true;
+					else entry.isCalled = true;
+				}
 				if (isDefinition) {
 					const parameterCollection: string[] = [];
 					for (const parameter of signature.parameters) {

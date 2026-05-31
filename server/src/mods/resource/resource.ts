@@ -2,10 +2,10 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ASTNode } from "../../parser/ast/nodes";
 import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
-import { Mod } from "../mod";
 import { readFileSync } from "fs";
 import { encodePath } from "../../utils/pathUtils";
 import { Signature } from "../signature";
+import { Dependency } from '../dependency';
 
 export abstract class Resource {
 	readonly path;
@@ -22,7 +22,7 @@ export abstract class Resource {
 	private valid = false;
 	diagnostics: Diagnostic[] = [];
 
-	constructor(mod: Mod, name: string, path: string) {
+	constructor(mod: Dependency, name: string, path: string) {
 		this.mod = mod;
 		this.name = name;
 		this.path = path;
