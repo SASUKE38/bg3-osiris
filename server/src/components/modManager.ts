@@ -1,7 +1,7 @@
-import { Connection, CreateFilesParams, DeleteFilesParams, Range, ServerCapabilities } from "vscode-languageserver";
+import { Connection, CreateFilesParams, DeleteFilesParams, ServerCapabilities } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "../mods/mod";
-import { dirname, join } from "path";
+import { join } from "path";
 import {
 	collectAttributes,
 	findNodeChild,
@@ -18,7 +18,7 @@ import {
 	ModMetaScript,
 	ModMetaScriptParameter
 } from "../mods/modMeta";
-import { existsSync, readdirSync } from "fs";
+import { existsSync } from "fs";
 import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
@@ -149,51 +149,12 @@ export class ModManager extends ComponentBase {
 	}
 
 	/**
-	 * Gets an array of paths to a mod's dependencies.
-	 *
-	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
-	 * @param path The path to the mod directory whose dependencies should be loaded.
-	 * Should contain the mod's meta.lsx.
-	 * @returns An array of dependency folders.
-	 */
-	private findDependencies(meta: ModMetaModuleInfo, path: string): string[] {
-		// try to find folder by exhaustively searching meta.lsx files for the right one?
-		const res: string[] = [];
-		if (meta.dependencies) {
-			const modDir = dirname(path);
-			const contents = readdirSync(modDir);
-			for (const dependency of meta.dependencies) {
-				let dependencyFolder;
-				dependencyFolder = contents.find((item) => {
-					return dependency.name + "_" + dependency.uuid === item;
-				});
-				if (!dependencyFolder) {
-					dependencyFolder = contents.find((item) => {
-						return dependency.uuid === item;
-					});
-				}
-				if (!dependencyFolder) {
-					dependencyFolder = contents.find((item) => {
-						return dependency.name === item;
-					});
-				}
-				if (!dependencyFolder) {
-					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
-					continue;
-				}
-				res.push(join(modDir, dependencyFolder));
-			}
-		}
-		return res;
-	}
-
-	/**
 	 * Retrieves metadata associated with a given mod directory.
 	 *
 	 * @param path The path to the mod whose metadata should be loaded. Should contain the mod's meta.lsx.
 	 * @returns The mod's metadata as an {@link ModMetaModuleInfo}.
 	 */
-	private readModMeta(path: string): ModMetaModuleInfo | undefined {
+	readModMeta(path: string): ModMetaModuleInfo | undefined {
 		const metaPath = join(path, "meta.lsx");
 		if (!existsSync(metaPath)) {
 			console.error(`Couldn't find meta.lsx for ${path}`);

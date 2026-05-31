@@ -46,7 +46,7 @@ export class ReferencesProvider extends ComponentBase {
 					return Promise.resolve(
 						this.findVariableReferences(params.textDocument.uri, symbolsAt, searchSymbol)
 					);
-				} else if (searchSymbol.kind === SymbolKind.Function || SymbolKind.Constant) {
+				} else if (searchSymbol.kind === SymbolKind.Function || searchSymbol.kind === SymbolKind.Constant) {
 					return await this.findNestedReferences(searchSymbol);
 				}
 			}
