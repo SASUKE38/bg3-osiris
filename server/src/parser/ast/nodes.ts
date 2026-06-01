@@ -128,13 +128,13 @@ export class GoalNode extends ASTNode {
 	init: SignatureSectionNode;
 	kb: KBSectionNode;
 	exit: SignatureSectionNode;
-	footer: GoalFooterNode;
+	footer: GoalFooterNode | undefined;
 
 	constructor(
 		init: SignatureSectionNode,
 		kb: KBSectionNode,
 		exit: SignatureSectionNode,
-		footer: GoalFooterNode,
+		footer: GoalFooterNode | undefined,
 		range: Range
 	) {
 		super(range, range);

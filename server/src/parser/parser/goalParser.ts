@@ -66,6 +66,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
 		this.consume({ expectedType: [TokenType.ENDEXITSECTION] });
 		const footer = this.parseGoalFooter();
+		if (footer) this.consume({ expectedType: [TokenType.EOF] });
+		else this.consume({ expectedType: [TokenType.EOF], expectedMessage: expectedMessage.eofOrParentTargetEdge})
 		return new GoalNode(init, kb, exit, footer, this.getTokenRange());
 	}
 
@@ -101,7 +103,9 @@ export class GoalParser extends ParserBase<GoalNode> {
 		});
 	}
 
-	private parseGoalFooter(): GoalFooterNode {
+	private parseGoalFooter(): GoalFooterNode | undefined {
+		if (this.peek().type !== TokenType.PARENT_TARGET_EDGE) return undefined;
+
 		const parentTargetEdge = this.consume({ expectedType: [TokenType.PARENT_TARGET_EDGE] });
 		const parent = this.consume({ expectedType: [TokenType.STRING] });
 		return new GoalFooterNode(

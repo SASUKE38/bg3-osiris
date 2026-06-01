@@ -90,7 +90,8 @@ export const expectedMessage = {
 	signatureOrComparison: "a signature or comparison",
 	andOrThen: "AND or THEN",
 	parameter: "a parameter",
-	flow: "parameter flow"
+	flow: "parameter flow",
+	eofOrParentTargetEdge: "ParentTargetEdge or end of file"
 };
 
 interface unexpectedTokenDiagnosticParams {

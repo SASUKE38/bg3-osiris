@@ -63,7 +63,7 @@ GameObjectNameMismatch 29
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer];
+	private readonly analyzers = [ComparisonAnalyzer];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
