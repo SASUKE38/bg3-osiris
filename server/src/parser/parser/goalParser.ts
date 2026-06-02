@@ -67,7 +67,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		this.consume({ expectedType: [TokenType.ENDEXITSECTION] });
 		const footer = this.parseGoalFooter();
 		if (footer) this.consume({ expectedType: [TokenType.EOF] });
-		else this.consume({ expectedType: [TokenType.EOF], expectedMessage: expectedMessage.eofOrParentTargetEdge})
+		else this.consume({ expectedType: [TokenType.EOF], expectedMessage: expectedMessage.eofOrParentTargetEdge });
 		return new GoalNode(init, kb, exit, footer, this.getTokenRange());
 	}
 

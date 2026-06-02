@@ -19,10 +19,7 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					for (const signature of (child as RuleNode).actions) {
-						if (
-							signatures.has(signature.name) &&
-							signatures.get(signature.name)?.isDefined
-						) {
+						if (signatures.has(signature.name) && signatures.get(signature.name)?.isDefined) {
 							thisArg.unresolvedSymbols.delete(signature.name);
 						} else {
 							if (thisArg.unresolvedSymbols.has(signature.name)) {

@@ -1,12 +1,14 @@
 import { ModMetaModuleInfo } from "./modMeta";
 import { dirname, join } from "path";
-import { Resource } from "./resource/resource";
 import { readdirSync } from "fs";
-import { Dependency } from './dependency';
+import { Dependency } from "./dependency";
+import { StoryTree } from "./storyTree";
+import { GoalResource } from "./resource/goalResource";
 
 export class Mod extends Dependency {
 	private readonly dependencies: Dependency[] = [];
-	private readonly activeFiles = new Map<string, Resource>();
+	private readonly externalGoals = new Map<string, GoalResource>();
+	storyTree = new StoryTree();
 
 	/**
 	 * Initializes this {@link Mod}.
@@ -22,21 +24,21 @@ export class Mod extends Dependency {
 				if (!mod) continue;
 
 				this.dependencies.push(mod);
-				this.setActiveFiles(mod.getAllResources());
+				this.setExternalGoals(mod.getAllGoals());
 			}
 		}
 
-		this.setActiveFiles(this.getAllResources());
+		this.setExternalGoals(this.getAllGoals());
 	}
 
-	private setActiveFiles(resources: Resource[]) {
+	private setExternalGoals(resources: GoalResource[]) {
 		for (const resource of resources) {
-			this.activeFiles.set(resource.name, resource);
+			this.externalGoals.set(resource.name, resource);
 		}
 	}
 
-	getAllActiveFiles() {
-		return this.activeFiles.values();
+	getAllExternalGoals() {
+		return this.externalGoals.values();
 	}
 
 	/**
@@ -61,7 +63,7 @@ export class Mod extends Dependency {
 					dependency.name === item
 				);
 			});
-			
+
 			if (!dependencyFolder) {
 				console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
 				continue;

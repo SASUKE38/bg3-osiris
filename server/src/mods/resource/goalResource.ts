@@ -22,6 +22,8 @@ import { Signature } from "../signature";
 import { isArrayEqual } from "../../utils/isArrayEqual";
 
 export class GoalResource extends Resource {
+	parent = "";
+
 	/**
 	 * Parses the {@link document} associated with this resource if it has been loaded
 	 * and creates its AST.
@@ -34,6 +36,10 @@ export class GoalResource extends Resource {
 			const root = parser.parse();
 			thisArg.ast = root;
 			thisArg.diagnostics = parser.diagnostics;
+			thisArg.parent =
+				root.footer?.parentTargetEdge.kind === ASTNodeKind.STRING_NODE
+					? (root.footer?.parentTargetEdge as StringNode).value
+					: thisArg.parent;
 		}
 
 		if (this.document) {

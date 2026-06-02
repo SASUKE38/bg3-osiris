@@ -5,7 +5,7 @@ import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from 
 import { readFileSync } from "fs";
 import { encodePath } from "../../utils/pathUtils";
 import { Signature } from "../signature";
-import { Dependency } from '../dependency';
+import { Dependency } from "../dependency";
 
 export abstract class Resource {
 	readonly path;

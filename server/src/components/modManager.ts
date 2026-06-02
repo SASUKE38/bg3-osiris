@@ -23,7 +23,7 @@ import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
-import { Dependency } from '../mods/dependency';
+import { Dependency } from "../mods/dependency";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -46,13 +46,23 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
 		if (rootFolder) {
-			this.mod = await this.createModFromPath(decodePath(rootFolder.uri)) as Mod;
+			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
+
 			if (this.mod) {
-				for (const resource of this.mod.getAllResources()) {
+				await Promise.all(
+					Array.from(this.mod.getAllExternalGoals()).map((value) => {
+						value.load();
+					})
+				);
+
+				this.mod.storyTree.createTree([...this.mod.getAllGoals(), ...this.mod.getAllExternalGoals()]);
+
+				for (const resource of this.mod.getAllGoals()) {
 					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 				}
 			}
 		}
+		this.server.diagnosticManager.installHandlers();
 	}
 
 	getCapabilities(): Partial<ServerCapabilities> {
@@ -78,14 +88,14 @@ export class ModManager extends ComponentBase {
 
 	getAllResources(): Resource[] {
 		if (this.mod) {
-			return this.mod.getAllResources();
+			return this.mod.getAllGoals();
 		}
 		return [];
 	}
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
 		const res = new Map<string, Signature>();
-		const activeFiles = this.mod?.getAllActiveFiles();
+		const activeFiles = this.mod?.getAllExternalGoals();
 		if (!activeFiles) return res;
 
 		for (const resource of activeFiles) {
