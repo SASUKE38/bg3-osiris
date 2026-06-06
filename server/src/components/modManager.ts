@@ -25,6 +25,10 @@ import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
 import { Dependency } from "../mods/dependency";
 
+process.env.EDGE_USE_CORECLR = "1";
+
+import * as edge from "electron-edge-js";
+
 /**
  * Server component that manages mod loading and tracking.
  */
@@ -44,6 +48,23 @@ export class ModManager extends ComponentBase {
 		const { rootFolder } = this.server;
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
+
+		// const test = edge.func({
+		// 	assemblyFile: join(__dirname, "..", "external", "BG3OsirisReader.dll"),
+		// 	typeName: "BG3OsirisReader.PackageExtractor",
+		// 	methodName: "Invoke"
+		// });
+
+		// test(
+		// 	{
+		// 		packagePath: "F:\\SteamLibrary\\steamapps\\common\\Baldurs Gate 3\\Data\\Gustav.pak",
+		// 		fileName: "story.div.osi"
+		// 	},
+		// 	function (error, result) {
+		// 		if (error) console.error((error as Error).message);
+		// 		console.log(result);
+		// 	}
+		// );
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
