@@ -1,9 +1,10 @@
 import { ModMetaModuleInfo } from "./modMeta";
-import { dirname, join } from "path";
-import { readdirSync } from "fs";
+import { readdirSync, rmSync } from "fs";
 import { Dependency } from "./dependency";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
+import { join, sep } from "path";
+import { extractFromPak } from "../utils/edge";
 
 export class Mod extends Dependency {
 	private readonly dependencies: Dependency[] = [];
@@ -19,12 +20,11 @@ export class Mod extends Dependency {
 		super.initialize();
 
 		if (this.meta) {
-			for (const dependency of this.findDependencies(this.meta, this.path)) {
-				const mod = await this.manager.createModFromPath(dependency, true);
-				if (!mod) continue;
-
-				this.dependencies.push(mod);
-				this.setExternalGoals(mod.getAllGoals());
+			for (const dependency of await this.findDependencies(this.meta)) {
+				// const mod = await this.manager.createModFromPath(dependency, true);
+				// if (!mod) continue;
+				// this.dependencies.push(mod);
+				// this.setExternalGoals(mod.getAllGoals());
 			}
 		}
 
@@ -45,38 +45,55 @@ export class Mod extends Dependency {
 	 * Recursively gets a set of paths to the mod's dependencies.
 	 *
 	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
-	 * @param path The path to the mod directory whose dependencies should be loaded.
-	 * Should contain the mod's meta.lsx.
-	 * @returns A set of dependency folders.
+	 * @param res The result so far.
+	 * @returns A set of dependency paks.
 	 */
-	private findDependencies(meta: ModMetaModuleInfo, path: string, fullRes?: string[]): string[] {
+	private async findDependencies(meta: ModMetaModuleInfo, fullRes?: string[]): Promise<string[]> {
 		const res = fullRes ? fullRes : [];
 		if (!meta.dependencies) return res;
 
-		const modDir = dirname(path);
-		const contents = readdirSync(modDir);
+		const files: string[] = (
+			(await this.manager.server.connection.workspace.getConfiguration("bg3Osiris.dependencyPaths")) as string[]
+		)
+			.map((value) => {
+				return readdirSync(value).map((path) => {
+					return join(value, path);
+				});
+			})
+			.flat(1);
+
 		for (const dependency of meta.dependencies) {
-			const dependencyFolder = contents.find((item) => {
+			const searchName = this.manager.baseMods.find((modName) => modName === dependency.name)
+				? dependency.name === "Shared" || dependency.name === "SharedDev"
+					? "Shared"
+					: "Gustav"
+				: dependency.name;
+
+			const dependencyPak = files.find((path) => {
+				const file = path.split(sep).pop();
 				return (
-					dependency.name + "_" + dependency.uuid === item ||
-					dependency.uuid === item ||
-					dependency.name === item
+					`${searchName}.pak` === file ||
+					`${searchName}_${meta.uuid}.pak` === file ||
+					`${meta.uuid}.pak` === file
 				);
 			});
 
-			if (!dependencyFolder) {
+			// TODO: Make sure mods packed together don't have multiple meta.lsx files?
+			if (dependencyPak) {
+				if (!this.manager.baseMods.find((value) => value === dependency.name)) {
+					const dependencyMetaFile = await extractFromPak(dependencyPak, "meta.lsx");
+					const dependencyMetaInfo = this.manager.readModMeta(dependencyMetaFile);
+					if (dependencyMetaInfo) {
+						await this.findDependencies(dependencyMetaInfo, res);
+						rmSync(dependencyMetaFile);
+					}
+				}
+				if (!res.find((value) => value === dependencyPak)) res.push(dependencyPak);
+			} else {
 				console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
-				continue;
 			}
-
-			const dependencyPath = join(modDir, dependencyFolder);
-			const loadedMeta = this.manager.readModMeta(dependencyPath);
-			if (loadedMeta) {
-				this.findDependencies(loadedMeta, dependencyPath, res);
-			}
-
-			if (!res.find((value) => value === dependencyPath)) res.push(dependencyPath);
 		}
+
 		return res;
 	}
 }

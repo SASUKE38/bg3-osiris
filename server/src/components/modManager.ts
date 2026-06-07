@@ -25,10 +25,6 @@ import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
 import { Dependency } from "../mods/dependency";
 
-process.env.EDGE_USE_CORECLR = "1";
-
-import * as edge from "electron-edge-js";
-
 /**
  * Server component that manages mod loading and tracking.
  */
@@ -48,23 +44,6 @@ export class ModManager extends ComponentBase {
 		const { rootFolder } = this.server;
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
-
-		// const test = edge.func({
-		// 	assemblyFile: join(__dirname, "..", "external", "BG3OsirisReader.dll"),
-		// 	typeName: "BG3OsirisReader.PackageExtractor",
-		// 	methodName: "Invoke"
-		// });
-
-		// test(
-		// 	{
-		// 		packagePath: "F:\\SteamLibrary\\steamapps\\common\\Baldurs Gate 3\\Data\\Gustav.pak",
-		// 		fileName: "story.div.osi"
-		// 	},
-		// 	function (error, result) {
-		// 		if (error) console.error((error as Error).message);
-		// 		console.log(result);
-		// 	}
-		// );
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -166,7 +145,7 @@ export class ModManager extends ComponentBase {
 	 * @param path The path of the mod to load. Should contain the mod's meta.lsx.
 	 */
 	async createModFromPath(path: string, isDependency?: boolean): Promise<Dependency | undefined> {
-		const meta = this.readModMeta(path);
+		const meta = this.readModMeta(join(path, "meta.lsx"));
 		return await this.createMod(path, meta, isDependency);
 	}
 
@@ -192,15 +171,14 @@ export class ModManager extends ComponentBase {
 	readModMeta(path: string): ModMetaModuleInfo | undefined {
 		if (this.baseMods.find((value) => path.endsWith(value))) return undefined;
 
-		const metaPath = join(path, "meta.lsx");
-		if (!existsSync(metaPath)) {
+		if (!existsSync(path)) {
 			console.error(`Couldn't find meta.lsx for ${path}`);
 		} else {
 			try {
 				const meta: Partial<ModMetaModuleInfo> = {};
 				meta.dependencies = [];
 				meta.scripts = [];
-				const rootNode = findRegionChild(findRegion(ParseLSXML(this.xmlParser, metaPath), "Config"), "root");
+				const rootNode = findRegionChild(findRegion(ParseLSXML(this.xmlParser, path), "Config"), "root");
 
 				const moduleInfo = findNodeChild(rootNode, "ModuleInfo");
 				if (!moduleInfo) {
