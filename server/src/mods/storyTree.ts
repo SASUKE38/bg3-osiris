@@ -1,4 +1,4 @@
-import { GoalResource } from './resource/goalResource';
+import { GoalResource } from "./resource/goalResource";
 
 export interface StoryTreeRoot {
 	children: StoryTreeNode[];
@@ -13,16 +13,16 @@ export class StoryTree {
 
 	createTree(resources: GoalResource[]) {
 		const mapping = new Map<string, StoryTreeNode>();
-		mapping.set("", { children: [] })
+		mapping.set("", { children: [] });
 
 		function trimExtension(name: string) {
-			return name.endsWith(".txt") ? name.substring(0, name.length - 4) : name
+			return name.endsWith(".txt") ? name.substring(0, name.length - 4) : name;
 		}
 
 		resources.forEach((value) => {
 			const name = trimExtension(value.name);
-			mapping.set(name, {children: [], resource: value})
-		})
+			mapping.set(name, { children: [], resource: value });
+		});
 
 		resources.forEach((value) => {
 			const name = trimExtension(value.name);
@@ -31,7 +31,7 @@ export class StoryTree {
 			if (parent && child) {
 				parent.children.push(child);
 			}
-		})
+		});
 
 		this.root.children = mapping.get("")?.children as StoryTreeNode[];
 	}

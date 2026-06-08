@@ -5,7 +5,7 @@ import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from 
 import { readFileSync } from "fs";
 import { encodePath } from "../../utils/pathUtils";
 import { Signature } from "../signature";
-import { Dependency } from "../dependency";
+import { Mod } from "../mod";
 
 export abstract class Resource {
 	readonly path;
@@ -22,7 +22,7 @@ export abstract class Resource {
 	private valid = false;
 	diagnostics: Diagnostic[] = [];
 
-	constructor(mod: Dependency, name: string, path: string) {
+	constructor(mod: Mod, name: string, path: string) {
 		this.mod = mod;
 		this.name = name;
 		this.path = path;

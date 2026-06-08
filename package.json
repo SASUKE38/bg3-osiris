@@ -106,7 +106,7 @@
 					"scope": "machine",
 					"type": "array",
 					"items": {
-						"type":"string",
+						"type": "string",
 						"title": "Path"
 					},
 					"description": "Directories to search in when looking for dependencies."

@@ -23,7 +23,6 @@ import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
-import { Dependency } from "../mods/dependency";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -49,15 +48,8 @@ export class ModManager extends ComponentBase {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
 
 			if (this.mod) {
-				await Promise.all(
-					Array.from(this.mod.getAllExternalGoals()).map((value) => {
-						value.load();
-					})
-				);
-
-				this.mod.storyTree.createTree([...this.mod.getAllGoals(), ...this.mod.getAllExternalGoals()]);
-
 				for (const resource of this.mod.getAllGoals()) {
+					await resource.load();
 					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 				}
 			}
@@ -95,7 +87,7 @@ export class ModManager extends ComponentBase {
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
 		const res = new Map<string, Signature>();
-		const activeFiles = this.mod?.getAllExternalGoals();
+		const activeFiles = this.mod?.getAllGoals();
 		if (!activeFiles) return res;
 
 		for (const resource of activeFiles) {
@@ -144,7 +136,7 @@ export class ModManager extends ComponentBase {
 	 *
 	 * @param path The path of the mod to load. Should contain the mod's meta.lsx.
 	 */
-	async createModFromPath(path: string, isDependency?: boolean): Promise<Dependency | undefined> {
+	async createModFromPath(path: string, isDependency?: boolean): Promise<Mod | undefined> {
 		const meta = this.readModMeta(join(path, "meta.lsx"));
 		return await this.createMod(path, meta, isDependency);
 	}
@@ -156,8 +148,8 @@ export class ModManager extends ComponentBase {
 	 * @param path The path to the mod directory to load. Should contain the mod's meta.lsx.
 	 * @returns The loaded {@link Mod}.
 	 */
-	private async createMod(path: string, meta?: ModMetaModuleInfo, isDependency?: boolean): Promise<Dependency> {
-		const mod = isDependency ? new Dependency(path, this, meta) : new Mod(path, this, meta);
+	private async createMod(path: string, meta?: ModMetaModuleInfo, isDependency?: boolean): Promise<Mod> {
+		const mod = isDependency ? new Mod(path, this, meta) : new Mod(path, this, meta);
 		await mod.initialize();
 		return Promise.resolve(mod);
 	}

@@ -1,36 +1,25 @@
-import { join } from "path";
-import { ModManager } from "../components/modManager";
-import { ModMetaModuleInfo } from "./modMeta";
-import { Resource } from "./resource/resource";
-import { GoalResource } from "./resource/goalResource";
-import { readdir } from "fs/promises";
+import { rmSync } from "fs";
+import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/edge";
+import { Story } from "./story";
 
 export class Dependency {
-	readonly meta?: ModMetaModuleInfo;
-	readonly manager: ModManager;
-	protected readonly goals: GoalResource[] = [];
-	protected readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
-	protected path: string;
+	private path;
+	private goalNames: string[] = [];
+	private story?: Story;
 
-	constructor(path: string, manager: ModManager, meta?: ModMetaModuleInfo) {
+	constructor(path: string) {
 		this.path = path;
-		this.manager = manager;
-		this.meta = meta;
 	}
 
 	async initialize() {
-		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
-			if (this.path) {
-				this.goals.push(new GoalResource(this, file, join(this.path, this.goalSubdirectory, file)));
-			}
+		this.goalNames = await extractPathsInPackage(this.path, "RawFiles");
+		const osi = await extractFromPak(this.path, "story.div.osi");
+		if (osi === "") {
+			console.error(`Dependency ${this.path} missing story file`);
+			return;
 		}
-	}
 
-	getResource(path: string): Resource | undefined {
-		return this.goals.find((file) => file.path === path);
-	}
-
-	getAllGoals(): GoalResource[] {
-		return this.goals;
+		this.story = await extractStory(osi);
+		rmSync(osi);
 	}
 }

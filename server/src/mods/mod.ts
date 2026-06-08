@@ -1,15 +1,28 @@
 import { ModMetaModuleInfo } from "./modMeta";
 import { readdirSync, rmSync } from "fs";
-import { Dependency } from "./dependency";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
 import { join, sep } from "path";
 import { extractFromPak } from "../utils/edge";
+import { ModManager } from "../components/modManager";
+import { readdir } from "fs/promises";
+import { Resource } from "./resource/resource";
+import { Dependency } from "./dependency";
 
-export class Mod extends Dependency {
-	private readonly dependencies: Dependency[] = [];
-	private readonly externalGoals = new Map<string, GoalResource>();
+export class Mod {
+	readonly meta?: ModMetaModuleInfo;
+	readonly manager: ModManager;
+	private readonly goals: GoalResource[] = [];
+	private readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
+	private path: string;
+	private dependencies: Dependency[] = [];
 	storyTree = new StoryTree();
+
+	constructor(path: string, manager: ModManager, meta?: ModMetaModuleInfo) {
+		this.path = path;
+		this.manager = manager;
+		this.meta = meta;
+	}
 
 	/**
 	 * Initializes this {@link Mod}.
@@ -17,28 +30,31 @@ export class Mod extends Dependency {
 	 * @param directory This mod's path.
 	 */
 	async initialize() {
-		super.initialize();
+		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
+			if (this.path) {
+				this.goals.push(new GoalResource(this, file, join(this.path, this.goalSubdirectory, file)));
+			}
+		}
 
 		if (this.meta) {
-			for (const dependency of await this.findDependencies(this.meta)) {
+			for (const dependencyPak of await this.findDependencies(this.meta)) {
+				const dependency = new Dependency(dependencyPak);
+				await dependency.initialize();
+				this.dependencies.push(dependency);
 				// const mod = await this.manager.createModFromPath(dependency, true);
 				// if (!mod) continue;
 				// this.dependencies.push(mod);
 				// this.setExternalGoals(mod.getAllGoals());
 			}
 		}
-
-		this.setExternalGoals(this.getAllGoals());
 	}
 
-	private setExternalGoals(resources: GoalResource[]) {
-		for (const resource of resources) {
-			this.externalGoals.set(resource.name, resource);
-		}
+	getResource(path: string): Resource | undefined {
+		return this.goals.find((file) => file.path === path);
 	}
 
-	getAllExternalGoals() {
-		return this.externalGoals.values();
+	getAllGoals(): GoalResource[] {
+		return this.goals;
 	}
 
 	/**
