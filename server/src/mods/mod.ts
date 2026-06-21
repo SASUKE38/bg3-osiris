@@ -8,10 +8,12 @@ import { ModManager } from "../components/modManager";
 import { readdir } from "fs/promises";
 import { Resource } from "./resource/resource";
 import { Dependency } from "./dependency";
+import { Story } from "./story";
 
 export class Mod {
 	readonly meta?: ModMetaModuleInfo;
 	readonly manager: ModManager;
+	readonly story?: Story;
 	private readonly goals: GoalResource[] = [];
 	private readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
 	private path: string;
@@ -24,6 +26,9 @@ export class Mod {
 		this.meta = meta;
 	}
 
+	// For each dependency, load all goals from the raw files. Preexisting goals are overwritten by
+	// any newly read raw files. When a goal is overwritten, check all associated definitions. If there
+	// are new signatures, add them. If a signature no longer exists, delete it.
 	/**
 	 * Initializes this {@link Mod}.
 	 *
@@ -37,15 +42,14 @@ export class Mod {
 		}
 
 		if (this.meta) {
-			for (const dependencyPak of await this.findDependencies(this.meta)) {
-				const dependency = new Dependency(dependencyPak);
-				await dependency.initialize();
-				this.dependencies.push(dependency);
-				// const mod = await this.manager.createModFromPath(dependency, true);
-				// if (!mod) continue;
-				// this.dependencies.push(mod);
-				// this.setExternalGoals(mod.getAllGoals());
-			}
+			const dependencies = await Promise.all(
+				(await this.findDependencies(this.meta)).map(async (dependencyPak) => {
+					const dependency = new Dependency(dependencyPak);
+					await dependency.initialize();
+					return dependency;
+				})
+			);
+			this.dependencies.push(...dependencies);
 		}
 	}
 

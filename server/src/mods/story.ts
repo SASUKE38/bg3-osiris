@@ -2,8 +2,24 @@ export interface Story {
 	databases: { [key: number]: Database };
 	enums: { [key: number]: Enum };
 	functions: Function[];
+	functionSignatureMap: { [key: string]: Function };
 	goals: { [key: number]: Goal };
 	types: { [key: number]: Type };
+	nodes: { [key: number]: Node };
+}
+
+export interface NodeEntryItem {
+	EntryPoint: string;
+	NodeRef: Reference;
+	GoalRef: Reference;
+}
+
+export interface Node {
+	ReferencedBy?: NodeEntryItem[];
+	Index: number;
+	DatabaseRef: Reference;
+	Name: string;
+	NumParams: any;
 }
 
 export interface EnumElement {
