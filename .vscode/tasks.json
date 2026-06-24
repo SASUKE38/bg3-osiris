@@ -24,6 +24,29 @@
 				"reveal": "never"
 			},
 			"problemMatcher": ["$tsc-watch"]
+		},
+		{
+			"label": "Copy Server Supplements",
+			"dependsOn": ["Copy Server DLLs", "Make Components Folder", "Copy Server Documentation"],
+			"dependsOrder": "sequence"
+		},
+		{
+			"label": "Copy Server DLLs",
+			"type": "shell",
+			"command": "Copy-Item",
+			"args": ["${workspaceRoot}/server/src/external", "${workspaceRoot}/server/out/external/", "-Recurse"]
+		},
+		{
+			"label": "Make Components Folder",
+			"type": "shell",
+			"command": "New-Item",
+			"args": ["${workspaceRoot}/server/out/components", "-ItemType", "Directory"]
+		},
+		{
+			"label": "Copy Server Documentation",
+			"type": "shell",
+			"command": "Copy-Item",
+			"args": ["${workspaceRoot}/server/src/components/builtInDocumentation.json", "${workspaceRoot}/server/out/components"]
 		}
 	]
 }

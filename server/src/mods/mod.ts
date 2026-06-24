@@ -41,16 +41,17 @@ export class Mod {
 			}
 		}
 
-		if (this.meta) {
-			const dependencies = await Promise.all(
-				(await this.findDependencies(this.meta)).map(async (dependencyPak) => {
-					const dependency = new Dependency(dependencyPak);
-					await dependency.initialize();
-					return dependency;
-				})
-			);
-			this.dependencies.push(...dependencies);
-		}
+		if (!this.meta) return;
+
+		const dependencies = await Promise.all(
+			(await this.findDependencies(this.meta)).map(async (dependencyPak) => {
+				const dependency = new Dependency(dependencyPak);
+				await dependency.initialize();
+				return dependency;
+			})
+		);
+		this.dependencies.push(...dependencies);
+	
 	}
 
 	getResource(path: string): Resource | undefined {
