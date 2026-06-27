@@ -8,14 +8,32 @@ import { ModManager } from "../components/modManager";
 import { readdir } from "fs/promises";
 import { Resource } from "./resource/resource";
 import { Dependency } from "./dependency";
-import { Story } from "./story";
+import { FunctionSignature } from "./story";
+
+interface InheritedGoal {
+	name: string;
+	owner: string;
+	parents: string[];
+	children: string[];
+	definedSignatures: FunctionSignature[];
+}
+
+interface InheritedDatabase {
+	name: string;
+	parameters: string[];
+}
 
 export class Mod {
 	readonly meta?: ModMetaModuleInfo;
 	readonly manager: ModManager;
-	readonly story?: Story;
 	private readonly goals: GoalResource[] = [];
 	private readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
+	private readonly types = new Set<string>();
+	private readonly enums = new Map<string, string[]>();
+	private readonly inheritedGoals = new Map<string, InheritedGoal>();
+	private readonly inheritedDatabases = new Map<string, InheritedDatabase>();
+	private readonly inheritedIgnoredOrphans = new Set<string>();
+	private readonly inheritedFoundOrphans = new Set<string>();
 	private path: string;
 	private dependencies: Dependency[] = [];
 	storyTree = new StoryTree();
@@ -26,13 +44,8 @@ export class Mod {
 		this.meta = meta;
 	}
 
-	// For each dependency, load all goals from the raw files. Preexisting goals are overwritten by
-	// any newly read raw files. When a goal is overwritten, check all associated definitions. If there
-	// are new signatures, add them. If a signature no longer exists, delete it.
 	/**
 	 * Initializes this {@link Mod}.
-	 *
-	 * @param directory This mod's path.
 	 */
 	async initialize() {
 		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
@@ -41,17 +54,58 @@ export class Mod {
 			}
 		}
 
+		this.initializeDependencies();
+	}
+
+	private async initializeDependencies() {
 		if (!this.meta) return;
 
 		const dependencies = await Promise.all(
 			(await this.findDependencies(this.meta)).map(async (dependencyPak) => {
 				const dependency = new Dependency(dependencyPak);
 				await dependency.initialize();
+				this.mergeStory(dependency);
 				return dependency;
 			})
 		);
 		this.dependencies.push(...dependencies);
-	
+	}
+
+	private mergeStory(dependency: Dependency) {
+		const { story } = dependency;
+		if (!story) return;
+
+		Object.values(story.types).forEach((value) => this.types.add(value.Name));
+
+		Object.values(story.enums).forEach((value) => {
+			this.enums.set(
+				story.types[value.UnderlyingType].Name,
+				value.Elements.map((element) => element.Name)
+			);
+		});
+
+		// TODO: Delete unused signatures?
+		Object.values(Array.from(dependency.activeGoals.keys())).forEach((key) => {
+			const goal = story.goals[key];
+			const definedSignatures = dependency.definedSignatures.get(goal.Name);
+			this.inheritedGoals.set(goal.Name, {
+				name: goal.Name,
+				owner: dependency.path,
+				parents: goal.ParentGoals.map((parent) => story.goals[parent.Index].Name),
+				children: goal.SubGoals.map((child) => story.goals[child.Index].Name),
+				definedSignatures: definedSignatures ? Array.from(definedSignatures.values()).flat(1) : []
+			});
+		});
+
+		Object.values(story.databases).forEach((value) => {
+			this.inheritedDatabases.set(value.OwnerNode.Name, {
+				name: value.OwnerNode.Name,
+				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name)
+			});
+		});
+
+		dependency.ignoredOrphans.forEach((value) => this.inheritedIgnoredOrphans.add(value));
+		dependency.foundOrphans.forEach((value) => this.inheritedFoundOrphans.add(value));
 	}
 
 	getResource(path: string): Resource | undefined {
@@ -66,7 +120,7 @@ export class Mod {
 	 * Recursively gets a set of paths to the mod's dependencies.
 	 *
 	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
-	 * @param res The result so far.
+	 * @param fullRes The result so far.
 	 * @returns A set of dependency paks.
 	 */
 	private async findDependencies(meta: ModMetaModuleInfo, fullRes?: string[]): Promise<string[]> {

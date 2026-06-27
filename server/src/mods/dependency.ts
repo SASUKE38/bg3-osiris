@@ -3,10 +3,11 @@ import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/ed
 import { FunctionSignature, Story } from "./story";
 
 export class Dependency {
-	private path;
-	goalNames: string[] = [];
-	ignoredOrphans: string[] = [];
-	definedSignatures = new Map<string, FunctionSignature[]>();
+	readonly path;
+	readonly ignoredOrphans: string[] = [];
+	readonly foundOrphans: string[] = [];
+	readonly activeGoals = new Map<number, string>();
+	readonly definedSignatures = new Map<string, Map<string, FunctionSignature[]>>();
 	story?: Story;
 
 	constructor(path: string) {
@@ -14,30 +15,33 @@ export class Dependency {
 	}
 
 	async initialize() {
-		this.goalNames = (await extractPathsInPackage(this.path, "RawFiles")).map((value) =>
+		const goalNames = (await extractPathsInPackage(this.path, "RawFiles")).map((value) =>
 			value.substring(0, value.length - 4)
 		);
 		const osiPath = await extractFromPak(this.path, "story.div.osi");
-		if (osiPath === "") {
-			console.error(`Dependency ${this.path} missing story file`);
-			return;
-		}
+		if (osiPath === "") return;
 
 		this.story = await extractStory(osiPath);
+		rmSync(osiPath);
+
 		for (const node of Object.values(this.story.nodes)) {
 			if (!node.ReferencedBy) continue;
 			for (const reference of node.ReferencedBy) {
-				if (this.goalNames.find((value) => value === this.story?.goals[reference.GoalRef.Index]?.Name)) {
-					if (this.definedSignatures.has(node.Name)) {
-						continue;
-					} else {
-						const definitions = this.story.functions.filter((value) => value.Name.Name === node.Name);
-						this.definedSignatures.set(
-							node.Name,
-							definitions.map((value) => value.Name)
-						);
-					}
+				const goalName = goalNames.find((value) => value === this.story?.goals[reference.GoalRef.Index]?.Name);
+				if (!goalName || this.definedSignatures.has(node.Name)) continue;
+
+				this.activeGoals.set(reference.GoalRef.Index, goalName);
+
+				const definitions = this.story.functions.filter((value) => value.Name.Name === node.Name);
+				if (!this.definedSignatures.has(goalName)) {
+					this.definedSignatures.set(goalName, new Map<string, FunctionSignature[]>());
 				}
+				const signatureMap = this.definedSignatures.get(goalName) as Map<string, FunctionSignature[]>;
+
+				signatureMap.set(
+					node.Name,
+					definitions.map((value) => value.Name)
+				);
 			}
 		}
 
@@ -50,6 +54,11 @@ export class Dependency {
 			}
 			rmSync(ignoredOrphansPath);
 		}
-		rmSync(osiPath);
+
+		// TODO: Add processing for found orphans
+		const foundOrphans = await extractFromPak(this.path, "story_orphanqueries_found.txt");
+		if (foundOrphans !== "") {
+			rmSync(foundOrphans);
+		}
 	}
 }

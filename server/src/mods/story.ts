@@ -28,7 +28,7 @@ export interface EnumElement {
 }
 
 export interface Enum {
-	UnderlyingValue: number;
+	UnderlyingType: number;
 	Elements: EnumElement[];
 }
 
@@ -72,7 +72,7 @@ export interface Database {
 	Index: number;
 	Parameters: ParameterList;
 	Facts: any[];
-	OwnerNode: any;
+	OwnerNode: Node;
 }
 
 export interface Goal {

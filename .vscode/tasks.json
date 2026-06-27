@@ -46,7 +46,10 @@
 			"label": "Copy Server Documentation",
 			"type": "shell",
 			"command": "Copy-Item",
-			"args": ["${workspaceRoot}/server/src/components/builtInDocumentation.json", "${workspaceRoot}/server/out/components"]
+			"args": [
+				"${workspaceRoot}/server/src/components/builtInDocumentation.json",
+				"${workspaceRoot}/server/out/components"
+			]
 		}
 	]
 }
