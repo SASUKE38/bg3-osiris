@@ -45,20 +45,19 @@ export class Dependency {
 			}
 		}
 
-		const ignoredOrphansPath = await extractFromPak(this.path, "story_orphanqueries_ignore_local.txt");
-		if (ignoredOrphansPath !== "") {
-			for (const line of readFileSync(ignoredOrphansPath, { encoding: "utf-8" }).split(/\r?\n/)) {
+		this.readOrphanFile("story_orphanqueries_ignore_local.txt", this.ignoredOrphans);
+		this.readOrphanFile("story_orphanqueries_found.txt", this.foundOrphans);
+	}
+
+	private async readOrphanFile(name: string, orphanCollection: string[]) {
+		const orphanPath = await extractFromPak(this.path, name);
+		if (orphanPath !== "") {
+			for (const line of readFileSync(orphanPath, { encoding: "utf-8" }).split(/\r?\n/)) {
 				for (const database of line.split(/\s+[0-9]/)) {
-					if (database !== "") this.ignoredOrphans.push(database);
+					if (database !== "") orphanCollection.push(database);
 				}
 			}
-			rmSync(ignoredOrphansPath);
-		}
-
-		// TODO: Add processing for found orphans
-		const foundOrphans = await extractFromPak(this.path, "story_orphanqueries_found.txt");
-		if (foundOrphans !== "") {
-			rmSync(foundOrphans);
+			rmSync(orphanPath);
 		}
 	}
 }

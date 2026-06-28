@@ -1,11 +1,11 @@
 export interface Story {
-	databases: { [key: number]: Database };
-	enums: { [key: number]: Enum };
+	databases: Record<number, Database>;
+	enums: Record<number, Enum>;
 	functions: Function[];
-	functionSignatureMap: { [key: string]: Function };
-	goals: { [key: number]: Goal };
-	types: { [key: number]: Type };
-	nodes: { [key: number]: Node };
+	functionSignatureMap: Record<string, Function>;
+	goals: Record<number, Goal>;
+	types: Record<number, Type>;
+	nodes: Record<number, Node>;
 }
 
 export interface NodeEntryItem {
@@ -19,7 +19,7 @@ export interface Node {
 	Index: number;
 	DatabaseRef: Reference;
 	Name: string;
-	NumParams: any;
+	NumParams: never;
 }
 
 export interface EnumElement {
@@ -33,8 +33,8 @@ export interface Enum {
 }
 
 export interface Type {
-	Alias: any;
-	Index: any;
+	Alias: never;
+	Index: never;
 	IsBuiltin: boolean;
 	Name: string;
 }
@@ -71,24 +71,24 @@ export interface Reference {
 export interface Database {
 	Index: number;
 	Parameters: ParameterList;
-	Facts: any[];
+	Facts: never[];
 	OwnerNode: Node;
 }
 
 export interface Goal {
 	Index: number;
 	Name: string;
-	SubGoalCombination: any;
+	SubGoalCombination: never;
 	ParentGoals: Reference[];
 	SubGoals: Reference[];
-	Flags: any;
+	Flags: never;
 	InitCalls: Call[];
 	ExitCalls: Call[];
 }
 
 export interface Call {
 	Name: string;
-	Parameters: any[];
+	Parameters: never[];
 	Negate: boolean;
 	GoalIdOrDebugHook: number;
 }
