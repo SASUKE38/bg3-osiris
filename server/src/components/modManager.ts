@@ -30,7 +30,7 @@ import { isArrayEqual } from "../utils/isArrayEqual";
 export class ModManager extends ComponentBase {
 	mod?: Mod;
 
-	readonly baseMods = ["Shared", "SharedDev", "Gustav", "GustavDev"];
+	static readonly baseMods = ["Shared", "Gustav"];
 
 	calledSignatureToFileMap = new Map<string, Set<string>>();
 	fileToCalledSignatureMap = new Map<string, Set<string>>();
@@ -161,7 +161,7 @@ export class ModManager extends ComponentBase {
 	 * @returns The mod's metadata as a {@link ModMetaModuleInfo}.
 	 */
 	readModMeta(path: string): ModMetaModuleInfo | undefined {
-		if (this.baseMods.find((value) => path.endsWith(value))) return undefined;
+		if (ModManager.baseMods.find((value) => path.endsWith(value))) return undefined;
 
 		if (!existsSync(path)) {
 			console.error(`Couldn't find meta.lsx for ${path}`);
@@ -173,9 +173,8 @@ export class ModManager extends ComponentBase {
 				const rootNode = findRegionChild(findRegion(ParseLSXML(this.xmlParser, path), "Config"), "root");
 
 				const moduleInfo = findNodeChild(rootNode, "ModuleInfo");
-				if (!moduleInfo) {
-					throw new Error("");
-				}
+				if (!moduleInfo) return undefined;
+
 				Object.assign(meta, collectAttributes<ModMetaModuleInfo>(moduleInfo));
 
 				for (const dependency of getNodeChildren(findNodeChild(rootNode, "Dependencies"))) {

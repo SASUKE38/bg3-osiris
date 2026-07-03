@@ -1,8 +1,8 @@
-import { ModMetaModuleInfo } from "./modMeta";
+import { ModMetaModuleInfo, ModMetaModuleShortDesc } from "./modMeta";
 import { readdirSync, rmSync } from "fs";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
-import { join, sep } from "path";
+import { join } from "path";
 import { extractFromPak } from "../utils/edge";
 import { ModManager } from "../components/modManager";
 import { readdir } from "fs/promises";
@@ -21,6 +21,18 @@ interface InheritedGoal {
 interface InheritedDatabase {
 	name: string;
 	parameters: string[];
+}
+
+export interface DependencyInitializationData {
+	uuid: string;
+	path: string;
+	internalPath: string;
+}
+
+export interface DependencyMetaCollectionEntry {
+	path: string;
+	internalPath: string;
+	meta?: ModMetaModuleInfo;
 }
 
 export class Mod {
@@ -61,8 +73,8 @@ export class Mod {
 		if (!this.meta) return;
 
 		const dependencies = await Promise.all(
-			(await this.findDependencies(this.meta)).map(async (dependencyPak) => {
-				const dependency = new Dependency(dependencyPak);
+			(await this.findDependencies(this.meta)).map(async (dependencyData) => {
+				const dependency = new Dependency(dependencyData);
 				await dependency.initialize();
 				this.mergeStory(dependency);
 				return dependency;
@@ -117,14 +129,13 @@ export class Mod {
 	}
 
 	/**
-	 * Recursively gets a set of paths to the mod's dependencies.
+	 * Gets a collection of paths to the mod's dependencies.
 	 *
 	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
-	 * @param fullRes The result so far.
-	 * @returns A set of dependency paks.
+	 * @returns A list of {@link DependencyInitializationData} indicating the locations of the mod's dependencies.
 	 */
-	private async findDependencies(meta: ModMetaModuleInfo, fullRes?: string[]): Promise<string[]> {
-		const res = fullRes ? fullRes : [];
+	private async findDependencies(meta: ModMetaModuleInfo): Promise<DependencyInitializationData[]> {
+		const res: DependencyInitializationData[] = [];
 		if (!meta.dependencies) return res;
 
 		const files: string[] = (
@@ -137,38 +148,44 @@ export class Mod {
 			})
 			.flat(1);
 
-		for (const dependency of meta.dependencies) {
-			const searchName = this.manager.baseMods.find((modName) => modName === dependency.name)
-				? dependency.name === "Shared" || dependency.name === "SharedDev"
-					? "Shared"
-					: "Gustav"
-				: dependency.name;
+		const metaCollection = new Map<string, DependencyMetaCollectionEntry>();
 
-			const dependencyPak = files.find((path) => {
-				const file = path.split(sep).pop();
-				return (
-					`${searchName}.pak` === file ||
-					`${searchName}_${meta.uuid}.pak` === file ||
-					`${meta.uuid}.pak` === file
-				);
-			});
+		for (const file of files) {
+			if (!file.endsWith(".pak")) continue;
 
-			// TODO: Make sure mods packed together don't have multiple meta.lsx files?
-			if (dependencyPak) {
-				if (!this.manager.baseMods.find((value) => value === dependency.name)) {
-					const dependencyMetaFile = await extractFromPak(dependencyPak, "meta.lsx");
-					const dependencyMetaInfo = this.manager.readModMeta(dependencyMetaFile);
-					if (dependencyMetaInfo) {
-						await this.findDependencies(dependencyMetaInfo, res);
-						rmSync(dependencyMetaFile);
-					}
-				}
-				if (!res.find((value) => value === dependencyPak)) res.push(dependencyPak);
-			} else {
-				console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
+			const pakMetas = await extractFromPak(file, "meta.lsx");
+
+			for (let i = 0; i < pakMetas.OutputPaths.length; i++) {
+				const pakMeta = pakMetas.OutputPaths[i];
+				const internalPath = pakMetas.Files[i].split("/");
+				internalPath.pop();
+
+				const moduleInfo = this.manager.readModMeta(pakMeta);
+				if (moduleInfo)
+					metaCollection.set(moduleInfo.uuid, {
+						path: file,
+						internalPath: internalPath ? internalPath.join("/") : "",
+						meta: moduleInfo
+					});
+				rmSync(pakMeta);
 			}
 		}
 
+		function doSearch(dependencies: ModMetaModuleShortDesc[]) {
+			for (const dependency of dependencies) {
+				if (!metaCollection.has(dependency.uuid)) {
+					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
+					continue;
+				}
+				const metaEntry = metaCollection.get(dependency.uuid) as DependencyMetaCollectionEntry;
+				if (metaEntry.meta?.dependencies) doSearch(metaEntry.meta.dependencies);
+
+				res.push({ uuid: dependency.uuid, path: metaEntry.path, internalPath: metaEntry.internalPath });
+			}
+		}
+
+		doSearch(meta.dependencies);
+		
 		return res;
 	}
 }

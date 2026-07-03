@@ -1,25 +1,30 @@
 import { readFileSync, rmSync } from "fs";
 import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/edge";
 import { FunctionSignature, Story } from "./story";
+import { DependencyInitializationData } from "./mod";
 
 export class Dependency {
-	readonly path;
+	readonly path: string;
+	readonly internalPath: string;
+	readonly uuid: string;
 	readonly ignoredOrphans: string[] = [];
 	readonly foundOrphans: string[] = [];
 	readonly activeGoals = new Map<number, string>();
 	readonly definedSignatures = new Map<string, Map<string, FunctionSignature[]>>();
 	story?: Story;
 
-	constructor(path: string) {
-		this.path = path;
+	constructor(data: DependencyInitializationData) {
+		this.uuid = data.uuid;
+		this.path = data.path;
+		this.internalPath = data.internalPath;
 	}
 
 	async initialize() {
-		const goalNames = (await extractPathsInPackage(this.path, "RawFiles")).map((value) =>
-			value.substring(0, value.length - 4)
+		const goalNames = (await extractPathsInPackage(this.path, this.internalPath + "/Story/RawFiles/Goals")).map(
+			(value) => value.substring(0, value.length - 4)
 		);
-		const osiPath = await extractFromPak(this.path, "story.div.osi");
-		if (osiPath === "") return;
+		const osiPath = (await extractFromPak(this.path, this.internalPath + "/Story/story.div.osi")).OutputPaths[0];
+		if (!osiPath) return;
 
 		this.story = await extractStory(osiPath);
 		rmSync(osiPath);
@@ -45,19 +50,19 @@ export class Dependency {
 			}
 		}
 
-		this.readOrphanFile("story_orphanqueries_ignore_local.txt", this.ignoredOrphans);
-		this.readOrphanFile("story_orphanqueries_found.txt", this.foundOrphans);
+		this.readOrphanFile("/Story/story_orphanqueries_ignore_local.txt", this.ignoredOrphans);
+		this.readOrphanFile("/Story/story_orphanqueries_found.txt", this.foundOrphans);
 	}
 
 	private async readOrphanFile(name: string, orphanCollection: string[]) {
-		const orphanPath = await extractFromPak(this.path, name);
-		if (orphanPath !== "") {
-			for (const line of readFileSync(orphanPath, { encoding: "utf-8" }).split(/\r?\n/)) {
-				for (const database of line.split(/\s+[0-9]/)) {
-					if (database !== "") orphanCollection.push(database);
-				}
+		const orphanPath = (await extractFromPak(this.path, name)).OutputPaths[0];
+		if (!orphanPath) return;
+
+		for (const line of readFileSync(orphanPath, { encoding: "utf-8" }).split(/\r?\n/)) {
+			for (const database of line.split(/\s+[0-9]/)) {
+				if (database !== "") orphanCollection.push(database);
 			}
-			rmSync(orphanPath);
 		}
+		rmSync(orphanPath);
 	}
 }

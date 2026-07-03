@@ -9,11 +9,16 @@ const extractFromPakCall = edge.func({
 	methodName: "Extract"
 });
 
-export async function extractFromPak(packagePath: string, fileName: string): Promise<string> {
-	return new Promise<string>((resolve, reject) => {
+export interface ExtractFromPakResult {
+	OutputPaths: string[];
+	Files: string[];
+}
+
+export async function extractFromPak(packagePath: string, fileName: string): Promise<ExtractFromPakResult> {
+	return new Promise<ExtractFromPakResult>((resolve, reject) => {
 		extractFromPakCall({ packagePath, fileName }, function (error, result) {
 			if (error) reject(error);
-			else resolve(result as string);
+			else resolve(result as ExtractFromPakResult);
 		});
 	});
 }
