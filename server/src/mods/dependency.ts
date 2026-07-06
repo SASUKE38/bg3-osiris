@@ -1,57 +1,62 @@
 import { readFileSync, rmSync } from "fs";
 import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/edge";
 import { FunctionSignature, Story } from "./story";
-import { DependencyInitializationData } from "./mod";
+import { DependencyMetaCollectionEntry } from "./mod";
 
 export class Dependency {
 	readonly path: string;
 	readonly internalPath: string;
-	readonly uuid: string;
 	readonly ignoredOrphans: string[] = [];
 	readonly foundOrphans: string[] = [];
 	readonly activeGoals = new Map<number, string>();
 	readonly definedSignatures = new Map<string, Map<string, FunctionSignature[]>>();
 	story?: Story;
 
-	constructor(data: DependencyInitializationData) {
-		this.uuid = data.uuid;
+	constructor(data: DependencyMetaCollectionEntry) {
 		this.path = data.path;
 		this.internalPath = data.internalPath;
 	}
 
 	async initialize() {
-		const goalNames = (await extractPathsInPackage(this.path, this.internalPath + "/Story/RawFiles/Goals")).map(
-			(value) => value.substring(0, value.length - 4)
-		);
-		const osiPath = (await extractFromPak(this.path, this.internalPath + "/Story/story.div.osi")).OutputPaths[0];
-		if (!osiPath) return;
+		try {
+			const goalNames = (await extractPathsInPackage(this.path, this.internalPath + "/Story/RawFiles/Goals")).map(
+				(value) => value.substring(0, value.length - 4)
+			);
+			const osiPath = (await extractFromPak(this.path, this.internalPath + "/Story/story.div.osi"))
+				.OutputPaths[0];
+			if (!osiPath) return;
 
-		this.story = await extractStory(osiPath);
-		rmSync(osiPath);
+			this.story = await extractStory(osiPath);
+			rmSync(osiPath);
 
-		for (const node of Object.values(this.story.nodes)) {
-			if (!node.ReferencedBy) continue;
-			for (const reference of node.ReferencedBy) {
-				const goalName = goalNames.find((value) => value === this.story?.goals[reference.GoalRef.Index]?.Name);
-				if (!goalName || this.definedSignatures.has(node.Name)) continue;
+			this.readOrphanFile("/Story/story_orphanqueries_ignore_local.txt", this.ignoredOrphans);
+			this.readOrphanFile("/Story/story_orphanqueries_found.txt", this.foundOrphans);
 
-				this.activeGoals.set(reference.GoalRef.Index, goalName);
+			for (const node of Object.values(this.story.nodes)) {
+				if (!node.ReferencedBy) continue;
+				for (const reference of node.ReferencedBy) {
+					const goalName = goalNames.find(
+						(value) => value === this.story?.goals[reference.GoalRef.Index]?.Name
+					);
+					if (!goalName || this.definedSignatures.has(node.Name)) continue;
 
-				const definitions = this.story.functions.filter((value) => value.Name.Name === node.Name);
-				if (!this.definedSignatures.has(goalName)) {
-					this.definedSignatures.set(goalName, new Map<string, FunctionSignature[]>());
+					this.activeGoals.set(reference.GoalRef.Index, goalName);
+
+					const definitions = this.story.functions.filter((value) => value.Name.Name === node.Name);
+					if (!this.definedSignatures.has(goalName)) {
+						this.definedSignatures.set(goalName, new Map<string, FunctionSignature[]>());
+					}
+					const signatureMap = this.definedSignatures.get(goalName) as Map<string, FunctionSignature[]>;
+
+					signatureMap.set(
+						node.Name,
+						definitions.map((value) => value.Name)
+					);
 				}
-				const signatureMap = this.definedSignatures.get(goalName) as Map<string, FunctionSignature[]>;
-
-				signatureMap.set(
-					node.Name,
-					definitions.map((value) => value.Name)
-				);
 			}
+		} catch (error) {
+			console.error(`An error occurred while initializing dependency ${this.path}: ${error}`);
 		}
-
-		this.readOrphanFile("/Story/story_orphanqueries_ignore_local.txt", this.ignoredOrphans);
-		this.readOrphanFile("/Story/story_orphanqueries_found.txt", this.foundOrphans);
 	}
 
 	private async readOrphanFile(name: string, orphanCollection: string[]) {

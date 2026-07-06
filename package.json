@@ -110,6 +110,41 @@
 						"title": "Path"
 					},
 					"description": "Directories to search in when looking for dependencies."
+				},
+				"bg3Osiris.baseMods": {
+					"scope": "window",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"pakName": {
+								"type": "string"
+							},
+							"contents": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						},
+						"additionalProperties": false
+					},
+					"default": [
+						{
+							"pakName": "Shared.pak",
+							"contents": [
+								"Shared",
+								"SharedDev"
+							]
+						},
+						{
+							"pakName": "Gustav.pak",
+							"contents": [
+								"Gustav",
+								"GustavDev"
+							]
+						}
+					]
 				}
 			}
 		}

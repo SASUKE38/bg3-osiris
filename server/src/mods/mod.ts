@@ -2,13 +2,14 @@ import { ModMetaModuleInfo, ModMetaModuleShortDesc } from "./modMeta";
 import { readdirSync, rmSync } from "fs";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
-import { join } from "path";
+import { join, sep } from "path";
 import { extractFromPak } from "../utils/edge";
 import { ModManager } from "../components/modManager";
 import { readdir } from "fs/promises";
 import { Resource } from "./resource/resource";
 import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
+import { BaseModConfiguration } from "../utils/configurationSchema";
 
 interface InheritedGoal {
 	name: string;
@@ -21,12 +22,6 @@ interface InheritedGoal {
 interface InheritedDatabase {
 	name: string;
 	parameters: string[];
-}
-
-export interface DependencyInitializationData {
-	uuid: string;
-	path: string;
-	internalPath: string;
 }
 
 export interface DependencyMetaCollectionEntry {
@@ -134,58 +129,83 @@ export class Mod {
 	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
 	 * @returns A list of {@link DependencyInitializationData} indicating the locations of the mod's dependencies.
 	 */
-	private async findDependencies(meta: ModMetaModuleInfo): Promise<DependencyInitializationData[]> {
-		const res: DependencyInitializationData[] = [];
+	private async findDependencies(meta: ModMetaModuleInfo): Promise<DependencyMetaCollectionEntry[]> {
+		const res: DependencyMetaCollectionEntry[] = [];
 		if (!meta.dependencies) return res;
 
-		const files: string[] = (
-			(await this.manager.server.connection.workspace.getConfiguration("bg3Osiris.dependencyPaths")) as string[]
-		)
+		const { workspace } = this.manager.server.connection;
+		const files: string[] = ((await workspace.getConfiguration("bg3Osiris.dependencyPaths")) as string[])
 			.map((value) => {
 				return readdirSync(value).map((path) => {
 					return join(value, path);
 				});
 			})
 			.flat(1);
-
+		const baseMods: BaseModConfiguration[] = await workspace.getConfiguration("bg3Osiris.baseMods");
+		const baseModMapping = new Map<string, string[]>();
+		baseMods.forEach((value) => baseModMapping.set(value.pakName, value.contents));
+		const baseModNames: string[] = [];
+		Array.from(baseModMapping.values()).forEach((value) => baseModNames.push(...value));
 		const metaCollection = new Map<string, DependencyMetaCollectionEntry>();
 
 		for (const file of files) {
 			if (!file.endsWith(".pak")) continue;
 
-			const pakMetas = await extractFromPak(file, "meta.lsx");
+			const fileName = file.split(sep).pop();
+			if (fileName && baseModMapping.has(fileName)) continue;
 
-			for (let i = 0; i < pakMetas.OutputPaths.length; i++) {
-				const pakMeta = pakMetas.OutputPaths[i];
-				const internalPath = pakMetas.Files[i].split("/");
-				internalPath.pop();
+			try {
+				const pakMetas = await extractFromPak(file, "meta.lsx");
 
-				const moduleInfo = this.manager.readModMeta(pakMeta);
-				if (moduleInfo)
-					metaCollection.set(moduleInfo.uuid, {
-						path: file,
-						internalPath: internalPath ? internalPath.join("/") : "",
-						meta: moduleInfo
-					});
-				rmSync(pakMeta);
+				for (let i = 0; i < pakMetas.OutputPaths.length; i++) {
+					const pakMeta = pakMetas.OutputPaths[i];
+					const internalPath = pakMetas.Files[i].split("/");
+					internalPath.pop();
+
+					const moduleInfo = this.manager.readModMeta(pakMeta);
+					if (moduleInfo)
+						metaCollection.set(moduleInfo.uuid, {
+							path: file,
+							internalPath: internalPath ? internalPath.join("/") : "",
+							meta: moduleInfo
+						});
+					rmSync(pakMeta);
+				}
+			} catch (error) {
+				console.error(`An error occurred while unpacking the meta.lsx file for ${file}: ${error}`);
 			}
 		}
 
-		function doSearch(dependencies: ModMetaModuleShortDesc[]) {
+		function doMetaSearch(dependencies: ModMetaModuleShortDesc[]) {
 			for (const dependency of dependencies) {
+				if (baseModNames.find((value) => value === dependency.name)) continue;
 				if (!metaCollection.has(dependency.uuid)) {
 					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
 					continue;
 				}
 				const metaEntry = metaCollection.get(dependency.uuid) as DependencyMetaCollectionEntry;
-				if (metaEntry.meta?.dependencies) doSearch(metaEntry.meta.dependencies);
+				if (metaEntry.meta?.dependencies) doMetaSearch(metaEntry.meta.dependencies);
 
-				res.push({ uuid: dependency.uuid, path: metaEntry.path, internalPath: metaEntry.internalPath });
+				res.push(metaEntry);
 			}
 		}
 
-		doSearch(meta.dependencies);
-		
+		for (const fileKey of baseModMapping.keys()) {
+			const path = files.find((value) => value.split(sep).pop() === fileKey);
+			if (!path) continue;
+
+			for (const internalName of baseModMapping.get(fileKey) as string[]) {
+				if (path) {
+					res.push({
+						path,
+						internalPath: `Mods/${internalName}`
+					});
+				}
+			}
+		}
+
+		doMetaSearch(meta.dependencies);
+
 		return res;
 	}
 }

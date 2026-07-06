@@ -30,8 +30,6 @@ import { isArrayEqual } from "../utils/isArrayEqual";
 export class ModManager extends ComponentBase {
 	mod?: Mod;
 
-	static readonly baseMods = ["Shared", "Gustav"];
-
 	calledSignatureToFileMap = new Map<string, Set<string>>();
 	fileToCalledSignatureMap = new Map<string, Set<string>>();
 	definedSignatureToFileMap = new Map<string, Set<string>>();
@@ -161,49 +159,44 @@ export class ModManager extends ComponentBase {
 	 * @returns The mod's metadata as a {@link ModMetaModuleInfo}.
 	 */
 	readModMeta(path: string): ModMetaModuleInfo | undefined {
-		if (ModManager.baseMods.find((value) => path.endsWith(value))) return undefined;
+		if (!existsSync(path)) return undefined;
 
-		if (!existsSync(path)) {
-			console.error(`Couldn't find meta.lsx for ${path}`);
-		} else {
-			try {
-				const meta: Partial<ModMetaModuleInfo> = {};
-				meta.dependencies = [];
-				meta.scripts = [];
-				const rootNode = findRegionChild(findRegion(ParseLSXML(this.xmlParser, path), "Config"), "root");
+		try {
+			const meta: Partial<ModMetaModuleInfo> = {};
+			meta.dependencies = [];
+			meta.scripts = [];
+			const rootNode = findRegionChild(findRegion(ParseLSXML(this.xmlParser, path), "Config"), "root");
 
-				const moduleInfo = findNodeChild(rootNode, "ModuleInfo");
-				if (!moduleInfo) return undefined;
+			const moduleInfo = findNodeChild(rootNode, "ModuleInfo");
+			if (!moduleInfo) return undefined;
 
-				Object.assign(meta, collectAttributes<ModMetaModuleInfo>(moduleInfo));
+			Object.assign(meta, collectAttributes<ModMetaModuleInfo>(moduleInfo));
 
-				for (const dependency of getNodeChildren(findNodeChild(rootNode, "Dependencies"))) {
-					meta.dependencies.push(collectAttributes<ModMetaModuleShortDesc>(dependency));
-				}
-
-				const publishVersion = findNodeChild(moduleInfo, "PublishVersion");
-				if (publishVersion) {
-					meta.publishVersion = collectAttributes<ModMetaPublishVersion>(publishVersion);
-				}
-
-				const scripts = findNodeChild(moduleInfo, "Scripts");
-				if (scripts) {
-					for (const script of getNodeChildren(scripts)) {
-						const scriptObj = collectAttributes<ModMetaScript>(script);
-						scriptObj.parameters = [];
-						for (const parameters of getNodeChildren(script)) {
-							for (const parameter of getNodeChildren(parameters)) {
-								scriptObj.parameters.push(collectAttributes<ModMetaScriptParameter>(parameter));
-							}
-						}
-						meta.scripts.push(scriptObj);
-					}
-				}
-				return meta as ModMetaModuleInfo;
-			} catch (e) {
-				console.error(e);
+			for (const dependency of getNodeChildren(findNodeChild(rootNode, "Dependencies"))) {
+				meta.dependencies.push(collectAttributes<ModMetaModuleShortDesc>(dependency));
 			}
+
+			const publishVersion = findNodeChild(moduleInfo, "PublishVersion");
+			if (publishVersion) {
+				meta.publishVersion = collectAttributes<ModMetaPublishVersion>(publishVersion);
+			}
+
+			const scripts = findNodeChild(moduleInfo, "Scripts");
+			if (scripts) {
+				for (const script of getNodeChildren(scripts)) {
+					const scriptObj = collectAttributes<ModMetaScript>(script);
+					scriptObj.parameters = [];
+					for (const parameters of getNodeChildren(script)) {
+						for (const parameter of getNodeChildren(parameters)) {
+							scriptObj.parameters.push(collectAttributes<ModMetaScriptParameter>(parameter));
+						}
+					}
+					meta.scripts.push(scriptObj);
+				}
+			}
+			return meta as ModMetaModuleInfo;
+		} catch (e) {
+			console.error(e);
 		}
-		return undefined;
 	}
 }
