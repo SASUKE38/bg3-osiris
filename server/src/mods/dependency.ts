@@ -20,19 +20,19 @@ export class Dependency {
 
 	async initialize() {
 		try {
-			this.readOrphanFile("/Story/story_orphanqueries_ignore_local.txt", this.ignoredOrphans);
-			this.readOrphanFile("/Story/story_orphanqueries_found.txt", this.foundOrphans);
+			this.readOrphanFile(`${this.internalPath}/Story/story_orphanqueries_ignore_local.txt`, this.ignoredOrphans);
+			this.readOrphanFile(`${this.internalPath}/Story/story_orphanqueries_found.txt`, this.foundOrphans);
 
-			const goalNames = (await extractPathsInPackage(this.path, this.internalPath + "/Story/RawFiles/Goals")).map(
+			const goalNames = (await extractPathsInPackage(this.path, `${this.internalPath}/Story/RawFiles/Goals`)).map(
 				(value) => value.substring(0, value.length - 4)
 			);
-			const osiPath = (await extractFromPak(this.path, this.internalPath + "/Story/story.div.osi"))
+			const osiPath = (await extractFromPak(this.path, `${this.internalPath}/Story/story.div.osi`))
 				.OutputPaths[0];
 			if (osiPath) {
-				this.initializeWithStory(goalNames, osiPath);
+				await this.initializeWithStory(goalNames, osiPath);
 			} else {
 				this.goalParents = new Map<string, string>();
-				this.initializeWithoutStory(goalNames);
+				await this.initializeWithoutStory(goalNames);
 			}
 		} catch (error) {
 			console.error(`An error occurred while initializing dependency ${this.path}: ${error}`);
