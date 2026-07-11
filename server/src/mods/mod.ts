@@ -76,6 +76,7 @@ export class Mod {
 			})
 		);
 		this.dependencies.push(...dependencies);
+		this.storyTree.createTree(this.goals, this.dependencies);
 	}
 
 	private mergeStory(dependency: Dependency) {
