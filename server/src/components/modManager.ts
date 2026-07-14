@@ -50,6 +50,8 @@ export class ModManager extends ComponentBase {
 					await resource.load();
 					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 				}
+
+				connection.onRequest("getStoryChildren", (name: string) => this.mod?.storyTree.getStoryChildren(name));
 			}
 		}
 		this.server.diagnosticManager.installHandlers();

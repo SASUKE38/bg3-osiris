@@ -126,11 +126,12 @@ export class Server {
 			});
 		}
 
-		this.connection.onNotification("running", () => {
+		this.connection.onNotification("clientRunning", () => {
 			this.components.push(this.modManager);
 			this.components.push(this.symbolManager);
 			this.components.push(this.diagnosticManager);
 			this.components.forEach((component) => component.initializeComponent?.(this.connection));
+			this.connection.sendNotification("serverRunning");
 		});
 	};
 

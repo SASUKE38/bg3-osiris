@@ -86,7 +86,7 @@
 		"views": {
 			"story-outline": [
 				{
-					"id": "story-outline-view",
+					"id": "story-outline",
 					"name": "Story Outline",
 					"icon": "./media/dep.svg"
 				}
@@ -94,7 +94,7 @@
 		},
 		"viewsWelcome": [
 			{
-				"view": "story-outline-view",
+				"view": "story-outline",
 				"contents": "No story items found."
 			}
 		],

@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { workspace, ExtensionContext, WorkspaceFolder, Uri, TextDocument } from "vscode";
+import { workspace, ExtensionContext, WorkspaceFolder, Uri, TextDocument, window } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind } from "vscode-languageclient/node";
 import { ComponentBase } from "./componentBase";
-import { StoryOutlineProvider } from "./storyOutline/storyOutline";
+import { StoryOutlineProvider } from "./storyOutline/storyOutlineProvider";
 import { join } from "path";
 
-const clients = new Map<string, Client>();
+export const clients = new Map<string, Client>();
 
 type ComponentContainer = new (context: ExtensionContext) => ComponentBase;
 
@@ -46,6 +46,18 @@ function getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
 	return folder;
 }
 
+let madeTreeView = false;
+
+function tryMakeTreeView(context: ExtensionContext) {
+	if (madeTreeView) return;
+	window.createTreeView("story-outline", {
+		showCollapseAll: true,
+		canSelectMany: true,
+		treeDataProvider: new StoryOutlineProvider(context)
+	});
+	madeTreeView = true;
+}
+
 export class Client {
 	readonly id: string = "bg3-osiris-language-client";
 	readonly name: string = "BG3 Osiris";
@@ -84,7 +96,7 @@ export class Client {
 		client.onDidChangeState((event) => {
 			if (!this.intialized && event.newState == State.Running) {
 				this.intialized = true;
-				this.connection.sendNotification("running");
+				this.connection.sendNotification("clientRunning");
 				this.connection.onRequest("getRoot", () => {
 					return this.folder.uri.toString();
 				});
@@ -93,6 +105,7 @@ export class Client {
 					console.log(workspace.getWorkspaceFolder(Uri.parse(path)));
 				});
 				this.components.forEach((component) => component.initializeComponent?.(this.connection));
+				this.connection.onNotification("serverRunning", () => tryMakeTreeView(this.context));
 			}
 		});
 		return client;
