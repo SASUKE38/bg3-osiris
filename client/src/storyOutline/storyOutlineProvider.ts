@@ -1,6 +1,17 @@
-import { ComponentBase } from "../componentBase";
-import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from "vscode";
+import {
+	commands,
+	Event,
+	EventEmitter,
+	ExtensionContext,
+	TreeDataProvider,
+	TreeItem,
+	TreeItemCollapsibleState,
+	Uri,
+	window,
+	workspace
+} from "vscode";
 import { clients } from "../extension";
+import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
 
 interface StoryTreeNode {
 	children: StoryTreeNode[];
@@ -24,6 +35,11 @@ export class StoryItem extends TreeItem {
 		this.tooltip = this.label;
 		this.folder = folder;
 		this.depth = depth;
+		this.command = {
+			command: "bg3Osiris.OpenGoal",
+			title: "Open",
+			arguments: [this]
+		};
 		// this.iconPath = {
 		// 	light: vscode.Uri.joinPath(extensionRoot, 'resources', 'light', 'dependency.svg'),
 		// 	dark: vscode.Uri.joinPath(extensionRoot, 'resources', 'dark', 'dependency.svg')
@@ -31,9 +47,13 @@ export class StoryItem extends TreeItem {
 	}
 }
 
-export class StoryOutlineProvider extends ComponentBase implements TreeDataProvider<StoryItem> {
+export class StoryOutlineProvider implements TreeDataProvider<StoryItem> {
 	private onDidChangeTreeDataEmitter: EventEmitter<StoryItem | undefined> = new EventEmitter<StoryItem | undefined>();
 	readonly onDidChangeTreeDataEvent: Event<StoryItem | undefined> = this.onDidChangeTreeDataEmitter.event;
+
+	constructor(context: ExtensionContext) {
+		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
+	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
 		return element;
@@ -63,4 +83,10 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 			return 1;
 		});
 	}
+
+	handleOpenGoal = async (element: StoryItem) => {
+		const uri = Uri.parse(`${InheritedGoalContentProvider.scheme}:${element.label}.txt`);
+		const doc = await workspace.openTextDocument(uri);
+		await window.showTextDocument(doc, { preview: false });
+	};
 }

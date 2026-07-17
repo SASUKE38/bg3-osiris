@@ -4,12 +4,13 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, State, TransportK
 import { ComponentBase } from "./componentBase";
 import { StoryOutlineProvider } from "./storyOutline/storyOutlineProvider";
 import { join } from "path";
+import { InheritedGoalContentProvider } from "./storyOutline/inheritedGoalContentProvider";
 
 export const clients = new Map<string, Client>();
 
 type ComponentContainer = new (context: ExtensionContext) => ComponentBase;
 
-const components: ComponentContainer[] = [StoryOutlineProvider];
+const components: ComponentContainer[] = [];
 
 let _sortedWorkspaceFolders: string[] | undefined;
 function sortedWorkspaceFolders(): string[] {
@@ -46,16 +47,24 @@ function getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
 	return folder;
 }
 
-let madeTreeView = false;
+let registeredProviders = false;
 
-function tryMakeTreeView(context: ExtensionContext) {
-	if (madeTreeView) return;
+function tryRegisterProviders(context: ExtensionContext) {
+	if (registeredProviders) return;
 	window.createTreeView("story-outline", {
 		showCollapseAll: true,
 		canSelectMany: true,
 		treeDataProvider: new StoryOutlineProvider(context)
 	});
-	madeTreeView = true;
+
+	context.subscriptions.push(
+		workspace.registerTextDocumentContentProvider(
+			InheritedGoalContentProvider.scheme,
+			new InheritedGoalContentProvider()
+		)
+	);
+
+	registeredProviders = true;
 }
 
 export class Client {
@@ -105,7 +114,7 @@ export class Client {
 					console.log(workspace.getWorkspaceFolder(Uri.parse(path)));
 				});
 				this.components.forEach((component) => component.initializeComponent?.(this.connection));
-				this.connection.onNotification("serverRunning", () => tryMakeTreeView(this.context));
+				this.connection.onNotification("serverRunning", () => tryRegisterProviders(this.context));
 			}
 		});
 		return client;

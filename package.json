@@ -18,6 +18,12 @@
 	"activationEvents": [],
 	"main": "./client/out/extension.js",
 	"contributes": {
+		"commands": [
+			{
+				"command": "bg3Osiris.OpenGoal",
+				"title": "Open"
+			}
+		],
 		"languages": [
 			{
 				"id": "osiris",
