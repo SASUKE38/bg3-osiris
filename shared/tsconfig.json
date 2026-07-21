@@ -6,13 +6,9 @@
 		"outDir": "out",
 		"rootDir": "src",
 		"sourceMap": true,
-		"strict": true
+		"strict": true,
+		"composite": true
 	},
 	"include": ["src"],
-	"exclude": ["node_modules", ".vscode-test"],
-	"references": [
-		{
-			"path": "../shared"
-		}
-	]
+	"exclude": ["node_modules", ".vscode-test"]
 }

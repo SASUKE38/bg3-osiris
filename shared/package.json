@@ -1,0 +1,13 @@
+{
+	"name": "bg3-osiris-shared",
+	"version": "1.0.0",
+	"description": "Shared components for the BG3 Osiris extension.",
+	"main": "out/index.js",
+	"scripts": {},
+	"author": "",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SASUKE38/bg3-osiris"
+	}
+}

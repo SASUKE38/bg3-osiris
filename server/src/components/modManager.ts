@@ -23,6 +23,7 @@ import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
+import { requestGetStoryChildren, RequestGetStoryChildrenParams } from "bg3-osiris-shared";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -51,7 +52,9 @@ export class ModManager extends ComponentBase {
 					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 				}
 
-				connection.onRequest("getStoryChildren", (name: string) => this.mod?.storyTree.getStoryChildren(name));
+				connection.onRequest(requestGetStoryChildren, (params: RequestGetStoryChildrenParams) =>
+					this.mod?.storyTree.getStoryChildren(params.requestName)
+				);
 			}
 		}
 		this.server.diagnosticManager.installHandlers();

@@ -13,6 +13,7 @@
 		"vscode": "^1.100.0"
 	},
 	"dependencies": {
+		"bg3-osiris-shared": "file:../shared",
 		"glob": "^11.0.0",
 		"vscode-languageclient": "^9.0.1"
 	},

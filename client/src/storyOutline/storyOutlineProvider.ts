@@ -12,6 +12,7 @@ import {
 } from "vscode";
 import { clients } from "../extension";
 import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
+import { requestGetStoryChildren, RequestGetStoryChildrenParams } from "bg3-osiris-shared";
 
 interface StoryTreeNode {
 	children: StoryTreeNode[];
@@ -69,8 +70,13 @@ export class StoryOutlineProvider implements TreeDataProvider<StoryItem> {
 		} else {
 			const client = clients.get(element.folder);
 			if (!client) return res;
-			const requestName = element.label === element.folder.split("/").pop() ? "" : element.label;
-			const children = (await client.connection.sendRequest("getStoryChildren", requestName)) as StoryTreeNode[];
+			const requestParams: RequestGetStoryChildrenParams = {
+				requestName: element.label === element.folder.split("/").pop() ? "" : element.label
+			};
+			const children = (await client.connection.sendRequest(
+				requestGetStoryChildren,
+				requestParams
+			)) as StoryTreeNode[];
 
 			for (const child of children) {
 				if (!child.data) continue;

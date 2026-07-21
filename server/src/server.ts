@@ -25,6 +25,7 @@ import { DefinitionsProvider } from "./components/definitionsProvider";
 import { SignatureHelpProvider } from "./components/signatureHelpProvider";
 import { CallHierarchyProvider } from "./components/callHierarchyProvider";
 import { CompletionProvider } from "./components/completionProvider";
+import { notificationClientRunning, notificationServerRunning } from "bg3-osiris-shared";
 
 type ComponentContainer = new (server: Server) => ComponentBase;
 
@@ -126,12 +127,12 @@ export class Server {
 			});
 		}
 
-		this.connection.onNotification("clientRunning", () => {
+		this.connection.onNotification(notificationClientRunning, () => {
 			this.components.push(this.modManager);
 			this.components.push(this.symbolManager);
 			this.components.push(this.diagnosticManager);
 			this.components.forEach((component) => component.initializeComponent?.(this.connection));
-			this.connection.sendNotification("serverRunning");
+			this.connection.sendNotification(notificationServerRunning);
 		});
 	};
 

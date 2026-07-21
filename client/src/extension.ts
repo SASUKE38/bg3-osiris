@@ -5,6 +5,7 @@ import { ComponentBase } from "./componentBase";
 import { StoryOutlineProvider } from "./storyOutline/storyOutlineProvider";
 import { join } from "path";
 import { InheritedGoalContentProvider } from "./storyOutline/inheritedGoalContentProvider";
+import { notificationClientRunning, notificationServerRunning } from "bg3-osiris-shared";
 
 export const clients = new Map<string, Client>();
 
@@ -105,16 +106,9 @@ export class Client {
 		client.onDidChangeState((event) => {
 			if (!this.intialized && event.newState == State.Running) {
 				this.intialized = true;
-				this.connection.sendNotification("clientRunning");
-				this.connection.onRequest("getRoot", () => {
-					return this.folder.uri.toString();
-				});
-				this.connection.onRequest("getWorkspace", (path: string) => {
-					console.log("Incoming path: " + Uri.parse(path));
-					console.log(workspace.getWorkspaceFolder(Uri.parse(path)));
-				});
+				this.connection.sendNotification(notificationClientRunning);
 				this.components.forEach((component) => component.initializeComponent?.(this.connection));
-				this.connection.onNotification("serverRunning", () => tryRegisterProviders(this.context));
+				this.connection.onNotification(notificationServerRunning, () => tryRegisterProviders(this.context));
 			}
 		});
 		return client;
