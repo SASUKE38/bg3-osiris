@@ -10,19 +10,10 @@ import {
 	window,
 	workspace
 } from "vscode";
-import { clients } from "../extension";
 import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
-import { requestGetStoryChildren, RequestGetStoryChildrenParams } from "bg3-osiris-shared";
-
-interface StoryTreeNode {
-	children: StoryTreeNode[];
-	data?: StoryTreeData;
-}
-
-interface StoryTreeData {
-	name: string;
-	dependency?: string;
-}
+import { notificationStoryTreeCreated, notificationStoryTreeCreatedParams, StoryTreeNode } from "bg3-osiris-shared";
+import { ComponentBase } from "../componentBase";
+import { LanguageClient } from "vscode-languageclient/node";
 
 export class StoryItem extends TreeItem {
 	constructor(
@@ -48,12 +39,21 @@ export class StoryItem extends TreeItem {
 	}
 }
 
-export class StoryOutlineProvider implements TreeDataProvider<StoryItem> {
-	private onDidChangeTreeDataEmitter: EventEmitter<StoryItem | undefined> = new EventEmitter<StoryItem | undefined>();
-	readonly onDidChangeTreeDataEvent: Event<StoryItem | undefined> = this.onDidChangeTreeDataEmitter.event;
+export class StoryOutlineProvider extends ComponentBase implements TreeDataProvider<StoryItem> {
+	private _onDidChangeTreeData: EventEmitter<StoryItem | undefined | null | void> = new EventEmitter<
+		StoryItem | undefined | null | void
+	>();
+	readonly onDidChangeTreeData: Event<StoryItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
+	private nodeMapping = new Map<string, Map<string, StoryTreeNode>>();
 
 	constructor(context: ExtensionContext) {
+		super(context);
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
+	}
+
+	initializeComponent(connection: LanguageClient): void {
+		connection.onNotification(notificationStoryTreeCreated, this.handleStoryTreeCreated);
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -63,24 +63,26 @@ export class StoryOutlineProvider implements TreeDataProvider<StoryItem> {
 	async getChildren(element?: StoryItem | undefined): Promise<StoryItem[]> {
 		const res: StoryItem[] = [];
 		if (!element) {
-			for (const folder of clients.keys()) {
-				const name = folder.split("/").pop();
-				res.push(new StoryItem(name ?? "Mod", folder, [], TreeItemCollapsibleState.Expanded));
+			for (const folder of this.nodeMapping.keys()) {
+				res.push(new StoryItem(folder, folder, [], TreeItemCollapsibleState.Expanded));
 			}
 		} else {
-			const client = clients.get(element.folder);
-			if (!client) return res;
-			const requestParams: RequestGetStoryChildrenParams = {
-				requestName: element.label === element.folder.split("/").pop() ? "" : element.label
-			};
-			const children = (await client.connection.sendRequest(
-				requestGetStoryChildren,
-				requestParams
-			)) as StoryTreeNode[];
-
-			for (const child of children) {
-				if (!child.data) continue;
-				res.push(new StoryItem(child.data.name, element.folder, [], TreeItemCollapsibleState.Collapsed));
+			const folder = element.folder;
+			const map = this.nodeMapping.get(folder);
+			if (map) {
+				const children = map.get(element.label === element.folder ? "" : element.label)?.children;
+				if (children) {
+					for (const child of children) {
+						res.push(
+							new StoryItem(
+								child.data ? child.data.name : "Goal",
+								element.folder,
+								[],
+								TreeItemCollapsibleState.Collapsed
+							)
+						);
+					}
+				}
 			}
 		}
 		return res.sort((a, b) => {
@@ -90,7 +92,16 @@ export class StoryOutlineProvider implements TreeDataProvider<StoryItem> {
 		});
 	}
 
-	handleOpenGoal = async (element: StoryItem) => {
+	refresh(): void {
+		this._onDidChangeTreeData.fire();
+	}
+
+	private readonly handleStoryTreeCreated = (params: notificationStoryTreeCreatedParams) => {
+		this.nodeMapping.set(params.folder, new Map(Object.entries(params.mapping)));
+		this.refresh();
+	};
+
+	private readonly handleOpenGoal = async (element: StoryItem) => {
 		const uri = Uri.parse(`${InheritedGoalContentProvider.scheme}:${element.label}.txt`);
 		const doc = await workspace.openTextDocument(uri);
 		await window.showTextDocument(doc, { preview: false });

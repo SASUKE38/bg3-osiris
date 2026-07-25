@@ -1,20 +1,15 @@
-import { PromiseBuffer } from "../utils/promiseBuffer";
+import { notificationStoryTreeCreated, notificationStoryTreeCreatedParams, StoryTreeNode } from "bg3-osiris-shared";
 import { Dependency } from "./dependency";
 import { GoalResource } from "./resource/goalResource";
-
-export interface StoryTreeNode {
-	children: StoryTreeNode[];
-	data?: StoryTreeData;
-}
-
-export interface StoryTreeData {
-	name: string;
-	dependency?: string;
-}
+import { Mod } from "./mod";
 
 export class StoryTree {
 	nodeMapping = new Map<string, StoryTreeNode>();
-	private buffer = new PromiseBuffer();
+	private mod: Mod;
+
+	constructor(mod: Mod) {
+		this.mod = mod;
+	}
 
 	createTree(resources: GoalResource[], dependencies: Dependency[]) {
 		this.nodeMapping.clear();
@@ -62,11 +57,10 @@ export class StoryTree {
 			}
 		});
 
-		this.buffer.setReady();
-	}
-
-	async getStoryChildren(name: string): Promise<StoryTreeNode[] | undefined> {
-		await this.buffer.waitUntilReady();
-		return this.nodeMapping.get(name)?.children;
+		const params: notificationStoryTreeCreatedParams = {
+			folder: this.mod.path.split("\\").pop() ?? "",
+			mapping: Object.fromEntries(this.nodeMapping)
+		};
+		this.mod.manager.server.connection.sendNotification(notificationStoryTreeCreated, params);
 	}
 }

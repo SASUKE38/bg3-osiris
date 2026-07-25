@@ -41,9 +41,9 @@ export class Mod {
 	private readonly inheritedDatabases = new Map<string, InheritedDatabase>();
 	private readonly inheritedIgnoredOrphans = new Set<string>();
 	private readonly inheritedFoundOrphans = new Set<string>();
-	private path: string;
 	private dependencies: Dependency[] = [];
-	storyTree = new StoryTree();
+	storyTree = new StoryTree(this);
+	path: string;
 
 	constructor(path: string, manager: ModManager, meta?: ModMetaModuleInfo) {
 		this.path = path;
