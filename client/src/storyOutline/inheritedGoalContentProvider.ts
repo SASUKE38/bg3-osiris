@@ -1,9 +1,32 @@
-import { CancellationToken, ProviderResult, TextDocumentContentProvider, Uri } from "vscode";
+import { CancellationToken, TextDocumentContentProvider, Uri, window } from "vscode";
+import { clients } from "../extension";
+import {
+	requestGetInheritedGoalContent,
+	RequestGetInheritedGoalContentParams,
+	RequestGetInheritedGoalContentResult
+} from "bg3-osiris-shared";
 
 export class InheritedGoalContentProvider implements TextDocumentContentProvider {
 	static readonly scheme = "bg3Osiris.InheritedGoal";
 
-	provideTextDocumentContent(uri: Uri, token: CancellationToken): ProviderResult<string> {
-		return 'Version 1\nSubGoalCombiner SGC_AND\nINITSECTION\nDB_EPI_Epilogue_PresentNPC((CHARACTER)S_GLO_Emperor_73d49dc5-8b8b-45dc-a98c-927bb4e3169b, (DIALOGRESOURCE)EPI_Epilogue_Emperor_b81cced4-003b-bd81-b0b1-8a828412c674,(TRIGGER)S_EPI_Volo_WritePointB_68a85b14-6be1-40cc-970e-8a18cae86078, "EPI_Emperor",(FLAG)EPI_Epilogue_State_EmperorPresent_5071fdae-a335-6a74-48fe-fec1bf8b207a);';
+	async provideTextDocumentContent(uri: Uri, token: CancellationToken): Promise<string | null | undefined> {
+		const client = clients.get(uri.query);
+		if (!client) {
+			window.showErrorMessage(`Couldn't find client for ${uri.query}. Goal content cannot be shown.`);
+			return;
+		}
+
+		const params: RequestGetInheritedGoalContentParams = { goalName: uri.path.substring(0, uri.path.length - 4) };
+		const content = (
+			(await client.connection.sendRequest(
+				requestGetInheritedGoalContent,
+				params
+			)) as RequestGetInheritedGoalContentResult
+		).content;
+		if (!content) {
+			window.showErrorMessage(`Couldn't get content for ${uri.path}. Goal content cannot be shown.`);
+			return "";
+		}
+		return content;
 	}
 }

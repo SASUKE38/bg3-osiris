@@ -13,7 +13,7 @@ import { BaseModConfiguration } from "../utils/configurationSchema";
 
 interface InheritedGoal {
 	name: string;
-	owner: string;
+	owner: Dependency;
 	parents: string[];
 	children: string[];
 	definedSignatures: FunctionSignature[];
@@ -98,7 +98,7 @@ export class Mod {
 			const definedSignatures = dependency.definedSignatures.get(goal.Name);
 			this.inheritedGoals.set(goal.Name, {
 				name: goal.Name,
-				owner: dependency.path,
+				owner: dependency,
 				parents: goal.ParentGoals.map((parent) => story.goals[parent.Index].Name),
 				children: goal.SubGoals.map((child) => story.goals[child.Index].Name),
 				definedSignatures: definedSignatures ? Array.from(definedSignatures.values()).flat(1) : []
@@ -122,6 +122,10 @@ export class Mod {
 
 	getAllGoals(): GoalResource[] {
 		return this.goals;
+	}
+
+	getInheritedGoalOwner(goalName: string): Dependency | undefined {
+		return this.inheritedGoals.get(goalName)?.owner;
 	}
 
 	/**

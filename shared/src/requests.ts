@@ -1,6 +1,7 @@
-// TODO: Delete this
-export interface RequestGetStoryChildrenParams {
-	requestName: string;
+export const requestGetInheritedGoalContent = "bg3Osiris/getInheritedGoalContent";
+export interface RequestGetInheritedGoalContentParams {
+	goalName: string;
 }
-
-export const requestGetStoryChildren = "bg3Osiris/getStoryChildren";
+export interface RequestGetInheritedGoalContentResult {
+	content: string | undefined;
+}

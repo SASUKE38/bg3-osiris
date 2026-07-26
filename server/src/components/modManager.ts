@@ -18,11 +18,17 @@ import {
 	ModMetaScript,
 	ModMetaScriptParameter
 } from "../mods/modMeta";
-import { existsSync } from "fs";
+import { existsSync, readFileSync, rmSync } from "fs";
 import { Resource } from "../mods/resource/resource";
 import { decodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
+import {
+	requestGetInheritedGoalContent,
+	RequestGetInheritedGoalContentParams,
+	RequestGetInheritedGoalContentResult
+} from "bg3-osiris-shared";
+import { extractFromPak } from "../utils/edge";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -41,6 +47,8 @@ export class ModManager extends ComponentBase {
 		const { rootFolder } = this.server;
 		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
+
+		connection.onRequest(requestGetInheritedGoalContent, this.handleGetInheritedGoalContent);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -62,6 +70,33 @@ export class ModManager extends ComponentBase {
 	private handleDeleteFiles = (params: DeleteFilesParams) => {};
 
 	private handleCreateFiles = (params: CreateFilesParams) => {};
+
+	private handleGetInheritedGoalContent = async (
+		params: RequestGetInheritedGoalContentParams
+	): Promise<RequestGetInheritedGoalContentResult> => {
+		const owner = this.mod?.getInheritedGoalOwner(params.goalName);
+		if (!owner) {
+			return { content: undefined };
+		}
+
+		try {
+			const extractedFile = (
+				await extractFromPak(owner.path, `${owner.internalPath}/Story/RawFiles/Goals/${params.goalName}.txt`)
+			).OutputPaths[0];
+			if (!extractedFile) return { content: undefined };
+
+			const content = readFileSync(extractedFile, { encoding: "utf-8" });
+			rmSync(extractedFile);
+			return { content };
+		} catch (error) {
+			this.server.connection.window.showErrorMessage(
+				`An error occurred getting content for ${params.goalName}. Goal content cannot be shown.`
+			);
+			console.error(`An error occurred getting content for ${params.goalName}: ${error}`);
+		}
+
+		return { content: undefined };
+	};
 
 	/**
 	 * Locates a {@link Resource} associated with a given path.

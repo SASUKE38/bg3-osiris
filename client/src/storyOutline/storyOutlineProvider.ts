@@ -20,13 +20,11 @@ export class StoryItem extends TreeItem {
 		public label: string,
 		public folder: string,
 		public readonly children: StoryItem[],
-		public readonly collapsibleState: TreeItemCollapsibleState,
-		public depth = 0
+		public readonly collapsibleState: TreeItemCollapsibleState
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label;
 		this.folder = folder;
-		this.depth = depth;
 		this.command = {
 			command: "bg3Osiris.OpenGoal",
 			title: "Open",
@@ -102,7 +100,11 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 	};
 
 	private readonly handleOpenGoal = async (element: StoryItem) => {
-		const uri = Uri.parse(`${InheritedGoalContentProvider.scheme}:${element.label}.txt`);
+		const uri = Uri.from({
+			scheme: InheritedGoalContentProvider.scheme,
+			path: `${element.label}.txt`,
+			query: element.folder
+		});
 		const doc = await workspace.openTextDocument(uri);
 		await window.showTextDocument(doc, { preview: false });
 	};

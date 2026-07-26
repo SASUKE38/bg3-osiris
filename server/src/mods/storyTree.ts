@@ -1,4 +1,9 @@
-import { notificationStoryTreeCreated, notificationStoryTreeCreatedParams, StoryTreeNode } from "bg3-osiris-shared";
+import {
+	notificationStoryTreeCreated,
+	notificationStoryTreeCreatedParams,
+	requestGetInheritedGoalContent,
+	StoryTreeNode
+} from "bg3-osiris-shared";
 import { Dependency } from "./dependency";
 import { GoalResource } from "./resource/goalResource";
 import { Mod } from "./mod";
@@ -12,6 +17,7 @@ export class StoryTree {
 	}
 
 	createTree(resources: GoalResource[], dependencies: Dependency[]) {
+		if (!this.mod.manager.server.rootFolder) return;
 		this.nodeMapping.clear();
 		this.nodeMapping.set("", { children: [] });
 
@@ -58,7 +64,7 @@ export class StoryTree {
 		});
 
 		const params: notificationStoryTreeCreatedParams = {
-			folder: this.mod.path.split("\\").pop() ?? "",
+			folder: this.mod.manager.server.rootFolder.uri,
 			mapping: Object.fromEntries(this.nodeMapping)
 		};
 		this.mod.manager.server.connection.sendNotification(notificationStoryTreeCreated, params);
