@@ -20,10 +20,13 @@ import {
 } from "../mods/modMeta";
 import { existsSync, readFileSync, rmSync } from "fs";
 import { Resource } from "../mods/resource/resource";
-import { decodePath } from "../utils/pathUtils";
+import { decodePath, encodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
 import {
+	requestGetGoalPath,
+	RequestGetGoalPathParams,
+	RequestGetGoalPathResult,
 	requestGetInheritedGoalContent,
 	RequestGetInheritedGoalContentParams,
 	RequestGetInheritedGoalContentResult
@@ -49,6 +52,7 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
 		connection.onRequest(requestGetInheritedGoalContent, this.handleGetInheritedGoalContent);
+		connection.onRequest(requestGetGoalPath, this.handleGetGoalPath);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -97,6 +101,11 @@ export class ModManager extends ComponentBase {
 
 		return { content: undefined };
 	};
+
+	private handleGetGoalPath = (params: RequestGetGoalPathParams): RequestGetGoalPathResult => {
+		const resource = this.mod?.getResource(`${params.name}.txt`, "name");
+		return resource ? { path: encodePath(resource.path) } : { path: undefined };
+	}
 
 	/**
 	 * Locates a {@link Resource} associated with a given path.

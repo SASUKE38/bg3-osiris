@@ -11,7 +11,7 @@ import {
 	workspace
 } from "vscode";
 import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
-import { notificationStoryTreeCreated, notificationStoryTreeCreatedParams, StoryTreeNode } from "bg3-osiris-shared";
+import { notificationStoryTreeCreated, notificationStoryTreeCreatedParams, requestGetGoalPath, RequestGetGoalPathParams, RequestGetGoalPathResult, StoryTreeNode } from "bg3-osiris-shared";
 import { ComponentBase } from "../componentBase";
 import { LanguageClient } from "vscode-languageclient/node";
 
@@ -21,11 +21,14 @@ export class StoryItem extends TreeItem {
 		public folder: string,
 		public readonly children: StoryItem[],
 		public readonly collapsibleState: TreeItemCollapsibleState,
-		public readonly isRoot = false
+		public readonly isRoot = false,
+		public uri?: Uri,
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label;
 		this.folder = folder;
+		this.uri = uri;
+
 		this.command = {
 			command: "bg3Osiris.OpenGoal",
 			title: "Open",
@@ -45,6 +48,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 	readonly onDidChangeTreeData: Event<StoryItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
 	private nodeMapping = new Map<string, Map<string, StoryTreeNode>>();
+	private connection?: LanguageClient;
 
 	constructor(context: ExtensionContext) {
 		super(context);
@@ -52,6 +56,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 	}
 
 	initializeComponent(connection: LanguageClient): void {
+		this.connection = connection;
 		connection.onNotification(notificationStoryTreeCreated, this.handleStoryTreeCreated);
 	}
 
@@ -69,20 +74,31 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		} else {
 			const folder = element.folder;
 			const map = this.nodeMapping.get(folder);
-			if (map) {
-				const children = map.get(element.isRoot ? "" : element.label)?.children;
-				if (children) {
-					for (const child of children) {
-						res.push(
-							new StoryItem(
-								child.data ? child.data.name : "Goal",
-								element.folder,
-								[],
-								TreeItemCollapsibleState.Collapsed
-							)
-						);
-					}
-				}
+			const children = map?.get(element.isRoot ? "" : element.label)?.children;
+			if (!children) return res;
+
+			for (const child of children) {
+				if (!child.data) continue;
+
+				const params: RequestGetGoalPathParams = { name: child.data.name }
+				const path = await this.connection?.sendRequest(requestGetGoalPath, params) as RequestGetGoalPathResult;
+
+				const uri = path.path ? Uri.parse(path.path) : Uri.from({
+					scheme: InheritedGoalContentProvider.scheme,
+					path: `${child.data.name}.txt`,
+					query: element.folder
+				});
+
+				res.push(
+					new StoryItem(
+						child.data.name,
+						element.folder,
+						[],
+						TreeItemCollapsibleState.Collapsed,
+						false,
+						uri
+					)
+				);
 			}
 		}
 		return res.sort((a, b) => {
@@ -92,7 +108,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		});
 	}
 
-	refresh(): void {
+	private refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
 
@@ -102,12 +118,8 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 	};
 
 	private readonly handleOpenGoal = async (element: StoryItem) => {
-		const uri = Uri.from({
-			scheme: InheritedGoalContentProvider.scheme,
-			path: `${element.label}.txt`,
-			query: element.folder
-		});
-		const doc = await workspace.openTextDocument(uri);
+		if (!element.uri) return;
+		const doc = await workspace.openTextDocument(element.uri);
 		await window.showTextDocument(doc, { preview: false });
 	};
 }

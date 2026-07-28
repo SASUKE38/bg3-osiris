@@ -1,7 +1,6 @@
 import {
 	notificationStoryTreeCreated,
 	notificationStoryTreeCreatedParams,
-	requestGetInheritedGoalContent,
 	StoryTreeNode
 } from "bg3-osiris-shared";
 import { Dependency } from "./dependency";
