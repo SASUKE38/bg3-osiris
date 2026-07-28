@@ -20,7 +20,8 @@ export class StoryItem extends TreeItem {
 		public label: string,
 		public folder: string,
 		public readonly children: StoryItem[],
-		public readonly collapsibleState: TreeItemCollapsibleState
+		public readonly collapsibleState: TreeItemCollapsibleState,
+		public readonly isRoot = false
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label;
@@ -62,13 +63,14 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		const res: StoryItem[] = [];
 		if (!element) {
 			for (const folder of this.nodeMapping.keys()) {
-				res.push(new StoryItem(folder, folder, [], TreeItemCollapsibleState.Expanded));
+				const label = folder.split("/").pop();
+				res.push(new StoryItem(label ? label : folder, folder, [], TreeItemCollapsibleState.Expanded, true));
 			}
 		} else {
 			const folder = element.folder;
 			const map = this.nodeMapping.get(folder);
 			if (map) {
-				const children = map.get(element.label === element.folder ? "" : element.label)?.children;
+				const children = map.get(element.isRoot ? "" : element.label)?.children;
 				if (children) {
 					for (const child of children) {
 						res.push(
