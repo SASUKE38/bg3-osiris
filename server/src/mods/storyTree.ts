@@ -17,6 +17,8 @@ export class StoryTree {
 
 	createTree(resources: GoalResource[], dependencies: Dependency[]) {
 		if (!this.mod.manager.server.rootFolder) return;
+
+		const handledGoals = new Set<string>();
 		this.nodeMapping.clear();
 		this.nodeMapping.set("", { children: [] });
 
@@ -31,12 +33,7 @@ export class StoryTree {
 				parentNode.children.push(childNode);
 			}
 		}
-
-		resources.forEach((value) => {
-			const name = trimExtension(value.name);
-			this.nodeMapping.set(name, { children: [], data: { name: value.name } });
-		});
-
+		
 		dependencies.forEach((value) => {
 			for (const entry of value.activeGoals.entries()) {
 				const goal = value.story?.goals[entry[0]];
@@ -51,14 +48,24 @@ export class StoryTree {
 
 		resources.forEach((value) => {
 			const name = trimExtension(value.name);
-			addToTree(name, value.parent, this);
+			this.nodeMapping.set(name, { children: [], data: { name } });
 		});
 
-		dependencies.forEach((value) => {
+		resources.forEach((value) => {
+			const name = trimExtension(value.name);
+			addToTree(name, value.parent, this);
+			handledGoals.add(name);
+		});
+		
+		dependencies.reverse().forEach((value) => {
 			for (const entry of value.activeGoals.entries()) {
+				if (handledGoals.has(entry[1])) continue;
 				const parentReference = value.story?.goals[entry[0]].ParentGoals[0];
 				const parent = parentReference ? value.story?.goals[parentReference.Index].Name : "";
-				if (parent || parent === "") addToTree(entry[1], parent, this);
+				if (parent || parent === "") {
+					addToTree(entry[1], parent, this);
+					handledGoals.add(entry[1]);
+				}
 			}
 		});
 
