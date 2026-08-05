@@ -24,12 +24,15 @@ import { decodePath, encodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
 import {
-	requestGetGoalPath,
-	RequestGetGoalPathParams,
-	RequestGetGoalPathResult,
 	requestGetInheritedGoalContent,
 	RequestGetInheritedGoalContentParams,
-	RequestGetInheritedGoalContentResult
+	RequestGetInheritedGoalContentResult,
+	requestGetStoryTreeNodeChildren,
+	RequestGetStoryTreeNodeChildrenParams,
+	RequestGetStoryTreeNodeChildrenResult,
+	requestGetStoryTreeNodePath,
+	RequestGetStoryTreeNodePathParams,
+	RequestGetStoryTreeNodePathResult
 } from "bg3-osiris-shared";
 import { extractFromPak } from "../utils/edge";
 
@@ -52,7 +55,8 @@ export class ModManager extends ComponentBase {
 		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
 		connection.onRequest(requestGetInheritedGoalContent, this.handleGetInheritedGoalContent);
-		connection.onRequest(requestGetGoalPath, this.handleGetGoalPath);
+		connection.onRequest(requestGetStoryTreeNodeChildren, this.handleGetStoryTreeNodeChildren);
+		connection.onRequest(requestGetStoryTreeNodePath, this.handleGetStoryTreeNodePath);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -75,7 +79,7 @@ export class ModManager extends ComponentBase {
 
 	private handleCreateFiles = (params: CreateFilesParams) => {};
 
-	private handleGetInheritedGoalContent = async (
+	private readonly handleGetInheritedGoalContent = async (
 		params: RequestGetInheritedGoalContentParams
 	): Promise<RequestGetInheritedGoalContentResult> => {
 		const owner = this.mod?.getInheritedGoalOwner(params.goalName);
@@ -102,10 +106,20 @@ export class ModManager extends ComponentBase {
 		return { content: undefined };
 	};
 
-	private handleGetGoalPath = (params: RequestGetGoalPathParams): RequestGetGoalPathResult => {
-		const resource = this.mod?.getResource(`${params.name}.txt`, "name");
-		return resource ? { path: encodePath(resource.path) } : { path: undefined };
-	}
+	private readonly handleGetStoryTreeNodeChildren = async (
+		params: RequestGetStoryTreeNodeChildrenParams
+	): Promise<RequestGetStoryTreeNodeChildrenResult> => {
+		if (!this.mod) return { children: [] };
+		return { children: await this.mod.storyTree.getStoryTreeNodeChildren(params.name) };
+	};
+
+	private readonly handleGetStoryTreeNodePath = async (
+		params: RequestGetStoryTreeNodePathParams
+	): Promise<RequestGetStoryTreeNodePathResult> => {
+		if (!this.mod) return { path: null };
+		const path = this.mod.getResource(`${params.name}.txt`, "name")?.path;
+		return { path: path ? encodePath(path) : path };
+	};
 
 	/**
 	 * Locates a {@link Resource} associated with a given path.

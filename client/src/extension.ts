@@ -50,15 +50,13 @@ function getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
 
 let registeredProviders = false;
 
-function tryRegisterProviders(context: ExtensionContext, connection: LanguageClient) {
+function tryRegisterProviders(context: ExtensionContext) {
 	if (registeredProviders) return;
 
-	const storyOutlineProvider = new StoryOutlineProvider(context);
-	storyOutlineProvider.initializeComponent(connection);
 	window.createTreeView("story-outline", {
 		showCollapseAll: true,
 		canSelectMany: true,
-		treeDataProvider: storyOutlineProvider
+		treeDataProvider: new StoryOutlineProvider(context)
 	});
 
 	context.subscriptions.push(
@@ -111,9 +109,7 @@ export class Client {
 				this.intialized = true;
 				this.connection.sendNotification(notificationClientRunning);
 				this.components.forEach((component) => component.initializeComponent?.(this.connection));
-				this.connection.onNotification(notificationServerRunning, () =>
-					tryRegisterProviders(this.context, this.connection)
-				);
+				this.connection.onNotification(notificationServerRunning, () => tryRegisterProviders(this.context));
 			}
 		});
 		return client;

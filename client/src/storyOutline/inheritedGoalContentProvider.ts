@@ -25,7 +25,7 @@ export class InheritedGoalContentProvider implements TextDocumentContentProvider
 		).content;
 		if (!content) {
 			window.showErrorMessage(`Couldn't get content for ${uri.path}. Goal content cannot be shown.`);
-			return "";
+			return;
 		}
 		return content;
 	}

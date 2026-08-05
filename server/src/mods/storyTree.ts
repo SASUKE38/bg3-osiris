@@ -1,15 +1,13 @@
-import {
-	notificationStoryTreeCreated,
-	notificationStoryTreeCreatedParams,
-	StoryTreeNode
-} from "bg3-osiris-shared";
+import { StoryTreeNode } from "bg3-osiris-shared";
 import { Dependency } from "./dependency";
 import { GoalResource } from "./resource/goalResource";
 import { Mod } from "./mod";
+import waitUntil, { WAIT_FOREVER } from "async-wait-until";
 
 export class StoryTree {
 	nodeMapping = new Map<string, StoryTreeNode>();
 	private mod: Mod;
+	private isReady = false;
 
 	constructor(mod: Mod) {
 		this.mod = mod;
@@ -33,7 +31,7 @@ export class StoryTree {
 				parentNode.children.push(childNode);
 			}
 		}
-		
+
 		dependencies.forEach((value) => {
 			for (const entry of value.activeGoals.entries()) {
 				const goal = value.story?.goals[entry[0]];
@@ -56,7 +54,7 @@ export class StoryTree {
 			addToTree(name, value.parent, this);
 			handledGoals.add(name);
 		});
-		
+
 		dependencies.reverse().forEach((value) => {
 			for (const entry of value.activeGoals.entries()) {
 				if (handledGoals.has(entry[1])) continue;
@@ -68,11 +66,17 @@ export class StoryTree {
 				}
 			}
 		});
+		this.isReady = true;
+	}
 
-		const params: notificationStoryTreeCreatedParams = {
-			folder: this.mod.manager.server.rootFolder.uri,
-			mapping: Object.fromEntries(this.nodeMapping)
-		};
-		this.mod.manager.server.connection.sendNotification(notificationStoryTreeCreated, params);
+	async getStoryTreeNodeChildren(name: string): Promise<[StoryTreeNode, boolean][]> {
+		await waitUntil(() => this.isReady, { timeout: WAIT_FOREVER });
+		const node = this.nodeMapping.get(name);
+		if (!node) return [];
+		const res: [StoryTreeNode, boolean][] = [];
+		for (const child of node.children) {
+			res.push([child, this.mod.getResource !== undefined]);
+		}
+		return res;
 	}
 }

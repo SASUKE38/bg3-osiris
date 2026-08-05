@@ -116,8 +116,8 @@ export class Mod {
 		dependency.foundOrphans.forEach((value) => this.inheritedFoundOrphans.add(value));
 	}
 
-	getResource(path: string, query: "path" | "name" = "path"): Resource | undefined {
-		return this.goals.find((file) => file[query] === path);
+	getResource(searchTerm: string, query: "path" | "name" = "path"): Resource | undefined {
+		return this.goals.find((file) => file[query] === searchTerm);
 	}
 
 	getAllGoals(): GoalResource[] {

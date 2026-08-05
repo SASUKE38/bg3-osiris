@@ -10,24 +10,30 @@ import {
 	window,
 	workspace
 } from "vscode";
-import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
-import { notificationStoryTreeCreated, notificationStoryTreeCreatedParams, requestGetGoalPath, RequestGetGoalPathParams, RequestGetGoalPathResult, StoryTreeNode } from "bg3-osiris-shared";
+import {
+	requestGetStoryTreeNodeChildren,
+	RequestGetStoryTreeNodeChildrenParams,
+	RequestGetStoryTreeNodeChildrenResult,
+	requestGetStoryTreeNodePath,
+	RequestGetStoryTreeNodePathParams,
+	RequestGetStoryTreeNodePathResult
+} from "bg3-osiris-shared";
 import { ComponentBase } from "../componentBase";
-import { LanguageClient } from "vscode-languageclient/node";
+import { clients } from "../extension";
+import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
 
 export class StoryItem extends TreeItem {
 	constructor(
 		public label: string,
 		public folder: string,
-		public readonly children: StoryItem[],
 		public readonly collapsibleState: TreeItemCollapsibleState,
-		public readonly isRoot = false,
-		public uri?: Uri,
+		public readonly isOverriden = false,
+		public readonly isRoot = false
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label;
 		this.folder = folder;
-		this.uri = uri;
+		this.contextValue = isOverriden ? "overriden" : "inherited";
 
 		this.command = {
 			command: "bg3Osiris.OpenGoal",
@@ -47,17 +53,9 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 	>();
 	readonly onDidChangeTreeData: Event<StoryItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-	private nodeMapping = new Map<string, Map<string, StoryTreeNode>>();
-	private connection?: LanguageClient;
-
 	constructor(context: ExtensionContext) {
 		super(context);
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
-	}
-
-	initializeComponent(connection: LanguageClient): void {
-		this.connection = connection;
-		connection.onNotification(notificationStoryTreeCreated, this.handleStoryTreeCreated);
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -66,41 +64,33 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 
 	async getChildren(element?: StoryItem | undefined): Promise<StoryItem[]> {
 		const res: StoryItem[] = [];
+
 		if (!element) {
-			for (const folder of this.nodeMapping.keys()) {
-				const label = folder.split("/").pop();
-				res.push(new StoryItem(label ? label : folder, folder, [], TreeItemCollapsibleState.Expanded, true));
+			for (const client of clients.values()) {
+				const label = client.folder.uri.path.split("/").pop();
+				if (!label) continue;
+				res.push(
+					new StoryItem(label, client.folder.uri.toString(), TreeItemCollapsibleState.Expanded, false, true)
+				);
 			}
 		} else {
-			const folder = element.folder;
-			const map = this.nodeMapping.get(folder);
-			const children = map?.get(element.isRoot ? "" : element.label)?.children;
-			if (!children) return res;
-
+			const client = clients.get(element.folder);
+			if (!client) return res;
+			const params: RequestGetStoryTreeNodeChildrenParams = { name: element.isRoot ? "" : element.label };
+			const children = (
+				(await client.connection.sendRequest(
+					requestGetStoryTreeNodeChildren,
+					params
+				)) as RequestGetStoryTreeNodeChildrenResult
+			).children;
 			for (const child of children) {
-				if (!child.data) continue;
-
-				const params: RequestGetGoalPathParams = { name: child.data.name }
-				const path = await this.connection?.sendRequest(requestGetGoalPath, params) as RequestGetGoalPathResult;
-
-				const uri = path.path ? Uri.parse(path.path) : Uri.from({
-					scheme: InheritedGoalContentProvider.scheme,
-					path: `${child.data.name}.txt`,
-					query: element.folder
-				});
-
+				if (!child[0].data) continue;
 				res.push(
-					new StoryItem(
-						child.data.name,
-						element.folder,
-						[],
-						TreeItemCollapsibleState.Collapsed,
-						false,
-						uri
-					)
+					new StoryItem(child[0].data.name, element.folder, TreeItemCollapsibleState.Collapsed, child[1])
 				);
 			}
 		}
+
 		return res.sort((a, b) => {
 			if (a.label < b.label) return -1;
 			if (a.label === b.label) return 0;
@@ -112,14 +102,111 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		this._onDidChangeTreeData.fire();
 	}
 
-	private readonly handleStoryTreeCreated = (params: notificationStoryTreeCreatedParams) => {
-		this.nodeMapping.set(params.folder, new Map(Object.entries(params.mapping)));
-		this.refresh();
-	};
+	private readonly handleOpenGoal = async (element?: StoryItem) => {
+		if (!element || element.isRoot) return;
+		const client = clients.get(element.folder);
+		if (!client) return;
+		const params: RequestGetStoryTreeNodePathParams = { name: element.label };
+		const path = (
+			(await client.connection.sendRequest(
+				requestGetStoryTreeNodePath,
+				params
+			)) as RequestGetStoryTreeNodePathResult
+		).path;
 
-	private readonly handleOpenGoal = async (element: StoryItem) => {
-		if (!element.uri) return;
-		const doc = await workspace.openTextDocument(element.uri);
+		if (path === null) return;
+		const uri = path
+			? Uri.parse(path)
+			: Uri.from({
+					scheme: InheritedGoalContentProvider.scheme,
+					path: `${element.label}.txt`,
+					query: element.folder
+				});
+		const doc = await workspace.openTextDocument(uri);
 		await window.showTextDocument(doc, { preview: false });
 	};
 }
+
+/*
+
+Architecture:
+Data store in server
+Possibly restrict commands based on if goal is overriden or not
+Possibly optimize sending new tree to instead send only changes
+
+Story Item contents:
+label
+tooltip
+folder
+collapsible state
+isActive
+uri
+
+On request for children: 
+	If root element:
+		Get folder representation of all clients, make tree item for each
+	If not root:
+		Find server to request based on folder field in tree item
+		Request children of the current label from the server
+		In server:
+		Lookup label passed from client in node mapping
+		return array of nodes
+		In client:
+		Convert each node into tree view item, return array of them
+
+On request for adding a goal:
+	Find server to request based on folder field in tree item
+	Send parent to server - if root, send ""
+	In server:
+	Validate name and uniqueness among dependencies and active goals
+	Add node to tree and push child name to parent's children
+	Create new file with starting template
+	Add resource to mod and load it
+	In client:
+	Refresh tree
+	Expand the parent node
+	Open the new goal
+
+On request for deleting a goal:
+	Find server to request based on folder field in tree item
+	Send name to server
+	In server:
+	If goal is not an active goal, deny request
+	Remove goal from node mapping and remove it from it's parent's list of children
+	Remove the resource from the active goal array
+	Delete the file
+	In client:
+	Refresh tree
+
+On request for moving a goal:
+	Find server to request based on folder field in tree item
+	Send destination to server
+	In server:
+	If goal is not an active goal, deny request
+	Remove goal from parent's list of children and add it to new parent's list of children
+	Change the ParentTargetEdge of the goal in the file to the new parent
+	Invalidate the resource or change the Parent node in the ast
+	In client:
+	Refresh tree
+
+On request for overriding a goal:
+	Find server to request based on folder field in tree item
+	In server:
+	Copy file to mod's goals folder
+	Add resource to mod and load it
+	Send boolean result to client
+	In client:
+	Set overriden property in node to result from server
+	Refresh tree
+
+On request for renaming a goal:
+	Find server to request based on folder field in tree item
+	In server:
+	Change all child files of the goal to have the correct parent name
+	Change all child nodes of the goal to have the correct parent name
+	Find resource in mod
+	Change the name of the resource
+	In client:
+	Refresh tree
+
+*/
