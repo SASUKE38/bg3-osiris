@@ -23,3 +23,20 @@ export interface RequestGetStoryTreeNodePathParams {
 export interface RequestGetStoryTreeNodePathResult {
 	path: string | undefined | null;
 }
+
+export const requestTestStoryTreeName = "bg3Osiris/testStoryTreeName";
+export interface RequestTestStoryTreeNameParams {
+	name: string;
+}
+export interface RequestTestStoryTreeNameResult {
+	reason: string;
+}
+
+export const requestAddStoryTreeNode = "bg3Osiris/addStoryTreeNode";
+export interface RequestAddStoryTreeNodeParams {
+	parent: string;
+	name: string;
+}
+export interface RequestAddStoryTreeNodeResult {
+	path?: string;
+}

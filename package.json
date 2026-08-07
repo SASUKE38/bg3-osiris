@@ -18,6 +18,12 @@
 	"activationEvents": [],
 	"main": "./client/out/extension.js",
 	"contributes": {
+		"commands": [
+			{
+				"command": "bg3Osiris.AddGoal",
+				"title": "Add Goal"
+			}
+		],
 		"languages": [
 			{
 				"id": "osiris",
@@ -31,6 +37,20 @@
 				"configuration": "./language-configuration.json"
 			}
 		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "bg3Osiris.AddGoal",
+					"when": "false"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "bg3Osiris.AddGoal",
+					"when": "view == story-outline"
+				}
+			]
+		},
 		"grammars": [
 			{
 				"language": "osiris",

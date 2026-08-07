@@ -69,8 +69,12 @@ export class StoryTree {
 		this.isReady = true;
 	}
 
-	async getStoryTreeNodeChildren(name: string): Promise<[StoryTreeNode, boolean][]> {
+	private async waitForReady() {
 		await waitUntil(() => this.isReady, { timeout: WAIT_FOREVER });
+	}
+
+	async getStoryTreeNodeChildren(name: string): Promise<[StoryTreeNode, boolean][]> {
+		await this.waitForReady();
 		const node = this.nodeMapping.get(name);
 		if (!node) return [];
 		const res: [StoryTreeNode, boolean][] = [];
@@ -78,5 +82,17 @@ export class StoryTree {
 			res.push([child, this.mod.getResource !== undefined]);
 		}
 		return res;
+	}
+
+	async addStoryTreeNode(parent: string, name: string) {
+		await this.waitForReady();
+		const childNode: StoryTreeNode = { children: [], data: { name } };
+		this.nodeMapping.set(name, childNode);
+		const parentNode = this.nodeMapping.get(parent);
+		if (!parentNode) {
+			console.error(`No goal with the name ${parent} could be found.`);
+			return;
+		}
+		parentNode.children.push(childNode);
 	}
 }

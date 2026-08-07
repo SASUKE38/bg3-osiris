@@ -18,12 +18,15 @@ import {
 	ModMetaScript,
 	ModMetaScriptParameter
 } from "../mods/modMeta";
-import { existsSync, readFileSync, rmSync } from "fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { Resource } from "../mods/resource/resource";
 import { decodePath, encodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
 import {
+	requestAddStoryTreeNode,
+	RequestAddStoryTreeNodeParams,
+	RequestAddStoryTreeNodeResult,
 	requestGetInheritedGoalContent,
 	RequestGetInheritedGoalContentParams,
 	RequestGetInheritedGoalContentResult,
@@ -32,7 +35,10 @@ import {
 	RequestGetStoryTreeNodeChildrenResult,
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
-	RequestGetStoryTreeNodePathResult
+	RequestGetStoryTreeNodePathResult,
+	requestTestStoryTreeName,
+	RequestTestStoryTreeNameParams,
+	RequestTestStoryTreeNameResult
 } from "bg3-osiris-shared";
 import { extractFromPak } from "../utils/edge";
 
@@ -57,6 +63,8 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestGetInheritedGoalContent, this.handleGetInheritedGoalContent);
 		connection.onRequest(requestGetStoryTreeNodeChildren, this.handleGetStoryTreeNodeChildren);
 		connection.onRequest(requestGetStoryTreeNodePath, this.handleGetStoryTreeNodePath);
+		connection.onRequest(requestTestStoryTreeName, this.handleTestStoryTreeName);
+		connection.onRequest(requestAddStoryTreeNode, this.handleAddStoryTreeNode);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -121,6 +129,30 @@ export class ModManager extends ComponentBase {
 		return { path: path ? encodePath(path) : path };
 	};
 
+	private readonly handleTestStoryTreeName = (
+		params: RequestTestStoryTreeNameParams
+	): RequestTestStoryTreeNameResult => {
+		if (!this.mod) return { reason: "No mod is loaded." };
+		if (params.name.length === 0) return { reason: "The goal name cannot be empty." };
+		if (!/^[A-Za-z0-9_-]+$/.test(params.name))
+			return { reason: "The goal name can only contain _, -, and alphanumeric characters." };
+		if (this.mod.getResource(`${params.name}.txt`, "name") || this.mod.getInheritedGoalOwner(params.name))
+			return { reason: "The goal's name must be unique." };
+		return { reason: "" };
+	};
+
+	private readonly handleAddStoryTreeNode = async (
+		params: RequestAddStoryTreeNodeParams
+	): Promise<RequestAddStoryTreeNodeResult> => {
+		if (!this.mod) return {};
+		await this.mod.storyTree.addStoryTreeNode(params.parent, params.name);
+		const path = join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`);
+		const content = `Version 1\r\nSubGoalCombiner SGC_AND\r\nINITSECTION\r\n\r\nKBSECTION\r\n\r\nEXITSECTION\r\n\r\nENDEXITSECTION\r\n${params.parent === "" ? "" : `ParentTargetEdge "${params.parent}"`}`;
+		writeFileSync(path, content, { encoding: "utf-8" });
+		this.createResource(`${params.name}.txt`, path);
+		return { path };
+	};
+
 	/**
 	 * Locates a {@link Resource} associated with a given path.
 	 *
@@ -139,6 +171,12 @@ export class ModManager extends ComponentBase {
 			return this.mod.getAllGoals();
 		}
 		return [];
+	}
+
+	createResource(name: string, path: string) {
+		if (this.mod) {
+			this.mod.createResource(name, path);
+		}
 	}
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {

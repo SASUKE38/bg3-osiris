@@ -11,12 +11,18 @@ import {
 	workspace
 } from "vscode";
 import {
+	requestAddStoryTreeNode,
+	RequestAddStoryTreeNodeParams,
+	RequestAddStoryTreeNodeResult,
 	requestGetStoryTreeNodeChildren,
 	RequestGetStoryTreeNodeChildrenParams,
 	RequestGetStoryTreeNodeChildrenResult,
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
-	RequestGetStoryTreeNodePathResult
+	RequestGetStoryTreeNodePathResult,
+	requestTestStoryTreeName,
+	RequestTestStoryTreeNameParams,
+	RequestTestStoryTreeNameResult
 } from "bg3-osiris-shared";
 import { ComponentBase } from "../componentBase";
 import { clients } from "../extension";
@@ -26,7 +32,7 @@ export class StoryItem extends TreeItem {
 	constructor(
 		public label: string,
 		public folder: string,
-		public readonly collapsibleState: TreeItemCollapsibleState,
+		public collapsibleState: TreeItemCollapsibleState,
 		public readonly isOverriden = false,
 		public readonly isRoot = false
 	) {
@@ -56,6 +62,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 	constructor(context: ExtensionContext) {
 		super(context);
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
+		context.subscriptions.push(commands.registerCommand("bg3Osiris.AddGoal", this.handleAddGoal));
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -124,6 +131,36 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 				});
 		const doc = await workspace.openTextDocument(uri);
 		await window.showTextDocument(doc, { preview: false });
+	};
+
+	private readonly handleAddGoal = async (element?: StoryItem) => {
+		if (!element) return;
+		const client = clients.get(element.folder);
+		if (!client) return;
+		const name = await window.showInputBox({
+			prompt: "Enter the goal's name.",
+			validateInput: async (value) => {
+				const validityParams: RequestTestStoryTreeNameParams = { name: value };
+				return (
+					(await client.connection.sendRequest(
+						requestTestStoryTreeName,
+						validityParams
+					)) as RequestTestStoryTreeNameResult
+				).reason;
+			}
+		});
+		if (!name) return;
+
+		const params: RequestAddStoryTreeNodeParams = { parent: element.isRoot ? "" : element.label, name };
+		const uri = (
+			(await client.connection.sendRequest(requestAddStoryTreeNode, params)) as RequestAddStoryTreeNodeResult
+		).path;
+
+		if (uri) {
+			const doc = await workspace.openTextDocument(uri);
+			await window.showTextDocument(doc, { preview: false });
+		}
+		this.refresh();
 	};
 }
 

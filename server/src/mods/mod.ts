@@ -33,8 +33,8 @@ export interface DependencyMetaCollectionEntry {
 export class Mod {
 	readonly meta?: ModMetaModuleInfo;
 	readonly manager: ModManager;
+	readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
 	private readonly goals: GoalResource[] = [];
-	private readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
 	private readonly types = new Set<string>();
 	private readonly enums = new Map<string, string[]>();
 	private readonly inheritedGoals = new Map<string, InheritedGoal>();
@@ -57,7 +57,7 @@ export class Mod {
 	async initialize() {
 		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
 			if (this.path) {
-				this.goals.push(new GoalResource(this, file, join(this.path, this.goalSubdirectory, file)));
+				this.createResource(file, join(this.path, this.goalSubdirectory, file));
 			}
 		}
 
@@ -122,6 +122,10 @@ export class Mod {
 
 	getAllGoals(): GoalResource[] {
 		return this.goals;
+	}
+
+	createResource(name: string, path: string) {
+		this.goals.push(new GoalResource(this, name, path));
 	}
 
 	getInheritedGoalOwner(goalName: string): Dependency | undefined {
