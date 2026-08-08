@@ -20,6 +20,9 @@ import {
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
 	RequestGetStoryTreeNodePathResult,
+	requestOverrideStoryTreeNode,
+	RequestOverrideStoryTreeNodeParams,
+	RequestOverrideStoryTreeNodeResult,
 	requestTestStoryTreeName,
 	RequestTestStoryTreeNameParams,
 	RequestTestStoryTreeNameResult
@@ -29,17 +32,19 @@ import { clients } from "../extension";
 import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
 
 export class StoryItem extends TreeItem {
+	public contextValue: "overriden" | "inherited" | "root";
+
 	constructor(
 		public label: string,
 		public folder: string,
 		public collapsibleState: TreeItemCollapsibleState,
-		public readonly isOverriden = false,
+		public readonly isOverriden: boolean,
 		public readonly isRoot = false
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label;
 		this.folder = folder;
-		this.contextValue = isOverriden ? "overriden" : "inherited";
+		this.contextValue = isRoot ? "root" : isOverriden ? "overriden" : "inherited";
 
 		this.command = {
 			command: "bg3Osiris.OpenGoal",
@@ -63,6 +68,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		super(context);
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.AddGoal", this.handleAddGoal));
+		context.subscriptions.push(commands.registerCommand("bg3Osiris.OverrideGoal", this.handleOverrideGoal));
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -162,6 +168,23 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		}
 		this.refresh();
 	};
+
+	private readonly handleOverrideGoal = async (element?: StoryItem) => {
+		if (!element || element.isRoot) return;
+		const client = clients.get(element.folder);
+		if (!client) return;
+		const params: RequestOverrideStoryTreeNodeParams = { name: element.label };
+		const success = (
+			(await client.connection.sendRequest(
+				requestOverrideStoryTreeNode,
+				params
+			)) as RequestOverrideStoryTreeNodeResult
+		).success;
+		if (success) {
+			element.contextValue = "overriden";
+			this.refresh();
+		}
+	};
 }
 
 /*
@@ -178,31 +201,6 @@ folder
 collapsible state
 isActive
 uri
-
-On request for children: 
-	If root element:
-		Get folder representation of all clients, make tree item for each
-	If not root:
-		Find server to request based on folder field in tree item
-		Request children of the current label from the server
-		In server:
-		Lookup label passed from client in node mapping
-		return array of nodes
-		In client:
-		Convert each node into tree view item, return array of them
-
-On request for adding a goal:
-	Find server to request based on folder field in tree item
-	Send parent to server - if root, send ""
-	In server:
-	Validate name and uniqueness among dependencies and active goals
-	Add node to tree and push child name to parent's children
-	Create new file with starting template
-	Add resource to mod and load it
-	In client:
-	Refresh tree
-	Expand the parent node
-	Open the new goal
 
 On request for deleting a goal:
 	Find server to request based on folder field in tree item
@@ -224,16 +222,6 @@ On request for moving a goal:
 	Change the ParentTargetEdge of the goal in the file to the new parent
 	Invalidate the resource or change the Parent node in the ast
 	In client:
-	Refresh tree
-
-On request for overriding a goal:
-	Find server to request based on folder field in tree item
-	In server:
-	Copy file to mod's goals folder
-	Add resource to mod and load it
-	Send boolean result to client
-	In client:
-	Set overriden property in node to result from server
 	Refresh tree
 
 On request for renaming a goal:

@@ -18,7 +18,7 @@ import {
 	ModMetaScript,
 	ModMetaScriptParameter
 } from "../mods/modMeta";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { Resource } from "../mods/resource/resource";
 import { decodePath, encodePath } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
@@ -36,6 +36,9 @@ import {
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
 	RequestGetStoryTreeNodePathResult,
+	requestOverrideStoryTreeNode,
+	RequestOverrideStoryTreeNodeParams,
+	RequestOverrideStoryTreeNodeResult,
 	requestTestStoryTreeName,
 	RequestTestStoryTreeNameParams,
 	RequestTestStoryTreeNameResult
@@ -65,6 +68,7 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestGetStoryTreeNodePath, this.handleGetStoryTreeNodePath);
 		connection.onRequest(requestTestStoryTreeName, this.handleTestStoryTreeName);
 		connection.onRequest(requestAddStoryTreeNode, this.handleAddStoryTreeNode);
+		connection.onRequest(requestOverrideStoryTreeNode, this.handleOverrideStoryTreeNode);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -151,6 +155,27 @@ export class ModManager extends ComponentBase {
 		writeFileSync(path, content, { encoding: "utf-8" });
 		this.createResource(`${params.name}.txt`, path);
 		return { path };
+	};
+
+	private readonly handleOverrideStoryTreeNode = async (
+		params: RequestOverrideStoryTreeNodeParams
+	): Promise<RequestOverrideStoryTreeNodeResult> => {
+		if (!this.mod) return { success: false };
+		const dependency = this.mod.getInheritedGoalOwner(params.name);
+		if (!dependency) return { success: false };
+		const file = await extractFromPak(
+			dependency.path,
+			`${dependency.internalPath}/Story/RawFiles/Goals/${params.name}.txt`
+		);
+		if (file.OutputPaths[0]) {
+			copyFileSync(file.OutputPaths[0], join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`));
+			this.createResource(
+				`${params.name}.txt`,
+				join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`)
+			);
+			return { success: true };
+		}
+		return { success: false };
 	};
 
 	/**

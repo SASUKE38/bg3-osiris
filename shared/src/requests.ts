@@ -40,3 +40,11 @@ export interface RequestAddStoryTreeNodeParams {
 export interface RequestAddStoryTreeNodeResult {
 	path?: string;
 }
+
+export const requestOverrideStoryTreeNode = "bg3Osiris/overrideStoryTreeNode";
+export interface RequestOverrideStoryTreeNodeParams {
+	name: string;
+}
+export interface RequestOverrideStoryTreeNodeResult {
+	success: boolean;
+}

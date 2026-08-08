@@ -79,7 +79,11 @@ export class StoryTree {
 		if (!node) return [];
 		const res: [StoryTreeNode, boolean][] = [];
 		for (const child of node.children) {
-			res.push([child, this.mod.getResource !== undefined]);
+			const isOverriden =
+				!child.data || child.data.name === ""
+					? false
+					: this.mod.getResource(`${child.data.name}.txt`, "name") !== undefined;
+			res.push([child, isOverriden]);
 		}
 		return res;
 	}

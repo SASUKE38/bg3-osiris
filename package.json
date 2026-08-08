@@ -22,6 +22,10 @@
 			{
 				"command": "bg3Osiris.AddGoal",
 				"title": "Add Goal"
+			},
+			{
+				"command": "bg3Osiris.OverrideGoal",
+				"title": "Override"
 			}
 		],
 		"languages": [
@@ -42,12 +46,20 @@
 				{
 					"command": "bg3Osiris.AddGoal",
 					"when": "false"
+				},
+				{
+					"command": "bg3Osiris.OverrideGoal",
+					"when": "false"
 				}
 			],
 			"view/item/context": [
 				{
 					"command": "bg3Osiris.AddGoal",
 					"when": "view == story-outline"
+				},
+				{
+					"command": "bg3Osiris.OverrideGoal",
+					"when": "view == story-outline && viewItem == inherited"
 				}
 			]
 		},
