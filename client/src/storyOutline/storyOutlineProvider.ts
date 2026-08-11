@@ -14,6 +14,8 @@ import {
 	requestAddStoryTreeNode,
 	RequestAddStoryTreeNodeParams,
 	RequestAddStoryTreeNodeResult,
+	requestDeleteStoryTreeNode,
+	RequestDeleteStoryTreeNodeParams,
 	requestGetStoryTreeNodeChildren,
 	RequestGetStoryTreeNodeChildrenParams,
 	RequestGetStoryTreeNodeChildrenResult,
@@ -69,6 +71,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.AddGoal", this.handleAddGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OverrideGoal", this.handleOverrideGoal));
+		context.subscriptions.push(commands.registerCommand("bg3Osiris.DeleteGoal", this.handleDeleteGoal));
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -185,6 +188,15 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 			this.refresh();
 		}
 	};
+
+	private readonly handleDeleteGoal = async (element?: StoryItem) => {
+		if (!element || element.isRoot) return;
+		const client = clients.get(element.folder);
+		if (!client) return;
+		const params: RequestDeleteStoryTreeNodeParams = { name: element.label };
+		await client.connection.sendRequest(requestDeleteStoryTreeNode, params);
+		this.refresh();
+	};
 }
 
 /*
@@ -201,17 +213,6 @@ folder
 collapsible state
 isActive
 uri
-
-On request for deleting a goal:
-	Find server to request based on folder field in tree item
-	Send name to server
-	In server:
-	If goal is not an active goal, deny request
-	Remove goal from node mapping and remove it from it's parent's list of children
-	Remove the resource from the active goal array
-	Delete the file
-	In client:
-	Refresh tree
 
 On request for moving a goal:
 	Find server to request based on folder field in tree item

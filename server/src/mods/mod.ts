@@ -120,6 +120,11 @@ export class Mod {
 		return this.goals.find((file) => file[query] === searchTerm);
 	}
 
+	removeResource(searchTerm: string, query: "path" | "name" = "path") {
+		const index = this.goals.findIndex((file) => file[query] === searchTerm);
+		if (index >= 0) this.goals.splice(index, 1);
+	}
+
 	getAllGoals(): GoalResource[] {
 		return this.goals;
 	}

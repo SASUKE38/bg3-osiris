@@ -26,6 +26,10 @@
 			{
 				"command": "bg3Osiris.OverrideGoal",
 				"title": "Override"
+			},
+			{
+				"command": "bg3Osiris.DeleteGoal",
+				"title": "Delete"
 			}
 		],
 		"languages": [
@@ -60,6 +64,10 @@
 				{
 					"command": "bg3Osiris.OverrideGoal",
 					"when": "view == story-outline && viewItem == inherited"
+				},
+				{
+					"command": "bg3Osiris.DeleteGoal",
+					"when": "view == story-outline && viewItem == overriden"
 				}
 			]
 		},

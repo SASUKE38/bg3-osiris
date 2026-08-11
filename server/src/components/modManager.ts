@@ -27,6 +27,8 @@ import {
 	requestAddStoryTreeNode,
 	RequestAddStoryTreeNodeParams,
 	RequestAddStoryTreeNodeResult,
+	requestDeleteStoryTreeNode,
+	RequestDeleteStoryTreeNodeParams,
 	requestGetInheritedGoalContent,
 	RequestGetInheritedGoalContentParams,
 	RequestGetInheritedGoalContentResult,
@@ -69,6 +71,7 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestTestStoryTreeName, this.handleTestStoryTreeName);
 		connection.onRequest(requestAddStoryTreeNode, this.handleAddStoryTreeNode);
 		connection.onRequest(requestOverrideStoryTreeNode, this.handleOverrideStoryTreeNode);
+		connection.onRequest(requestDeleteStoryTreeNode, this.handleDeleteStoryTreeNode);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -176,6 +179,13 @@ export class ModManager extends ComponentBase {
 			return { success: true };
 		}
 		return { success: false };
+	};
+
+	private readonly handleDeleteStoryTreeNode = async (params: RequestDeleteStoryTreeNodeParams) => {
+		if (!this.mod) return;
+		await this.mod.storyTree.deleteStoryTreeNode(params.name);
+		rmSync(join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`));
+		this.mod.removeResource(`${params.name}.txt`, "name");
 	};
 
 	/**

@@ -48,3 +48,11 @@ export interface RequestOverrideStoryTreeNodeParams {
 export interface RequestOverrideStoryTreeNodeResult {
 	success: boolean;
 }
+
+export const requestDeleteStoryTreeNode = "bg3Osiris/deleteStoryTreeNode";
+export interface RequestDeleteStoryTreeNodeParams {
+	name: string;
+}
+export interface RequestDeleteStoryTreeNodeResult {
+	success: boolean;
+}
