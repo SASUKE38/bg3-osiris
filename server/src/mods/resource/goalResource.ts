@@ -13,7 +13,7 @@ import {
 } from "../../parser/ast/nodes";
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
-import { Resource } from "./resource";
+import { Resource, ResourceKind } from "./resource";
 import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
@@ -22,6 +22,7 @@ import { Signature } from "../signature";
 import { isArrayEqual } from "../../utils/isArrayEqual";
 
 export class GoalResource extends Resource {
+	readonly kind: ResourceKind = ResourceKind.Goal;
 	parent = "";
 
 	/**

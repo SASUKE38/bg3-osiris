@@ -1,4 +1,4 @@
-import { Connection, CreateFilesParams, DeleteFilesParams, ServerCapabilities } from "vscode-languageserver";
+import { Connection, CreateFilesParams, DeleteFilesParams, ServerCapabilities, TextEdit } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "../mods/mod";
 import { join } from "path";
@@ -18,9 +18,9 @@ import {
 	ModMetaScript,
 	ModMetaScriptParameter
 } from "../mods/modMeta";
-import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
-import { Resource } from "../mods/resource/resource";
-import { decodePath, encodePath } from "../utils/pathUtils";
+import { copyFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
+import { Resource, ResourceKind } from "../mods/resource/resource";
+import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
 import { Signature } from "../mods/signature";
 import { isArrayEqual } from "../utils/isArrayEqual";
 import {
@@ -41,11 +41,15 @@ import {
 	requestOverrideStoryTreeNode,
 	RequestOverrideStoryTreeNodeParams,
 	RequestOverrideStoryTreeNodeResult,
+	requestRenameStoryTreeNode,
+	RequestRenameStoryTreeNodeParams,
 	requestTestStoryTreeName,
 	RequestTestStoryTreeNameParams,
 	RequestTestStoryTreeNameResult
 } from "bg3-osiris-shared";
 import { extractFromPak } from "../utils/edge";
+import { ASTNodeKind, GoalNode, StringNode } from "../parser/ast/nodes";
+import { GoalResource } from "../mods/resource/goalResource";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -72,6 +76,7 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestAddStoryTreeNode, this.handleAddStoryTreeNode);
 		connection.onRequest(requestOverrideStoryTreeNode, this.handleOverrideStoryTreeNode);
 		connection.onRequest(requestDeleteStoryTreeNode, this.handleDeleteStoryTreeNode);
+		connection.onRequest(requestRenameStoryTreeNode, this.handleRenameStoryTreeNode);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -186,6 +191,53 @@ export class ModManager extends ComponentBase {
 		await this.mod.storyTree.deleteStoryTreeNode(params.name);
 		rmSync(join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`));
 		this.mod.removeResource(`${params.name}.txt`, "name");
+	};
+
+	private readonly handleRenameStoryTreeNode = async (params: RequestRenameStoryTreeNodeParams) => {
+		if (!this.mod) return;
+		const resource = this.mod.getResource(`${params.oldName}.txt`, "name");
+		if (!resource) return;
+
+		const children = this.mod.storyTree.nodeMapping.get(params.oldName)?.children;
+		if (children) {
+			for (const child of children) {
+				if (!child.data || !this.mod.getResource(`${child.data.name}.txt`, "name")) {
+					this.server.connection.window.showErrorMessage("Goals with inherited children cannot be renamed.");
+					return;
+				}
+			}
+		}
+
+		await this.mod.storyTree.renameStoryTreeNode(params.targetName, params.oldName);
+		const newPath = replaceFinalPathPart(resource.path, params.targetName);
+		renameSync(resource.path, newPath);
+		resource.name = `${params.targetName}.txt`;
+		resource.path = newPath;
+
+		if (children) {
+			const childResources = children.map((value) => {
+				if (!value.data) return;
+				const resource = this.mod!.getResource(`${value.data.name}.txt`, "name");
+				return resource;
+			});
+			const edits: { [uri: string]: TextEdit[] } = {};
+			for (const resource of childResources) {
+				if (
+					!resource ||
+					resource.kind !== ResourceKind.Goal ||
+					(resource as GoalResource).parent !== params.oldName
+				)
+					continue;
+				const footer = ((await resource.getRootNode()) as GoalNode).footer;
+				if (!footer || footer.parentTargetEdge.kind != ASTNodeKind.STRING_NODE) continue;
+
+				const range = (footer.parentTargetEdge as StringNode).range;
+				range.start.character += 1;
+				range.end.character -= 1;
+				edits[encodePath(resource.path)] = [TextEdit.replace(range, params.targetName)];
+			}
+			this.server.connection.workspace.applyEdit({ changes: edits });
+		}
 	};
 
 	/**

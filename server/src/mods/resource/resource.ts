@@ -7,9 +7,13 @@ import { encodePath } from "../../utils/pathUtils";
 import { Signature } from "../signature";
 import { Mod } from "../mod";
 
+export enum ResourceKind {
+	None,
+	Goal
+}
+
 export abstract class Resource {
-	readonly path;
-	readonly name;
+	readonly kind: ResourceKind = ResourceKind.None;
 	readonly mod;
 	protected ast?: ASTNode;
 	protected document: TextDocument;
@@ -20,6 +24,8 @@ export abstract class Resource {
 	protected definedSignatures = new Set<string>();
 	protected calledSignatures = new Set<string>();
 	private valid = false;
+	path;
+	name;
 	diagnostics: Diagnostic[] = [];
 
 	constructor(mod: Mod, name: string, path: string) {

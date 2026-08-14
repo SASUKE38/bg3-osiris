@@ -30,6 +30,10 @@
 			{
 				"command": "bg3Osiris.DeleteGoal",
 				"title": "Delete"
+			},
+			{
+				"command": "bg3Osiris.RenameGoal",
+				"title": "Rename"
 			}
 		],
 		"languages": [
@@ -54,6 +58,14 @@
 				{
 					"command": "bg3Osiris.OverrideGoal",
 					"when": "false"
+				},
+				{
+					"command": "bg3Osiris.DeleteGoal",
+					"when": "false"
+				},
+				{
+					"command": "bg3Osiris.RenameGoal",
+					"when": "false"
 				}
 			],
 			"view/item/context": [
@@ -67,6 +79,10 @@
 				},
 				{
 					"command": "bg3Osiris.DeleteGoal",
+					"when": "view == story-outline && viewItem == overriden"
+				},
+				{
+					"command": "bg3Osiris.RenameGoal",
 					"when": "view == story-outline && viewItem == overriden"
 				}
 			]

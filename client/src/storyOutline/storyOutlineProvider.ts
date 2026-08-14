@@ -25,12 +25,14 @@ import {
 	requestOverrideStoryTreeNode,
 	RequestOverrideStoryTreeNodeParams,
 	RequestOverrideStoryTreeNodeResult,
+	requestRenameStoryTreeNode,
+	RequestRenameStoryTreeNodeParams,
 	requestTestStoryTreeName,
 	RequestTestStoryTreeNameParams,
 	RequestTestStoryTreeNameResult
 } from "bg3-osiris-shared";
 import { ComponentBase } from "../componentBase";
-import { clients } from "../extension";
+import { Client, clients } from "../extension";
 import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
 
 export class StoryItem extends TreeItem {
@@ -72,6 +74,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.AddGoal", this.handleAddGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OverrideGoal", this.handleOverrideGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.DeleteGoal", this.handleDeleteGoal));
+		context.subscriptions.push(commands.registerCommand("bg3Osiris.RenameGoal", this.handleRenameGoal));
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -118,6 +121,21 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		this._onDidChangeTreeData.fire();
 	}
 
+	private async getGoalName(client: Client): Promise<string | undefined> {
+		return await window.showInputBox({
+			prompt: "Enter the goal's name.",
+			validateInput: async (value) => {
+				const validityParams: RequestTestStoryTreeNameParams = { name: value };
+				return (
+					(await client.connection.sendRequest(
+						requestTestStoryTreeName,
+						validityParams
+					)) as RequestTestStoryTreeNameResult
+				).reason;
+			}
+		});
+	}
+
 	private readonly handleOpenGoal = async (element?: StoryItem) => {
 		if (!element || element.isRoot) return;
 		const client = clients.get(element.folder);
@@ -146,18 +164,7 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		if (!element) return;
 		const client = clients.get(element.folder);
 		if (!client) return;
-		const name = await window.showInputBox({
-			prompt: "Enter the goal's name.",
-			validateInput: async (value) => {
-				const validityParams: RequestTestStoryTreeNameParams = { name: value };
-				return (
-					(await client.connection.sendRequest(
-						requestTestStoryTreeName,
-						validityParams
-					)) as RequestTestStoryTreeNameResult
-				).reason;
-			}
-		});
+		const name = await this.getGoalName(client);
 		if (!name) return;
 
 		const params: RequestAddStoryTreeNodeParams = { parent: element.isRoot ? "" : element.label, name };
@@ -197,6 +204,18 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		await client.connection.sendRequest(requestDeleteStoryTreeNode, params);
 		this.refresh();
 	};
+
+	private readonly handleRenameGoal = async (element?: StoryItem) => {
+		if (!element || element.isRoot) return;
+		const client = clients.get(element.folder);
+		if (!client) return;
+		const name = await this.getGoalName(client);
+		if (!name) return;
+
+		const params: RequestRenameStoryTreeNodeParams = { targetName: name, oldName: element.label };
+		await client.connection.sendRequest(requestRenameStoryTreeNode, params);
+		this.refresh();
+	};
 }
 
 /*
@@ -228,10 +247,12 @@ On request for moving a goal:
 On request for renaming a goal:
 	Find server to request based on folder field in tree item
 	In server:
+	Deny request for goals with nonoverriden children
 	Change all child files of the goal to have the correct parent name
-	Change all child nodes of the goal to have the correct parent name
 	Find resource in mod
 	Change the name of the resource
+	Change the name of the file
+	Change the name of the node
 	In client:
 	Refresh tree
 

@@ -3,6 +3,7 @@ import { Dependency } from "./dependency";
 import { GoalResource } from "./resource/goalResource";
 import { Mod } from "./mod";
 import waitUntil, { WAIT_FOREVER } from "async-wait-until";
+import { ResourceKind } from "./resource/resource";
 
 export class StoryTree {
 	nodeMapping = new Map<string, StoryTreeNode>();
@@ -88,9 +89,9 @@ export class StoryTree {
 		return res;
 	}
 
-	async addStoryTreeNode(parent: string, name: string) {
+	async addStoryTreeNode(parent: string, name: string, children: StoryTreeNode[] = []) {
 		await this.waitForReady();
-		const childNode: StoryTreeNode = { children: [], data: { name } };
+		const childNode: StoryTreeNode = { children, data: { name } };
 		this.nodeMapping.set(name, childNode);
 		const parentNode = this.nodeMapping.get(parent);
 		if (!parentNode) {
@@ -119,5 +120,15 @@ export class StoryTree {
 		} else {
 			this.nodeMapping.delete(name);
 		}
+	}
+
+	async renameStoryTreeNode(targetName: string, oldName: string) {
+		await this.waitForReady();
+		const resource = this.mod.getResource(`${oldName}.txt`, "name");
+		if (!resource || resource.kind !== ResourceKind.Goal) return;
+		await this.deleteStoryTreeNode(oldName);
+		const node = this.nodeMapping.get(oldName);
+		if (!node) return;
+		await this.addStoryTreeNode((resource as GoalResource).parent, targetName, node ? node.children : []);
 	}
 }

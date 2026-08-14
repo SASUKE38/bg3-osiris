@@ -56,3 +56,9 @@ export interface RequestDeleteStoryTreeNodeParams {
 export interface RequestDeleteStoryTreeNodeResult {
 	success: boolean;
 }
+
+export const requestRenameStoryTreeNode = "bg3Osiris/renameStoryTreeNode";
+export interface RequestRenameStoryTreeNodeParams {
+	targetName: string;
+	oldName: string;
+}
