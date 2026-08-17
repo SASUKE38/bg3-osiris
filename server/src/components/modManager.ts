@@ -38,6 +38,8 @@ import {
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
 	RequestGetStoryTreeNodePathResult,
+	requestMoveStoryTreeNode,
+	RequestMoveStoryTreeNodeParams,
 	requestOverrideStoryTreeNode,
 	RequestOverrideStoryTreeNodeParams,
 	RequestOverrideStoryTreeNodeResult,
@@ -77,6 +79,7 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestOverrideStoryTreeNode, this.handleOverrideStoryTreeNode);
 		connection.onRequest(requestDeleteStoryTreeNode, this.handleDeleteStoryTreeNode);
 		connection.onRequest(requestRenameStoryTreeNode, this.handleRenameStoryTreeNode);
+		connection.onRequest(requestMoveStoryTreeNode, this.handleMoveStoryTreeNode);
 
 		if (rootFolder) {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
@@ -231,14 +234,53 @@ export class ModManager extends ComponentBase {
 				const footer = ((await resource.getRootNode()) as GoalNode).footer;
 				if (!footer || footer.parentTargetEdge.kind != ASTNodeKind.STRING_NODE) continue;
 
-				const range = (footer.parentTargetEdge as StringNode).range;
-				range.start.character += 1;
-				range.end.character -= 1;
-				edits[encodePath(resource.path)] = [TextEdit.replace(range, params.targetName)];
+				const edit = await this.getParentTargetEdgeEdit(resource as GoalResource, params.targetName);
+				if (!edit) continue;
+				Object.assign(edits, edit);
 			}
 			this.server.connection.workspace.applyEdit({ changes: edits });
 		}
 	};
+
+	private readonly handleMoveStoryTreeNode = async (params: RequestMoveStoryTreeNodeParams) => {
+		if (!this.mod) return;
+		await this.mod.storyTree.moveStoryTreeNode(params.targetName, params.sourceName);
+		const resource = this.mod.getResource(`${params.sourceName}.txt`, "name");
+		if (!resource || resource.kind !== ResourceKind.Goal) return;
+		const edit = await this.getParentTargetEdgeEdit(resource as GoalResource, params.targetName, true);
+		if (!edit) return;
+		this.server.connection.workspace.applyEdit({ changes: edit });
+	};
+
+	private async getParentTargetEdgeEdit(
+		resource: GoalResource,
+		targetName: string,
+		insert: boolean = false
+	): Promise<{ [uri: string]: TextEdit[] } | undefined> {
+		const edit: { [uri: string]: TextEdit[] } = {};
+		const root = (await resource.getRootNode()) as GoalNode;
+		const encodedPath = encodePath(resource.path);
+		if (!root.footer) {
+			if (!insert || targetName === "") return;
+			const position = root.exit.range.end;
+			position.line += 1;
+			position.character = 0;
+			edit[encodedPath] = [TextEdit.insert(position, `ParentTargetEdge "${targetName}"`)];
+		} else {
+			if (root.footer.parentTargetEdge.kind !== ASTNodeKind.STRING_NODE) return;
+			if (targetName === "") {
+				const range = root.footer.range;
+				edit[encodedPath] = [TextEdit.del(range)];
+			} else {
+				const range = root.footer.parentTargetEdge.range;
+				range.start.character += 1;
+				range.end.character -= 1;
+				edit[encodedPath] = [TextEdit.replace(range, targetName)];
+			}
+		}
+		resource.invalidate();
+		return edit;
+	}
 
 	/**
 	 * Locates a {@link Resource} associated with a given path.

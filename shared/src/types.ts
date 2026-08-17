@@ -1,5 +1,6 @@
 export interface StoryTreeNode {
 	children: StoryTreeNode[];
+	parent?: string;
 	data?: StoryTreeData;
 }
 

@@ -53,10 +53,12 @@ let registeredProviders = false;
 function tryRegisterProviders(context: ExtensionContext) {
 	if (registeredProviders) return;
 
+	const storyOutlineProvider = new StoryOutlineProvider(context);
 	window.createTreeView("story-outline", {
 		showCollapseAll: true,
 		canSelectMany: true,
-		treeDataProvider: new StoryOutlineProvider(context)
+		treeDataProvider: storyOutlineProvider,
+		dragAndDropController: storyOutlineProvider
 	});
 
 	context.subscriptions.push(

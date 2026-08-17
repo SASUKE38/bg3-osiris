@@ -1,9 +1,13 @@
 import {
+	CancellationToken,
 	commands,
+	DataTransfer,
+	DataTransferItem,
 	Event,
 	EventEmitter,
 	ExtensionContext,
 	TreeDataProvider,
+	TreeDragAndDropController,
 	TreeItem,
 	TreeItemCollapsibleState,
 	Uri,
@@ -22,6 +26,8 @@ import {
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
 	RequestGetStoryTreeNodePathResult,
+	requestMoveStoryTreeNode,
+	RequestMoveStoryTreeNodeParams,
 	requestOverrideStoryTreeNode,
 	RequestOverrideStoryTreeNodeParams,
 	RequestOverrideStoryTreeNodeResult,
@@ -62,7 +68,20 @@ export class StoryItem extends TreeItem {
 	}
 }
 
-export class StoryOutlineProvider extends ComponentBase implements TreeDataProvider<StoryItem> {
+interface StoryItemDragAndDropTransferPayload {
+	label: string;
+	folder: string;
+	isRoot: boolean;
+	isOverriden: boolean;
+}
+
+export class StoryOutlineProvider
+	extends ComponentBase
+	implements TreeDataProvider<StoryItem>, TreeDragAndDropController<StoryItem>
+{
+	private static readonly dragAndDropMimeType = "application/vnd.code.tree.story-outline";
+	dropMimeTypes: readonly string[] = [StoryOutlineProvider.dragAndDropMimeType];
+	dragMimeTypes: readonly string[] = [StoryOutlineProvider.dragAndDropMimeType];
 	private _onDidChangeTreeData: EventEmitter<StoryItem | undefined | null | void> = new EventEmitter<
 		StoryItem | undefined | null | void
 	>();
@@ -75,6 +94,66 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OverrideGoal", this.handleOverrideGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.DeleteGoal", this.handleDeleteGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.RenameGoal", this.handleRenameGoal));
+	}
+
+	public async handleDrag(
+		source: readonly StoryItem[],
+		dataTransfer: DataTransfer,
+		token: CancellationToken
+	): Promise<void> {
+		const dataTransferPayload: StoryItemDragAndDropTransferPayload[] = source.map((value) => {
+			return {
+				label: value.label,
+				folder: value.folder,
+				isRoot: value.isRoot,
+				isOverriden: value.isOverriden
+			};
+		});
+		dataTransfer.set(StoryOutlineProvider.dragAndDropMimeType, new DataTransferItem(dataTransferPayload));
+	}
+
+	public async handleDrop(
+		target: StoryItem | undefined,
+		dataTransfer: DataTransfer,
+		token: CancellationToken
+	): Promise<void> {
+		if (!target) return;
+		try {
+			const items = dataTransfer.get(StoryOutlineProvider.dragAndDropMimeType)?.value as
+				| StoryItemDragAndDropTransferPayload[]
+				| undefined;
+			if (!items) return;
+			const folder = items[0].folder;
+
+			if (!items.every((value) => value.folder === folder)) {
+				window.showErrorMessage("A move operation cannot contain goals from multiple workspaces.");
+				return;
+			}
+
+			let didWarning = false;
+			const client = clients.get(folder);
+			if (!client) return;
+
+			// Parallelize this?
+			for (const item of items) {
+				if (item.isRoot || !item.isOverriden) {
+					if (!didWarning) {
+						window.showErrorMessage("Folders and inherited goals cannot be moved.");
+						didWarning = true;
+					}
+					continue;
+				}
+
+				const params: RequestMoveStoryTreeNodeParams = {
+					targetName: target.isRoot ? "" : target.label,
+					sourceName: item.label
+				};
+				await client.connection.sendRequest(requestMoveStoryTreeNode, params);
+			}
+			this.refresh();
+		} catch (e) {
+			console.error(`An error occurred during the drop operation: ${e}`);
+		}
 	}
 
 	getTreeItem(element: StoryItem): TreeItem | Thenable<TreeItem> {
@@ -111,8 +190,10 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		}
 
 		return res.sort((a, b) => {
-			if (a.label < b.label) return -1;
-			if (a.label === b.label) return 0;
+			const labelA = a.label.toUpperCase();
+			const labelB = b.label.toUpperCase();
+			if (labelA < labelB) return -1;
+			if (labelA === labelB) return 0;
 			return 1;
 		});
 	}
@@ -217,43 +298,3 @@ export class StoryOutlineProvider extends ComponentBase implements TreeDataProvi
 		this.refresh();
 	};
 }
-
-/*
-
-Architecture:
-Data store in server
-Possibly restrict commands based on if goal is overriden or not
-Possibly optimize sending new tree to instead send only changes
-
-Story Item contents:
-label
-tooltip
-folder
-collapsible state
-isActive
-uri
-
-On request for moving a goal:
-	Find server to request based on folder field in tree item
-	Send destination to server
-	In server:
-	If goal is not an active goal, deny request
-	Remove goal from parent's list of children and add it to new parent's list of children
-	Change the ParentTargetEdge of the goal in the file to the new parent
-	Invalidate the resource or change the Parent node in the ast
-	In client:
-	Refresh tree
-
-On request for renaming a goal:
-	Find server to request based on folder field in tree item
-	In server:
-	Deny request for goals with nonoverriden children
-	Change all child files of the goal to have the correct parent name
-	Find resource in mod
-	Change the name of the resource
-	Change the name of the file
-	Change the name of the node
-	In client:
-	Refresh tree
-
-*/

@@ -62,3 +62,9 @@ export interface RequestRenameStoryTreeNodeParams {
 	targetName: string;
 	oldName: string;
 }
+
+export const requestMoveStoryTreeNode = "bg3Osiris/moveStoryTreeNode";
+export interface RequestMoveStoryTreeNodeParams {
+	targetName: string;
+	sourceName: string;
+}

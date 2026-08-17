@@ -71,6 +71,7 @@ export class StoryTree {
 		const childNode = this.nodeMapping.get(name);
 		if (parentNode && childNode) {
 			parentNode.children.push(childNode);
+			childNode.parent = parentNode.data?.name ? parentNode.data.name : "";
 		}
 	}
 
@@ -92,8 +93,9 @@ export class StoryTree {
 	async addStoryTreeNode(parent: string, name: string, children: StoryTreeNode[] = []) {
 		await this.waitForReady();
 		const childNode: StoryTreeNode = { children, data: { name } };
-		this.nodeMapping.set(name, childNode);
 		const parentNode = this.nodeMapping.get(parent);
+		childNode.parent = parentNode?.data?.name ? parentNode.data.name : "";
+		this.nodeMapping.set(name, childNode);
 		if (!parentNode) {
 			console.error(`No goal with the name ${parent} could be found.`);
 			return;
@@ -103,10 +105,10 @@ export class StoryTree {
 
 	async deleteStoryTreeNode(name: string) {
 		await this.waitForReady();
-		const resource = this.mod.getResource(`${name}.txt`, "name");
-		if (!resource || !Object.hasOwn(resource, "parent")) return;
+		const childNode = this.nodeMapping.get(name);
+		if (!childNode || childNode.parent === undefined) return;
 
-		const parentNode = this.nodeMapping.get((resource as GoalResource).parent);
+		const parentNode = this.nodeMapping.get(childNode.parent);
 		const childIndex = parentNode?.children.findIndex((value) => value.data?.name === name);
 		if (childIndex !== undefined) parentNode?.children.splice(childIndex, 1);
 
@@ -124,11 +126,16 @@ export class StoryTree {
 
 	async renameStoryTreeNode(targetName: string, oldName: string) {
 		await this.waitForReady();
-		const resource = this.mod.getResource(`${oldName}.txt`, "name");
-		if (!resource || resource.kind !== ResourceKind.Goal) return;
-		await this.deleteStoryTreeNode(oldName);
 		const node = this.nodeMapping.get(oldName);
+		await this.deleteStoryTreeNode(oldName);
 		if (!node) return;
-		await this.addStoryTreeNode((resource as GoalResource).parent, targetName, node ? node.children : []);
+		await this.addStoryTreeNode(node.parent ? node.parent : "", targetName, node ? node.children : []);
+	}
+
+	async moveStoryTreeNode(targetName: string, sourceName: string) {
+		await this.waitForReady();
+		const node = this.nodeMapping.get(sourceName);
+		await this.deleteStoryTreeNode(sourceName);
+		await this.addStoryTreeNode(targetName, sourceName, node ? node.children : []);
 	}
 }

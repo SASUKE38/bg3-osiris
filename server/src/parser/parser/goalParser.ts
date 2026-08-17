@@ -22,7 +22,6 @@ import {
 	unexpectedTokenDiagnosticFactory
 } from "../../components/diagnostics/message";
 import { ParserBase } from "./parserBase";
-import { Range } from "vscode-languageserver";
 
 export class GoalParser extends ParserBase<GoalNode> {
 	private parameterTypes: TokenType[] = [
