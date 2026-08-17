@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-invalid-void-type */
 import {
-	CancellationToken,
 	commands,
 	DataTransfer,
 	DataTransferItem,
@@ -96,11 +96,7 @@ export class StoryOutlineProvider
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.RenameGoal", this.handleRenameGoal));
 	}
 
-	public async handleDrag(
-		source: readonly StoryItem[],
-		dataTransfer: DataTransfer,
-		token: CancellationToken
-	): Promise<void> {
+	public async handleDrag(source: readonly StoryItem[], dataTransfer: DataTransfer): Promise<void> {
 		const dataTransferPayload: StoryItemDragAndDropTransferPayload[] = source.map((value) => {
 			return {
 				label: value.label,
@@ -112,11 +108,7 @@ export class StoryOutlineProvider
 		dataTransfer.set(StoryOutlineProvider.dragAndDropMimeType, new DataTransferItem(dataTransferPayload));
 	}
 
-	public async handleDrop(
-		target: StoryItem | undefined,
-		dataTransfer: DataTransfer,
-		token: CancellationToken
-	): Promise<void> {
+	public async handleDrop(target: StoryItem | undefined, dataTransfer: DataTransfer): Promise<void> {
 		if (!target) return;
 		try {
 			const items = dataTransfer.get(StoryOutlineProvider.dragAndDropMimeType)?.value as
@@ -182,9 +174,14 @@ export class StoryOutlineProvider
 				)) as RequestGetStoryTreeNodeChildrenResult
 			).children;
 			for (const child of children) {
-				if (!child[0].data) continue;
+				if (!child.node.data) continue;
 				res.push(
-					new StoryItem(child[0].data.name, element.folder, TreeItemCollapsibleState.Collapsed, child[1])
+					new StoryItem(
+						child.node.data.name,
+						element.folder,
+						child.hasChildren ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None,
+						child.isOverriden
+					)
 				);
 			}
 		}

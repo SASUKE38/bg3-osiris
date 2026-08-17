@@ -1,4 +1,4 @@
-import { CancellationToken, TextDocumentContentProvider, Uri, window } from "vscode";
+import { TextDocumentContentProvider, Uri, window } from "vscode";
 import { clients } from "../extension";
 import {
 	requestGetInheritedGoalContent,
@@ -9,7 +9,7 @@ import {
 export class InheritedGoalContentProvider implements TextDocumentContentProvider {
 	static readonly scheme = "bg3Osiris.InheritedGoal";
 
-	async provideTextDocumentContent(uri: Uri, token: CancellationToken): Promise<string | null | undefined> {
+	async provideTextDocumentContent(uri: Uri): Promise<string | null | undefined> {
 		const client = clients.get(uri.query);
 		if (!client) {
 			window.showErrorMessage(`Couldn't find client for ${uri.query}. Goal content cannot be shown.`);

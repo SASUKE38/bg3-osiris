@@ -50,7 +50,7 @@ import {
 	RequestTestStoryTreeNameResult
 } from "bg3-osiris-shared";
 import { extractFromPak } from "../utils/edge";
-import { ASTNodeKind, GoalNode, StringNode } from "../parser/ast/nodes";
+import { ASTNodeKind, GoalNode } from "../parser/ast/nodes";
 import { GoalResource } from "../mods/resource/goalResource";
 
 /**
@@ -220,10 +220,11 @@ export class ModManager extends ComponentBase {
 		if (children) {
 			const childResources = children.map((value) => {
 				if (!value.data) return;
+				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 				const resource = this.mod!.getResource(`${value.data.name}.txt`, "name");
 				return resource;
 			});
-			const edits: { [uri: string]: TextEdit[] } = {};
+			const edits: Record<string, TextEdit[]> = {};
 			for (const resource of childResources) {
 				if (
 					!resource ||
@@ -255,9 +256,9 @@ export class ModManager extends ComponentBase {
 	private async getParentTargetEdgeEdit(
 		resource: GoalResource,
 		targetName: string,
-		insert: boolean = false
-	): Promise<{ [uri: string]: TextEdit[] } | undefined> {
-		const edit: { [uri: string]: TextEdit[] } = {};
+		insert = false
+	): Promise<Record<string, TextEdit[]> | undefined> {
+		const edit: Record<string, TextEdit[]> = {};
 		const root = (await resource.getRootNode()) as GoalNode;
 		const encodedPath = encodePath(resource.path);
 		if (!root.footer) {

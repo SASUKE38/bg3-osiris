@@ -1,9 +1,8 @@
-import { StoryTreeNode } from "bg3-osiris-shared";
+import { StoryTreeChildData, StoryTreeNode } from "bg3-osiris-shared";
 import { Dependency } from "./dependency";
 import { GoalResource } from "./resource/goalResource";
 import { Mod } from "./mod";
 import waitUntil, { WAIT_FOREVER } from "async-wait-until";
-import { ResourceKind } from "./resource/resource";
 
 export class StoryTree {
 	nodeMapping = new Map<string, StoryTreeNode>();
@@ -75,17 +74,17 @@ export class StoryTree {
 		}
 	}
 
-	async getStoryTreeNodeChildren(name: string): Promise<[StoryTreeNode, boolean][]> {
+	async getStoryTreeNodeChildren(name: string): Promise<StoryTreeChildData[]> {
 		await this.waitForReady();
 		const node = this.nodeMapping.get(name);
 		if (!node) return [];
-		const res: [StoryTreeNode, boolean][] = [];
+		const res: StoryTreeChildData[] = [];
 		for (const child of node.children) {
 			const isOverriden =
 				!child.data || child.data.name === ""
 					? false
 					: this.mod.getResource(`${child.data.name}.txt`, "name") !== undefined;
-			res.push([child, isOverriden]);
+			res.push({ node: child, isOverriden, hasChildren: child.children.length > 0 });
 		}
 		return res;
 	}

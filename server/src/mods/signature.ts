@@ -1,5 +1,3 @@
-import { Location } from "vscode-languageserver";
-
 export class Signature {
 	name: string;
 	type: "proc" | "query" | "database" | "builtin";

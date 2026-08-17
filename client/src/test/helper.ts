@@ -7,6 +7,7 @@ export let documentEol: string;
 export let platformEol: string;
 
 export async function activate(docUri: vscode.Uri) {
+	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	const ext = vscode.extensions.getExtension("SASUKE38.bg3-osiris")!;
 	await ext.activate();
 	try {
@@ -42,6 +43,7 @@ export function toDocumentationMarkdownString(
 	return res;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -1,4 +1,4 @@
-import { StoryTreeNode } from "./types";
+import { StoryTreeChildData } from "./types";
 
 export const requestGetInheritedGoalContent = "bg3Osiris/getInheritedGoalContent";
 export interface RequestGetInheritedGoalContentParams {
@@ -13,7 +13,7 @@ export interface RequestGetStoryTreeNodeChildrenParams {
 	name: string;
 }
 export interface RequestGetStoryTreeNodeChildrenResult {
-	children: [StoryTreeNode, boolean][];
+	children: StoryTreeChildData[];
 }
 
 export const requestGetStoryTreeNodePath = "bg3Osiris/getStoryTreeNodePath";
