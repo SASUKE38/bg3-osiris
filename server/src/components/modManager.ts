@@ -43,6 +43,7 @@ import {
 	requestOverrideStoryTreeNode,
 	RequestOverrideStoryTreeNodeParams,
 	RequestOverrideStoryTreeNodeResult,
+	requestRefreshStoryTree,
 	requestRenameStoryTreeNode,
 	RequestRenameStoryTreeNodeParams,
 	requestTestStoryTreeName,
@@ -75,6 +76,7 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestGetStoryTreeNodeChildren, this.handleGetStoryTreeNodeChildren);
 		connection.onRequest(requestGetStoryTreeNodePath, this.handleGetStoryTreeNodePath);
 		connection.onRequest(requestTestStoryTreeName, this.handleTestStoryTreeName);
+		connection.onRequest(requestRefreshStoryTree, this.handleRefreshStoryTree);
 		connection.onRequest(requestAddStoryTreeNode, this.handleAddStoryTreeNode);
 		connection.onRequest(requestOverrideStoryTreeNode, this.handleOverrideStoryTreeNode);
 		connection.onRequest(requestDeleteStoryTreeNode, this.handleDeleteStoryTreeNode);
@@ -154,6 +156,11 @@ export class ModManager extends ComponentBase {
 		if (this.mod.getResource(`${params.name}.txt`, "name") || this.mod.getInheritedGoalOwner(params.name))
 			return { reason: "The goal's name must be unique." };
 		return { reason: "" };
+	};
+
+	private readonly handleRefreshStoryTree = async () => {
+		if (!this.mod) return;
+		this.mod.storyTree.createTree(this.mod.getAllGoals(), this.mod.getAllDependencies());
 	};
 
 	private readonly handleAddStoryTreeNode = async (

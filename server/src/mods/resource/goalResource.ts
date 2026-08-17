@@ -40,7 +40,7 @@ export class GoalResource extends Resource {
 			thisArg.parent =
 				root.footer?.parentTargetEdge.kind === ASTNodeKind.STRING_NODE
 					? (root.footer?.parentTargetEdge as StringNode).value
-					: thisArg.parent;
+					: "";
 		}
 
 		if (this.document) {

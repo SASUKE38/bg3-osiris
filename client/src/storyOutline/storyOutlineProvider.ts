@@ -31,6 +31,7 @@ import {
 	requestOverrideStoryTreeNode,
 	RequestOverrideStoryTreeNodeParams,
 	RequestOverrideStoryTreeNodeResult,
+	requestRefreshStoryTree,
 	requestRenameStoryTreeNode,
 	RequestRenameStoryTreeNodeParams,
 	requestTestStoryTreeName,
@@ -89,6 +90,7 @@ export class StoryOutlineProvider
 
 	constructor(context: ExtensionContext) {
 		super(context);
+		context.subscriptions.push(commands.registerCommand("bg3Osiris.RefreshStoryTree", this.handleRefreshStoryTree));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OpenGoal", this.handleOpenGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.AddGoal", this.handleAddGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OverrideGoal", this.handleOverrideGoal));
@@ -126,7 +128,7 @@ export class StoryOutlineProvider
 			const client = clients.get(folder);
 			if (!client) return;
 
-			// Parallelize this?
+			// TODO: Parallelize this?
 			for (const item of items) {
 				if (item.isRoot || !item.isOverriden) {
 					if (!didWarning) {
@@ -213,6 +215,13 @@ export class StoryOutlineProvider
 			}
 		});
 	}
+
+	private readonly handleRefreshStoryTree = async () => {
+		for (const client of clients.values()) {
+			await client.connection.sendRequest(requestRefreshStoryTree);
+		}
+		this.refresh();
+	};
 
 	private readonly handleOpenGoal = async (element?: StoryItem) => {
 		if (!element || element.isRoot) return;

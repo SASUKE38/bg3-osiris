@@ -32,6 +32,8 @@ export interface RequestTestStoryTreeNameResult {
 	reason: string;
 }
 
+export const requestRefreshStoryTree = "bg3Osiris/refreshStoryTree";
+
 export const requestAddStoryTreeNode = "bg3Osiris/addStoryTreeNode";
 export interface RequestAddStoryTreeNodeParams {
 	parent: string;

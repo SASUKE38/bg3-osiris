@@ -14,6 +14,7 @@ export class StoryTree {
 	}
 
 	createTree(resources: GoalResource[], dependencies: Dependency[]) {
+		this.isReady = false;
 		if (!this.mod.manager.server.rootFolder) return;
 
 		const handledGoals = new Set<string>();

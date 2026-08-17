@@ -129,6 +129,10 @@ export class Mod {
 		return this.goals;
 	}
 
+	getAllDependencies(): Dependency[] {
+		return this.dependencies;
+	}
+
 	createResource(name: string, path: string) {
 		this.goals.push(new GoalResource(this, name, path));
 	}

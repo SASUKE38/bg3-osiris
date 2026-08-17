@@ -20,12 +20,19 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "bg3Osiris.RefreshStoryTree",
+				"title": "Refresh Story Tree",
+				"icon": "$(refresh)"
+			},
+			{
 				"command": "bg3Osiris.AddGoal",
-				"title": "Add Goal"
+				"title": "Add Goal",
+				"icon": "$(add)"
 			},
 			{
 				"command": "bg3Osiris.OverrideGoal",
-				"title": "Override"
+				"title": "Override",
+				"icon": "$(pencil)"
 			},
 			{
 				"command": "bg3Osiris.DeleteGoal",
@@ -68,14 +75,23 @@
 					"when": "false"
 				}
 			],
+			"view/title": [
+				{
+					"command": "bg3Osiris.RefreshStoryTree",
+					"when": "view == story-outline",
+					"group": "navigation"
+				}
+			],
 			"view/item/context": [
 				{
 					"command": "bg3Osiris.AddGoal",
-					"when": "view == story-outline"
+					"when": "view == story-outline",
+					"group": "inline"
 				},
 				{
 					"command": "bg3Osiris.OverrideGoal",
-					"when": "view == story-outline && viewItem == inherited"
+					"when": "view == story-outline && viewItem == inherited",
+					"group": "inline"
 				},
 				{
 					"command": "bg3Osiris.DeleteGoal",
