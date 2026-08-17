@@ -69,6 +69,9 @@ export class StoryItem extends TreeItem {
 	}
 }
 
+/**
+ * Represents the data marshaled between a drag and a drop in the Story Tree.
+ */
 interface StoryItemDragAndDropTransferPayload {
 	label: string;
 	folder: string;
@@ -76,6 +79,9 @@ interface StoryItemDragAndDropTransferPayload {
 	isOverriden: boolean;
 }
 
+/**
+ * The provider for the Osiris Story Tree. This class handles all of the clients in the workspace.
+ */
 export class StoryOutlineProvider
 	extends ComponentBase
 	implements TreeDataProvider<StoryItem>, TreeDragAndDropController<StoryItem>
@@ -197,10 +203,19 @@ export class StoryOutlineProvider
 		});
 	}
 
+	/**
+	 * Fires the onDidChangeTreeData event.
+	 */
 	private refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
 
+	/**
+	 * Presents an input box to the user and requests the server to validate the input.
+	 *
+	 * @param client The client to request.
+	 * @returns A string if the entered name is valid, undefined otherwise.
+	 */
 	private async getGoalName(client: Client): Promise<string | undefined> {
 		return await window.showInputBox({
 			prompt: "Enter the goal's name.",
@@ -216,6 +231,9 @@ export class StoryOutlineProvider
 		});
 	}
 
+	/**
+	 * The handler for the bg3Osiris.RefreshStoryTree command.
+	 */
 	private readonly handleRefreshStoryTree = async () => {
 		for (const client of clients.values()) {
 			await client.connection.sendRequest(requestRefreshStoryTree);
@@ -223,6 +241,13 @@ export class StoryOutlineProvider
 		this.refresh();
 	};
 
+	/**
+	 * The handler for the bg3Osiris.OpenGoal command.
+	 * Opens the goal .txt file associated with the given {@link StoryItem}.
+	 * Inherited goals are opened as virtual documents.
+	 *
+	 * @param element The {@link StoryItem} to open.
+	 */
 	private readonly handleOpenGoal = async (element?: StoryItem) => {
 		if (!element || element.isRoot) return;
 		const client = clients.get(element.folder);
@@ -247,6 +272,12 @@ export class StoryOutlineProvider
 		await window.showTextDocument(doc, { preview: false });
 	};
 
+	/**
+	 * The handler for the bg3Osiris.AddGoal command.
+	 * Adds a new subgoal to the given {@link StoryItem}.
+	 *
+	 * @param element The {@link StoryItem} to add the subgoal to.
+	 */
 	private readonly handleAddGoal = async (element?: StoryItem) => {
 		if (!element) return;
 		const client = clients.get(element.folder);
@@ -266,6 +297,12 @@ export class StoryOutlineProvider
 		this.refresh();
 	};
 
+	/**
+	 * The handler for the bg3Osiris.OverrideGoal command.
+	 * Copies a goal to the mod if a {@link StoryItem} is provided.
+	 *
+	 * @param element The {@link StoryItem} to override.
+	 */
 	private readonly handleOverrideGoal = async (element?: StoryItem) => {
 		if (!element || element.isRoot) return;
 		const client = clients.get(element.folder);
@@ -283,6 +320,12 @@ export class StoryOutlineProvider
 		}
 	};
 
+	/**
+	 * The handler for the bg3Osiris.DeleteGoal command.
+	 * Deletes a goal from the mod if a {@link StoryItem} is provided.
+	 *
+	 * @param element The {@link StoryItem} to delete.
+	 */
 	private readonly handleDeleteGoal = async (element?: StoryItem) => {
 		if (!element || element.isRoot) return;
 		const client = clients.get(element.folder);
@@ -292,6 +335,12 @@ export class StoryOutlineProvider
 		this.refresh();
 	};
 
+	/**
+	 * The handler for the bg3Osiris.RenameGoal command.
+	 * Renames a goal if a {@link StoryItem} is provided.
+	 *
+	 * @param element The {@link StoryItem} to rename.
+	 */
 	private readonly handleRenameGoal = async (element?: StoryItem) => {
 		if (!element || element.isRoot) return;
 		const client = clients.get(element.folder);

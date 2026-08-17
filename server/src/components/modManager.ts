@@ -131,6 +131,15 @@ export class ModManager extends ComponentBase {
 		return { content: undefined };
 	};
 
+	//#region Story Tree
+
+	/**
+	 * The handler for the {@link requestGetStoryTreeNodeChildren} request.
+	 * Fetches the children for a given story tree node.
+	 *
+	 * @param params The {@link RequestGetStoryTreeNodeChildrenParams} for the request.
+	 * @returns A {@link RequestGetStoryTreeNodeChildrenResult} instance.
+	 */
 	private readonly handleGetStoryTreeNodeChildren = async (
 		params: RequestGetStoryTreeNodeChildrenParams
 	): Promise<RequestGetStoryTreeNodeChildrenResult> => {
@@ -138,6 +147,13 @@ export class ModManager extends ComponentBase {
 		return { children: await this.mod.storyTree.getStoryTreeNodeChildren(params.name) };
 	};
 
+	/**
+	 * The handler for the {@link requestGetStoryTreeNodePath} request.
+	 * Gets the path for a given story tree node.
+	 *
+	 * @param params The {@link RequestGetStoryTreeNodePathParams} for the request.
+	 * @returns A {@link RequestGetStoryTreeNodePathResult} instance.
+	 */
 	private readonly handleGetStoryTreeNodePath = async (
 		params: RequestGetStoryTreeNodePathParams
 	): Promise<RequestGetStoryTreeNodePathResult> => {
@@ -146,6 +162,15 @@ export class ModManager extends ComponentBase {
 		return { path: path ? encodePath(path) : path };
 	};
 
+	/**
+	 * The handler for the {@link requestTestStoryTreeName} request.
+	 * Determines if a given name is valid for a story tree node. That is,
+	 * checks if the name is unique, contains only _, -, and alphanumeric characters,
+	 * and is not empty.
+	 *
+	 * @param params The {@link RequestTestStoryTreeNameParams} for the request.
+	 * @returns A {@link RequestTestStoryTreeNameResult} instance.
+	 */
 	private readonly handleTestStoryTreeName = (
 		params: RequestTestStoryTreeNameParams
 	): RequestTestStoryTreeNameResult => {
@@ -158,11 +183,23 @@ export class ModManager extends ComponentBase {
 		return { reason: "" };
 	};
 
+	/**
+	 * The handler for the {@link requestRefreshStoryTree} request.
+	 * Recreates the story tree for this mod.
+	 */
 	private readonly handleRefreshStoryTree = async () => {
 		if (!this.mod) return;
 		this.mod.storyTree.createTree(this.mod.getAllGoals(), this.mod.getAllDependencies());
 	};
 
+	/**
+	 * The handler for the {@link requestAddStoryTreeNode} request.
+	 * Adds a node to the story tree and writes a new file to the mod's
+	 * goal path with initial Osiris.
+	 *
+	 * @param params The {@link RequestAddStoryTreeNodeParams} for the request.
+	 * @returns A {@link RequestAddStoryTreeNodeResult} instance.
+	 */
 	private readonly handleAddStoryTreeNode = async (
 		params: RequestAddStoryTreeNodeParams
 	): Promise<RequestAddStoryTreeNodeResult> => {
@@ -175,6 +212,14 @@ export class ModManager extends ComponentBase {
 		return { path };
 	};
 
+	/**
+	 * The handler for the {@link requestOverrideStoryTreeNode} request.
+	 * Overrides a given goal. Extracts the .txt file from the dependency pak
+	 * and writes a copy to the goal's mod goal path.
+	 *
+	 * @param params The {@link RequestOverrideStoryTreeNodeParams} for the request.
+	 * @returns A {@link RequestOverrideStoryTreeNodeResult} instance.
+	 */
 	private readonly handleOverrideStoryTreeNode = async (
 		params: RequestOverrideStoryTreeNodeParams
 	): Promise<RequestOverrideStoryTreeNodeResult> => {
@@ -196,6 +241,13 @@ export class ModManager extends ComponentBase {
 		return { success: false };
 	};
 
+	/**
+	 * The handler for the {@link requestDeleteStoryTreeNode} request.
+	 * Deletes a goal from the mod. Removes the node from the story tree and
+	 * deletes the associated file from the mod.
+	 *
+	 * @param params The {@link RequestDeleteStoryTreeNodeParams} for the request.
+	 */
 	private readonly handleDeleteStoryTreeNode = async (params: RequestDeleteStoryTreeNodeParams) => {
 		if (!this.mod) return;
 		await this.mod.storyTree.deleteStoryTreeNode(params.name);
@@ -203,6 +255,13 @@ export class ModManager extends ComponentBase {
 		this.mod.removeResource(`${params.name}.txt`, "name");
 	};
 
+	/**
+	 * The handler for the {@link requestRenameStoryTreeNode} request.
+	 * Renames a goal in the mod. That is, renames the story tree node and file
+	 * in the mod's goal path.
+	 *
+	 * @param params The {@link RequestRenameStoryTreeNodeParams} for the request.
+	 */
 	private readonly handleRenameStoryTreeNode = async (params: RequestRenameStoryTreeNodeParams) => {
 		if (!this.mod) return;
 		const resource = this.mod.getResource(`${params.oldName}.txt`, "name");
@@ -250,6 +309,13 @@ export class ModManager extends ComponentBase {
 		}
 	};
 
+	/**
+	 * The handler for the {@link requestMoveStoryTreeNode} request.
+	 * Changes a goal's parent. That is, the story tree node and associated
+	 * file are changed to point to the new parent.
+	 *
+	 * @param params The {@link RequestMoveStoryTreeNodeParams} for the request.
+	 */
 	private readonly handleMoveStoryTreeNode = async (params: RequestMoveStoryTreeNodeParams) => {
 		if (!this.mod) return;
 		await this.mod.storyTree.moveStoryTreeNode(params.targetName, params.sourceName);
@@ -260,6 +326,15 @@ export class ModManager extends ComponentBase {
 		this.server.connection.workspace.applyEdit({ changes: edit });
 	};
 
+	/**
+	 * Modifies a resource so that its underlying file contains the syntactically correct ParentTargetEdge
+	 * string for a given parent.
+	 *
+	 * @param resource The {@link GoalResource} to update.
+	 * @param targetName The name of the new parent.
+	 * @param insert Whether to insert the string "ParentTargetEdge" into the file if it is not present.
+	 * @returns The edit with the modified parent. To be passed to workspace.applyEdit.
+	 */
 	private async getParentTargetEdgeEdit(
 		resource: GoalResource,
 		targetName: string,
@@ -290,6 +365,10 @@ export class ModManager extends ComponentBase {
 		return edit;
 	}
 
+	//#endregion
+
+	//#region Resource Fetching
+
 	/**
 	 * Locates a {@link Resource} associated with a given path.
 	 *
@@ -315,6 +394,10 @@ export class ModManager extends ComponentBase {
 			this.mod.createResource(name, path);
 		}
 	}
+
+	//#endregion
+
+	//#region Signature Processing
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
 		const res = new Map<string, Signature>();
@@ -361,6 +444,10 @@ export class ModManager extends ComponentBase {
 		addEntries(calledSignatures, this.calledSignatureToFileMap);
 		addEntries(definedSignatures, this.definedSignatureToFileMap);
 	}
+
+	//#endregion
+
+	//#region Mod Creation
 
 	/**
 	 * Loads a mod from a given path.
@@ -433,3 +520,5 @@ export class ModManager extends ComponentBase {
 		}
 	}
 }
+
+//#endregion
