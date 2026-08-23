@@ -1,9 +1,43 @@
-import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { Token, TokenType, typeReadableMapping } from "../../parser/tokens";
 import { DiagnosticCode } from "./diagnosticCode";
-import { ComparisonNode, SignatureNode } from "../../parser/ast/nodes";
+import { ComparisonNode, SignatureNode, StringNode } from "../../parser/ast/nodes";
 
 const diagnosticSource = "Osiris";
+
+//#region Goal Arrangement
+
+interface UnresolvedGoalParams {
+	name: StringNode
+}
+
+export function unresolvedGoalDiagnosticFactory({ name }: UnresolvedGoalParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range: name.selectionRange,
+		message: `Could not find parent goal ${name.value}.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnresolvedGoal
+	}
+}
+
+interface GoalAlreadyDefinedParams {
+	name: string
+}
+
+export function goalAlreadyDefinedDiagnosticFactory({ name }: GoalAlreadyDefinedParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+		message: `Goal ${name} is already defined.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.GoalAlreadyDefined
+	}
+}
+
+//#endregion
+
+//#region Database
 
 interface UnusedDatabaseWarningParams {
 	signature: SignatureNode;
@@ -19,6 +53,8 @@ export function unusedDatabaseWarningDiagnosticFactory({ signature, isRead }: Un
 		code: DiagnosticCode.UnusedDatabaseWarning
 	};
 }
+
+//#endregion
 
 //#region Comparisons
 

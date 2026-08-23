@@ -5,6 +5,7 @@ import { decodePath } from "../../utils/pathUtils";
 import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
 import { ComparisonAnalyzer } from "./analyzers/comparisonAnalyzer";
 import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
+import { GoalArrangementAnalyzer } from "./analyzers/goalArrangementAnalyzer";
 
 /*
 === Header Only ===
@@ -16,12 +17,13 @@ UnresolvedTypeInSignature 6
 
 === Analyzers ===
 -- Goal Arrangement --
-GoalAlreadyDefined 7
-UnresolvedGoal 8
+*GoalAlreadyDefined 7
+*UnresolvedGoal 8
 
 -- Types --
 UnresolvedVariableType 9
 UnresolvedSignature 10
+UnresolvedType 12
 
 -- Function Placements and Naming --
 InvalidProcDefinition 13
@@ -63,7 +65,7 @@ GameObjectNameMismatch 29
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer];
+	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer, GoalArrangementAnalyzer];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
