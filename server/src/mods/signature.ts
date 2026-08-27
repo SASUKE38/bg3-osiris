@@ -1,13 +1,13 @@
 export class Signature {
 	name: string;
-	type: "proc" | "query" | "database" | "builtin";
+	type: "proc" | "query" | "database" | "builtin" | "unknown";
 	isDefined = false;
 	isCalled = false;
 	isRead = false;
 	isWritten = false;
 	parameters: string[][] = [];
 
-	constructor(name: string, type: "proc" | "query" | "database" | "builtin") {
+	constructor(name: string, type: "proc" | "query" | "database" | "builtin" | "unknown") {
 		this.name = name;
 		this.type = type;
 	}

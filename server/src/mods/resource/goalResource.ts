@@ -150,6 +150,7 @@ export class GoalResource extends Resource {
 
 	async loadSignatures() {
 		const root = this.ast;
+		const documentation = await this.mod.manager.server.documentationManager.getDocumentation();
 		if (!root) return;
 
 		function getSignatures(node: ASTNode, thisArg: GoalResource) {
@@ -207,9 +208,10 @@ export class GoalResource extends Resource {
 
 		function getSignatureType(name: string) {
 			if (name.startsWith("PROC_")) return "proc";
-			else if (name.startsWith("QRY")) return "query";
+			else if (name.startsWith("QRY_")) return "query";
 			else if (name.startsWith("DB_")) return "database";
-			else return "builtin";
+			else if (documentation.has(name)) return "builtin";
+			else return "unknown";
 		}
 
 		this.signatures.clear();

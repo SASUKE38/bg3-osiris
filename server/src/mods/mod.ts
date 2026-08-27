@@ -11,7 +11,7 @@ import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
 import { BaseModConfiguration } from "../utils/configurationSchema";
 
-interface InheritedGoal {
+export interface InheritedGoal {
 	name: string;
 	owner: Dependency;
 	parents: string[];
@@ -19,7 +19,7 @@ interface InheritedGoal {
 	definedSignatures: FunctionSignature[];
 }
 
-interface InheritedDatabase {
+export interface InheritedSignature {
 	name: string;
 	parameters: string[];
 }
@@ -38,7 +38,8 @@ export class Mod {
 	private readonly types = new Set<string>();
 	private readonly enums = new Map<string, string[]>();
 	private readonly inheritedGoals = new Map<string, InheritedGoal>();
-	private readonly inheritedDatabases = new Map<string, InheritedDatabase>();
+	private readonly inheritedSignatures = new Map<string, InheritedSignature[]>();
+	private readonly inheritedDatabases = new Map<string, InheritedSignature>();
 	private readonly inheritedIgnoredOrphans = new Set<string>();
 	private readonly inheritedFoundOrphans = new Set<string>();
 	private dependencies: Dependency[] = [];
@@ -96,12 +97,41 @@ export class Mod {
 		Object.values(Array.from(dependency.activeGoals.keys())).forEach((key) => {
 			const goal = story.goals[key];
 			const definedSignatures = dependency.definedSignatures.get(goal.Name);
+			const filteredSignatures = definedSignatures
+				? Array.from(definedSignatures.values())
+						.flat(1)
+						.filter((value) => value.Name.startsWith("PROC_") || value.Name.startsWith("QRY_"))
+				: [];
+
+			for (const signature of filteredSignatures) {
+				const inheritedSignature: InheritedSignature = {
+					name: signature.Name,
+					parameters: Array.from(signature.Parameters.Types)
+						.map((value) => story.types[value].Name)
+						.sort()
+				};
+				if (
+					this.inheritedSignatures.has(signature.Name) &&
+					!this.inheritedSignatures.get(signature.Name)?.find((value) => {
+						if (value.parameters.length !== inheritedSignature.parameters.length) return false;
+						for (let i = 0; i <= value.parameters.length; i++) {
+							if (value.parameters[i] !== inheritedSignature.parameters[i]) return false;
+						}
+						return true;
+					})
+				) {
+					this.inheritedSignatures.get(signature.Name)?.push(inheritedSignature);
+				} else {
+					this.inheritedSignatures.set(signature.Name, [inheritedSignature]);
+				}
+			}
+
 			this.inheritedGoals.set(goal.Name, {
 				name: goal.Name,
 				owner: dependency,
 				parents: goal.ParentGoals.map((parent) => story.goals[parent.Index].Name),
 				children: goal.SubGoals.map((child) => story.goals[child.Index].Name),
-				definedSignatures: definedSignatures ? Array.from(definedSignatures.values()).flat(1) : []
+				definedSignatures: filteredSignatures
 			});
 		});
 
@@ -127,6 +157,14 @@ export class Mod {
 
 	getAllGoals(): GoalResource[] {
 		return this.goals;
+	}
+
+	getAllInheritedGoals(): Map<string, InheritedGoal> {
+		return this.inheritedGoals;
+	}
+
+	getAllInheritedSignatures(): Map<string, InheritedSignature[]> {
+		return this.inheritedSignatures;
 	}
 
 	getAllDependencies(): Dependency[] {

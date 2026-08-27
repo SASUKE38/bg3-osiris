@@ -6,6 +6,7 @@ import { UnknownSymbolAnalyzer } from "./analyzers/unknownSymbolAnalyzer";
 import { ComparisonAnalyzer } from "./analyzers/comparisonAnalyzer";
 import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
 import { GoalArrangementAnalyzer } from "./analyzers/goalArrangementAnalyzer";
+import { RuleAnalyzer } from "./analyzers/ruleAnalyzer";
 
 /*
 === Header Only ===
@@ -26,9 +27,9 @@ UnresolvedSignature 10
 UnresolvedType 12
 
 -- Function Placements and Naming --
-InvalidProcDefinition 13
+*InvalidProcDefinition 13
 InvalidSymbolInFact 14
-InvalidSymbolInStatement 15
+*InvalidSymbolInStatement 15
 CanOnlyDeleteFromDatabase 16
 InvalidSymbolInInitialCondition 17
 InvalidFunctionTypeInCondition 18
@@ -65,7 +66,7 @@ GameObjectNameMismatch 29
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer, GoalArrangementAnalyzer];
+	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer, GoalArrangementAnalyzer, RuleAnalyzer];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};

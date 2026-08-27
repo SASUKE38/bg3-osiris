@@ -81,8 +81,10 @@ export class DocumentationManager extends ComponentBase {
 	 * @returns A filled map of built-in function signatures (keys) and their documentation entries (values).
 	 */
 	async getDocumentation() {
-		if (!existsSync(DocumentationManager.collectionPath)) await this.getCategories();
-		await this.readDocumentationCollection();
+		if (this.documentationCollection.size === 0) {
+			if (!existsSync(DocumentationManager.collectionPath)) await this.getCategories();
+			await this.readDocumentationCollection();
+		}
 		return this.documentationCollection;
 	}
 

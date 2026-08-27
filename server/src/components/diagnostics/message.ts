@@ -5,10 +5,49 @@ import { ComparisonNode, SignatureNode, StringNode } from "../../parser/ast/node
 
 const diagnosticSource = "Osiris";
 
+//#region Rule Structure
+
+interface InvalidProcDefinitionParams {
+	type: "QRY" | "PROC";
+	range: Range;
+}
+
+export function invalidProcDefinitionDiagnosticFactory({ type, range }: InvalidProcDefinitionParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `${type} definitions must begin with a ${type} signature.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.InvalidProcDefinition
+	};
+}
+
+interface InvalidSignatureInStatementParams {
+	name: string;
+	type: string;
+	range: Range;
+}
+
+export function invalidSymbolInStatementDiagnosticFactory({
+	name,
+	type,
+	range
+}: InvalidSignatureInStatementParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `Rule actions can only contain builtin calls, databases, and procs; ${name} is a ${type}.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.InvalidSymbolInStatement
+	};
+}
+
+//#endregion
+
 //#region Goal Arrangement
 
 interface UnresolvedGoalParams {
-	name: StringNode
+	name: StringNode;
 }
 
 export function unresolvedGoalDiagnosticFactory({ name }: UnresolvedGoalParams): Diagnostic {
@@ -18,11 +57,11 @@ export function unresolvedGoalDiagnosticFactory({ name }: UnresolvedGoalParams):
 		message: `Could not find parent goal ${name.value}.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.UnresolvedGoal
-	}
+	};
 }
 
 interface GoalAlreadyDefinedParams {
-	name: string
+	name: string;
 }
 
 export function goalAlreadyDefinedDiagnosticFactory({ name }: GoalAlreadyDefinedParams): Diagnostic {
@@ -32,7 +71,7 @@ export function goalAlreadyDefinedDiagnosticFactory({ name }: GoalAlreadyDefined
 		message: `Goal ${name} is already defined.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.GoalAlreadyDefined
-	}
+	};
 }
 
 //#endregion

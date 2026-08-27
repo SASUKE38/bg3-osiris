@@ -19,11 +19,15 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 	async verifyParentExists(): Promise<Diagnostic | undefined> {
 		const root = await this.resource.getRootNode();
 		if (!root || root.kind !== ASTNodeKind.GOAL_NODE) return;
-		const parentTargetEdge = (root as GoalNode).footer?.parentTargetEdge
+		const parentTargetEdge = (root as GoalNode).footer?.parentTargetEdge;
 		if (!parentTargetEdge || parentTargetEdge.kind !== ASTNodeKind.STRING_NODE) return;
 		const searchName = (parentTargetEdge as StringNode).value;
-		if (searchName !== "" && !this.modManager.mod?.getResource(`${searchName}.txt`, "name") && !this.modManager.mod?.getInheritedGoalOwner(searchName)) {
-			return unresolvedGoalDiagnosticFactory({name: parentTargetEdge as StringNode});
+		if (
+			searchName !== "" &&
+			!this.modManager.mod?.getResource(`${searchName}.txt`, "name") &&
+			!this.modManager.mod?.getInheritedGoalOwner(searchName)
+		) {
+			return unresolvedGoalDiagnosticFactory({ name: parentTargetEdge as StringNode });
 		}
 	}
 
@@ -33,7 +37,7 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 		for (const resource of resources) {
 			const filtered = resources.filter((value) => value.name === resource.name);
 			if (filtered.length > 1) {
-				return goalAlreadyDefinedDiagnosticFactory({name: resource.name});
+				return goalAlreadyDefinedDiagnosticFactory({ name: resource.name });
 			}
 		}
 	}

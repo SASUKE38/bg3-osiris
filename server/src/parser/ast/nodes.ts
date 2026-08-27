@@ -62,7 +62,6 @@ export class SignatureNode extends ASTNode {
 	kind = ASTNodeKind.SIGNATURE_NODE;
 	name: string;
 	parameters: ParameterNode[];
-	signatureType?: string;
 
 	constructor(name: string, parameters: ParameterNode[], range: Range, selectionRange: Range) {
 		super(range, selectionRange);
