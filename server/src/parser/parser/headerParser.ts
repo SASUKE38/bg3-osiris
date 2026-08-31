@@ -141,6 +141,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		return new SignatureNode(
 			signatureName.token.value,
 			parameters,
+			false,
 			{
 				start: signatureType.range.start,
 				end: {

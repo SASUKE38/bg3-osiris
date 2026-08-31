@@ -22,23 +22,73 @@ export function invalidProcDefinitionDiagnosticFactory({ type, range }: InvalidP
 	};
 }
 
-interface InvalidSignatureInStatementParams {
+export interface InvalidSignatureInSectionParams {
 	name: string;
 	type: string;
 	range: Range;
+	fact: boolean;
 }
 
 export function invalidSymbolInStatementDiagnosticFactory({
 	name,
 	type,
-	range
-}: InvalidSignatureInStatementParams): Diagnostic {
+	range,
+	fact = false
+}: InvalidSignatureInSectionParams): Diagnostic {
 	return {
 		source: diagnosticSource,
 		range,
-		message: `Rule actions can only contain builtin calls, databases, and procs; ${name} is a ${type}.`,
+		message: `${fact ? "Facts" : "Rule actions"} can only contain builtin calls, databases, and procs; ${name} is a ${type}.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.InvalidSymbolInStatement
+	};
+}
+
+export interface invalidDeletionFromNonDatabaseParams {
+	range: Range;
+}
+
+export function invalidDeletionFromNonDatabaseDiagnosticFactory({ range }: invalidDeletionFromNonDatabaseParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `NOT can only be used with databases`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.CanOnlyDeleteFromDatabase
+	};
+}
+
+export interface InvalidSymbolInInitialConditionParams {
+	range: Range;
+	ruleType: "PROC" | "QRY" | "IF";
+	signatureName: string;
+	signatureType?: string;
+}
+
+export function invalidSymbolInInitialConditionDiagnosticFactory({
+	range,
+	ruleType,
+	signatureName,
+	signatureType
+}: InvalidSymbolInInitialConditionParams) {
+	let requiredCall = "";
+	switch (ruleType) {
+		case "PROC":
+			requiredCall = "PROC call";
+			break;
+		case "QRY":
+			requiredCall = "user-defined QRY";
+			break;
+		case "IF":
+			requiredCall = "database or event";
+			break;
+	}
+	return {
+		source: diagnosticSource,
+		range,
+		message: `${ruleType} rules must begin with a ${requiredCall}, ${signatureType ? `${signatureName} is a ${signatureType}` : ``}.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.InvalidSymbolInInitialCondition
 	};
 }
 

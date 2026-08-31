@@ -26,11 +26,14 @@ UnresolvedVariableType 9
 UnresolvedSignature 10
 UnresolvedType 12
 
+TODO: Change signature registration to only defined signatures, not signatures in bodies of rules
+TODO: Change inherited signature type recognition to something other than by naming convention
+
 -- Function Placements and Naming --
 *InvalidProcDefinition 13
-InvalidSymbolInFact 14
+*InvalidSymbolInFact 14
 *InvalidSymbolInStatement 15
-CanOnlyDeleteFromDatabase 16
+*CanOnlyDeleteFromDatabase 16
 InvalidSymbolInInitialCondition 17
 InvalidFunctionTypeInCondition 18
 RuleNamingStyle 23

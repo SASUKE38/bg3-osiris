@@ -1,13 +1,49 @@
+export enum SignatureType {
+	Unknown,
+	Proc,
+	Query,
+	Database,
+	BuiltinCall,
+	BuiltinQuery,
+	BuiltinEvent
+}
+
+export function getReadableSignatureType(type: SignatureType) {
+	switch (type) {
+		case SignatureType.Unknown:
+			return "unknown";
+			break;
+		case SignatureType.Proc:
+			return "PROC";
+			break;
+		case SignatureType.Query:
+			return "user-defined query";
+			break;
+		case SignatureType.Database:
+			return "database";
+			break;
+		case SignatureType.BuiltinCall:
+			return "call";
+			break;
+		case SignatureType.BuiltinQuery:
+			return "query";
+			break;
+		case SignatureType.BuiltinEvent:
+			return "event";
+			break;
+	}
+}
+
 export class Signature {
 	name: string;
-	type: "proc" | "query" | "database" | "builtin" | "unknown";
+	type: SignatureType;
 	isDefined = false;
 	isCalled = false;
 	isRead = false;
 	isWritten = false;
 	parameters: string[][] = [];
 
-	constructor(name: string, type: "proc" | "query" | "database" | "builtin" | "unknown") {
+	constructor(name: string, type: SignatureType) {
 		this.name = name;
 		this.type = type;
 	}

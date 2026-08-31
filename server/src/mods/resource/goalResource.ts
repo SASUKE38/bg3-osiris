@@ -18,7 +18,7 @@ import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from 
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
-import { Signature } from "../signature";
+import { Signature, SignatureType } from "../signature";
 import { isArrayEqual } from "../../utils/isArrayEqual";
 
 export class GoalResource extends Resource {
@@ -182,7 +182,7 @@ export class GoalResource extends Resource {
 				const entry = thisArg.signatures.has(signature.name)
 					? thisArg.signatures.get(signature.name)
 					: new Signature(signature.name, getSignatureType(signature.name));
-				if (entry?.type === "database") {
+				if (entry?.type === SignatureType.Database) {
 					if (isRead) entry.isRead = true;
 					else entry.isWritten = true;
 				} else if (entry) {
@@ -206,12 +206,17 @@ export class GoalResource extends Resource {
 			}
 		}
 
-		function getSignatureType(name: string) {
-			if (name.startsWith("PROC_")) return "proc";
-			else if (name.startsWith("QRY_")) return "query";
-			else if (name.startsWith("DB_")) return "database";
-			else if (documentation.has(name)) return "builtin";
-			else return "unknown";
+		function getSignatureType(name: string): SignatureType {
+			if (name.startsWith("PROC_")) return SignatureType.Proc;
+			else if (name.startsWith("QRY_")) return SignatureType.Query;
+			else if (name.startsWith("DB_")) return SignatureType.Database;
+			else if (documentation.has(name)) {
+				const type = documentation.get(name)?.type;
+				if (type === "call") return SignatureType.BuiltinCall;
+				else if (type === "query") return SignatureType.BuiltinQuery;
+				else if (type === "event") return SignatureType.BuiltinEvent;
+			}
+			return SignatureType.Unknown;
 		}
 
 		this.signatures.clear();

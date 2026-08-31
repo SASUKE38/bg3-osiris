@@ -88,11 +88,13 @@ export class GoalParser extends ParserBase<GoalNode> {
 		const body: SignatureNode[] = [];
 		const sectionStart = this.peek();
 		while (!this.atTokenType(endType)) {
+			let isDeletion = false;
 			if (this.consumeUnexpected({ expectedType: [TokenType.IDENTIFIER, TokenType.NOT] }).matched) {
-				if (this.peek().type == TokenType.NOT) {
+				if (this.peek().type === TokenType.NOT) {
 					this.pop();
+					isDeletion = true;
 				}
-				body.push(this.parseSignature(false));
+				body.push(this.parseSignature(false, isDeletion));
 				this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 			}
 		}
@@ -118,6 +120,11 @@ export class GoalParser extends ParserBase<GoalNode> {
 		);
 	}
 
+	private getRuleType(ruleStart: Token): "PROC" | "QRY" | "IF" {
+		if (ruleStart.value === "PROC" || ruleStart.value === "QRY" || ruleStart.value === "IF") return ruleStart.value;
+		else return "PROC";
+	}
+
 	private parseRule(): RuleNode {
 		const ruleStart = this.pop();
 		const call = this.parseSignature();
@@ -127,11 +134,16 @@ export class GoalParser extends ParserBase<GoalNode> {
 			if (!this.consume({ expectedMessage: expectedMessage.andOrThen, expectedType: [TokenType.AND] }).matched)
 				continue;
 			const currentType = this.peek().type;
-			if (currentType == TokenType.NOT || (currentType == TokenType.IDENTIFIER && this.peek().value[0] != "_")) {
-				if (currentType == TokenType.NOT) {
+			let isDeletion = false;
+			if (
+				currentType === TokenType.NOT ||
+				(currentType === TokenType.IDENTIFIER && this.peek().value[0] != "_")
+			) {
+				if (currentType === TokenType.NOT) {
 					this.pop();
+					isDeletion = true;
 				}
-				conditions.push(this.parseSignature());
+				conditions.push(this.parseSignature(true, isDeletion));
 			} else if (
 				[TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID].indexOf(
 					currentType
@@ -150,24 +162,26 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 
 		this.consume({ expectedType: [TokenType.THEN] });
-		while (this.peek().type == TokenType.IDENTIFIER || this.peek().type == TokenType.NOT) {
-			if (this.peek().type == TokenType.NOT) {
+		while (this.peek().type === TokenType.IDENTIFIER || this.peek().type === TokenType.NOT) {
+			let isDeletion = false;
+			if (this.peek().type === TokenType.NOT) {
 				this.pop();
+				isDeletion = true;
 			}
-			const action = this.parseSignature();
+			const action = this.parseSignature(true, isDeletion);
 			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 		}
-		if (actions.length == 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ rule: ruleStart }));
+		if (actions.length === 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ rule: ruleStart }));
 
 		return new RuleNode(
-			ruleStart.value,
+			this.getRuleType(ruleStart),
 			call,
 			conditions,
 			actions,
 			{
 				start: ruleStart.range.start,
-				end: actions.length == 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
+				end: actions.length === 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
 			},
 			{
 				start: ruleStart.range.start,
@@ -212,7 +226,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 	}
 
-	private parseSignature(allowIdentifiers = true): SignatureNode {
+	private parseSignature(allowIdentifiers = true, isDeletion = false): SignatureNode {
 		const name = this.pop();
 		this.consume({ expectedType: [TokenType.OPEN_PARENTHESIS] });
 		const parameters: ParameterNode[] = [];
@@ -298,6 +312,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		return new SignatureNode(
 			name.value,
 			parameters,
+			isDeletion,
 			{
 				start: name.range.start,
 				end: endToken.token.range.end

@@ -167,6 +167,10 @@ export class Mod {
 		return this.inheritedSignatures;
 	}
 
+	getAllInheritedDatabases(): Map<string, InheritedSignature> {
+		return this.inheritedDatabases;
+	}
+
 	getAllDependencies(): Dependency[] {
 		return this.dependencies;
 	}

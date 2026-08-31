@@ -62,11 +62,13 @@ export class SignatureNode extends ASTNode {
 	kind = ASTNodeKind.SIGNATURE_NODE;
 	name: string;
 	parameters: ParameterNode[];
+	isDeletion: boolean;
 
-	constructor(name: string, parameters: ParameterNode[], range: Range, selectionRange: Range) {
+	constructor(name: string, parameters: ParameterNode[], isDeletion: boolean, range: Range, selectionRange: Range) {
 		super(range, selectionRange);
 		this.name = name;
 		this.parameters = parameters;
+		this.isDeletion = isDeletion;
 	}
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
@@ -193,13 +195,13 @@ export class TypeNode extends SingletonNode<string> {
 
 export class RuleNode extends ASTNode {
 	kind = ASTNodeKind.RULE_NODE;
-	type: string;
+	type: "PROC" | "QRY" | "IF";
 	call: SignatureNode;
 	conditions: (SignatureNode | ComparisonNode)[];
 	actions: SignatureNode[];
 
 	constructor(
-		type: string,
+		type: "PROC" | "QRY" | "IF",
 		call: SignatureNode,
 		conditions: (SignatureNode | ComparisonNode)[],
 		actions: SignatureNode[],
