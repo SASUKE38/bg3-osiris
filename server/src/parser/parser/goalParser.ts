@@ -154,7 +154,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 				const token = this.pop();
 				this.diagnostics.push(
 					unexpectedTokenDiagnosticFactory({
-						actualToken: token,
+						range: token.range,
 						expectedMessage: expectedMessage.signatureOrComparison
 					})
 				);
@@ -172,7 +172,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 		}
-		if (actions.length === 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ rule: ruleStart }));
+		if (actions.length === 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ range: ruleStart.range }));
 
 		return new RuleNode(
 			this.getRuleType(ruleStart),
@@ -217,7 +217,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 			default:
 				this.diagnostics.push(
 					unexpectedTokenDiagnosticFactory({
-						actualToken: token,
+						range: token.range,
 						expectedType: this.comparisonTypes
 					})
 				);
@@ -250,7 +250,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 						if (!allowIdentifiers) {
 							this.diagnostics.push(
 								unexpectedTokenDiagnosticFactory({
-									actualToken: parameter,
+									range: parameter.range,
 									expectedType: [TokenType.GUID, TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT]
 								})
 							);
@@ -296,7 +296,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		if (requireParameter || type) {
 			this.diagnostics.push(
 				unexpectedTokenDiagnosticFactory({
-					actualToken: this.peek(),
+					range: this.peek().range,
 					expectedMessage: expectedMessage.parameter
 				})
 			);
@@ -328,7 +328,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		if (type != null) {
 			this.diagnostics.push(
 				unexpectedTokenDiagnosticFactory({
-					actualToken: parameter,
+					range: parameter.range,
 					expectedType: allowIdentifiers ? [TokenType.GUID, TokenType.IDENTIFIER] : [TokenType.GUID]
 				})
 			);

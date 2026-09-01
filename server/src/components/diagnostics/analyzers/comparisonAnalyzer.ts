@@ -46,7 +46,7 @@ export class ComparisonAnalyzer extends AnalyzerBase {
 				(right.kind === ASTNodeKind.IDENTIFIER_NODE && !(right as IdentifierNode).value.startsWith("_"))) &&
 			thisArg.nonEqualityOperators.find((value) => value === operator.value)
 		) {
-			res.push(stringLtGtComparisonDiagnosticFactory({ comparison: child }));
+			res.push(stringLtGtComparisonDiagnosticFactory({ range: child.selectionRange }));
 		}
 	}
 
@@ -60,7 +60,7 @@ export class ComparisonAnalyzer extends AnalyzerBase {
 			((left as SingletonNode<string>).value === (right as SingletonNode<string>).value ||
 				(left as SingletonNode<number>).value === (right as SingletonNode<number>).value)
 		) {
-			res.push(binaryOperationSameRhsLhsDiagnosticFactory({ comparison: child }));
+			res.push(binaryOperationSameRhsLhsDiagnosticFactory({ range: child.selectionRange }));
 		}
 	}
 
@@ -77,7 +77,7 @@ export class ComparisonAnalyzer extends AnalyzerBase {
 				left.kind === ASTNodeKind.IDENTIFIER_NODE &&
 				!(left as IdentifierNode).value.startsWith("_"))
 		) {
-			res.push(riskyComparisonDiagnosticFactory({ comparison: child }));
+			res.push(riskyComparisonDiagnosticFactory({ range: child.selectionRange }));
 		}
 	}
 }

@@ -21,14 +21,16 @@ export class SignatureAnalyzer extends AnalyzerBase {
 							if (!signature.isRead && signature.isWritten) {
 								res.push(
 									unusedDatabaseWarningDiagnosticFactory({
-										signature: child as SignatureNode,
+										range: (child as SignatureNode).selectionRange,
+										name: (child as SignatureNode).name,
 										isRead: false
 									})
 								);
 							} else if (!signature.isWritten && signature.isRead) {
 								res.push(
 									unusedDatabaseWarningDiagnosticFactory({
-										signature: child as SignatureNode,
+										range: (child as SignatureNode).selectionRange,
+										name: (child as SignatureNode).name,
 										isRead: true
 									})
 								);

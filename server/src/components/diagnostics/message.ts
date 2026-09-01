@@ -5,11 +5,14 @@ import { ComparisonNode, SignatureNode, StringNode } from "../../parser/ast/node
 
 const diagnosticSource = "Osiris";
 
+interface DiagnosticParamsBase {
+	range: Range
+}
+
 //#region Rule Structure
 
-interface InvalidProcDefinitionParams {
+interface InvalidProcDefinitionParams extends DiagnosticParamsBase {
 	type: "QRY" | "PROC";
-	range: Range;
 }
 
 export function invalidProcDefinitionDiagnosticFactory({ type, range }: InvalidProcDefinitionParams): Diagnostic {
@@ -22,10 +25,9 @@ export function invalidProcDefinitionDiagnosticFactory({ type, range }: InvalidP
 	};
 }
 
-export interface InvalidSignatureInSectionParams {
+export interface InvalidSignatureInSectionParams extends DiagnosticParamsBase {
 	name: string;
 	type: string;
-	range: Range;
 	fact: boolean;
 }
 
@@ -44,11 +46,9 @@ export function invalidSymbolInStatementDiagnosticFactory({
 	};
 }
 
-export interface invalidDeletionFromNonDatabaseParams {
-	range: Range;
-}
+export interface InvalidDeletionFromNonDatabaseParams extends DiagnosticParamsBase {}
 
-export function invalidDeletionFromNonDatabaseDiagnosticFactory({ range }: invalidDeletionFromNonDatabaseParams) {
+export function invalidDeletionFromNonDatabaseDiagnosticFactory({ range }: InvalidDeletionFromNonDatabaseParams) {
 	return {
 		source: diagnosticSource,
 		range,
@@ -58,8 +58,7 @@ export function invalidDeletionFromNonDatabaseDiagnosticFactory({ range }: inval
 	};
 }
 
-export interface InvalidSymbolInInitialConditionParams {
-	range: Range;
+export interface InvalidSymbolInInitialConditionParams extends DiagnosticParamsBase {
 	ruleType: "PROC" | "QRY" | "IF";
 	signatureName: string;
 	signatureType?: string;
@@ -92,8 +91,7 @@ export function invalidSymbolInInitialConditionDiagnosticFactory({
 	};
 }
 
-export interface InvalidFunctionTypeInConditionParams {
-	range: Range;
+export interface InvalidFunctionTypeInConditionParams extends DiagnosticParamsBase {
 	name: string;
 	actualType: string;
 }
@@ -112,8 +110,7 @@ export function invalidFunctionTypeInConditionDiagnosticFactory({
 	};
 }
 
-export interface RuleNamingStyleParams {
-	range: Range;
+export interface RuleNamingStyleParams extends DiagnosticParamsBase {
 	ruleType: "PROC" | "QRY";
 	prefix: "PROC_" | "QRY_";
 }
@@ -128,9 +125,7 @@ export function ruleNamingStyleDiagnosticFactory({ range, ruleType, prefix }: Ru
 	};
 }
 
-export interface DbNamingStyleParams {
-	range: Range;
-}
+export interface DbNamingStyleParams extends DiagnosticParamsBase {}
 
 export function DbNamingStyleDiagnosticFactory({ range }: DbNamingStyleParams) {
 	return {
@@ -146,29 +141,29 @@ export function DbNamingStyleDiagnosticFactory({ range }: DbNamingStyleParams) {
 
 //#region Goal Arrangement
 
-interface UnresolvedGoalParams {
-	name: StringNode;
+interface GoalArrangementDiagnosticParamsBase extends DiagnosticParamsBase {
+	name: string
 }
 
-export function unresolvedGoalDiagnosticFactory({ name }: UnresolvedGoalParams): Diagnostic {
+interface UnresolvedGoalParams extends GoalArrangementDiagnosticParamsBase {}
+
+export function unresolvedGoalDiagnosticFactory({ range, name }: UnresolvedGoalParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: name.selectionRange,
-		message: `Could not find parent goal ${name.value}.`,
+		range,
+		message: `Could not find parent goal '${name}'.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.UnresolvedGoal
 	};
 }
 
-interface GoalAlreadyDefinedParams {
-	name: string;
-}
+interface GoalAlreadyDefinedParams extends GoalArrangementDiagnosticParamsBase {}
 
-export function goalAlreadyDefinedDiagnosticFactory({ name }: GoalAlreadyDefinedParams): Diagnostic {
+export function goalAlreadyDefinedDiagnosticFactory({ range, name }: GoalAlreadyDefinedParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-		message: `Goal ${name} is already defined.`,
+		range,
+		message: `Goal '${name}' is already defined.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.GoalAlreadyDefined
 	};
@@ -178,16 +173,16 @@ export function goalAlreadyDefinedDiagnosticFactory({ name }: GoalAlreadyDefined
 
 //#region Database
 
-interface UnusedDatabaseWarningParams {
-	signature: SignatureNode;
+interface UnusedDatabaseWarningParams extends DiagnosticParamsBase {
+	name: string,
 	isRead: boolean;
 }
 
-export function unusedDatabaseWarningDiagnosticFactory({ signature, isRead }: UnusedDatabaseWarningParams): Diagnostic {
+export function unusedDatabaseWarningDiagnosticFactory({ range, name, isRead }: UnusedDatabaseWarningParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: signature.selectionRange,
-		message: `'${signature.name}' is ${isRead ? "read from" : "written to"} but not ${isRead ? "written to" : "read from."}`,
+		range,
+		message: `'${name}' is ${isRead ? "read from" : "written to"} but not ${isRead ? "written to" : "read from."}`,
 		severity: DiagnosticSeverity.Warning,
 		code: DiagnosticCode.UnusedDatabaseWarning
 	};
@@ -197,44 +192,36 @@ export function unusedDatabaseWarningDiagnosticFactory({ signature, isRead }: Un
 
 //#region Comparisons
 
-interface StringLtGtComparisonParams {
-	comparison: ComparisonNode;
-}
+interface StringLtGtComparisonParams extends DiagnosticParamsBase {}
 
-export function stringLtGtComparisonDiagnosticFactory({ comparison }: StringLtGtComparisonParams): Diagnostic {
+export function stringLtGtComparisonDiagnosticFactory({ range }: StringLtGtComparisonParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: comparison.range,
+		range,
 		message: "Less than/greater than comparison uses a string or GUIDSTRING",
 		severity: DiagnosticSeverity.Warning,
 		code: DiagnosticCode.StringLtGtComparison
 	};
 }
 
-interface BinaryOperationSameRhsLhsParams {
-	comparison: ComparisonNode;
-}
+interface BinaryOperationSameRhsLhsParams extends DiagnosticParamsBase {}
 
-export function binaryOperationSameRhsLhsDiagnosticFactory({
-	comparison
-}: BinaryOperationSameRhsLhsParams): Diagnostic {
+export function binaryOperationSameRhsLhsDiagnosticFactory({ range }: BinaryOperationSameRhsLhsParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: comparison.range,
+		range,
 		message: "Binary operation has the same value on both sides",
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.BinaryOperationSameRhsLhs
 	};
 }
 
-interface RiskyComparisonParams {
-	comparison: ComparisonNode;
-}
+interface RiskyComparisonParams extends DiagnosticParamsBase {}
 
-export function riskyComparisonDiagnosticFactory({ comparison }: RiskyComparisonParams): Diagnostic {
+export function riskyComparisonDiagnosticFactory({ range }: RiskyComparisonParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: comparison.range,
+		range,
 		message: "Comparisons between GUIDSTRING and string are known to have unwanted side effects",
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.RiskyComparison
@@ -245,14 +232,12 @@ export function riskyComparisonDiagnosticFactory({ comparison }: RiskyComparison
 
 //#region Syntax
 
-interface RuleMissingActionsParams {
-	rule: Token;
-}
+interface RuleMissingActionsParams extends DiagnosticParamsBase {}
 
-export function ruleMissingActionsDiagnosticFactory({ rule }: RuleMissingActionsParams): Diagnostic {
+export function ruleMissingActionsDiagnosticFactory({ range }: RuleMissingActionsParams): Diagnostic {
 	return {
 		source: diagnosticSource,
-		range: rule.range,
+		range,
 		message: "Rule must contain at least one signature in THEN clause",
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.RuleMissingActions
@@ -269,14 +254,13 @@ export const expectedMessage = {
 	eofOrParentTargetEdge: "ParentTargetEdge or end of file"
 };
 
-interface unexpectedTokenDiagnosticParams {
-	actualToken: Token;
+interface unexpectedTokenDiagnosticParams extends DiagnosticParamsBase {
 	expectedMessage?: string;
 	expectedType?: TokenType[];
 }
 
 export function unexpectedTokenDiagnosticFactory({
-	actualToken,
+	range,
 	expectedMessage,
 	expectedType
 }: unexpectedTokenDiagnosticParams): Diagnostic {
@@ -298,7 +282,7 @@ export function unexpectedTokenDiagnosticFactory({
 	}
 	return {
 		source: diagnosticSource,
-		range: actualToken.range,
+		range,
 		message: message,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.UnexpectedToken

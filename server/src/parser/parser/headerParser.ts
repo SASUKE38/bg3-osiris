@@ -126,7 +126,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		if (requireParameter || type || flow) {
 			this.diagnostics.push(
 				unexpectedTokenDiagnosticFactory({
-					actualToken: this.peek(),
+					range: this.peek().range,
 					expectedMessage: expectedMessage.parameter
 				})
 			);
@@ -211,7 +211,7 @@ export class HeaderParser extends ParserBase<HeaderNode> {
 		const token = this.pop();
 		if (token.type != TokenType.IDENTIFIER || !(token.value == "in" || token.value == "out")) {
 			this.diagnostics.push(
-				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage: expectedMessage.flow })
+				unexpectedTokenDiagnosticFactory({ range: token.range, expectedMessage: expectedMessage.flow })
 			);
 			if (token.type == TokenType.CLOSE_BRACKET) return undefined;
 		}

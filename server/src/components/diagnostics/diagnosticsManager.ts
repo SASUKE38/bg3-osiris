@@ -27,9 +27,7 @@ UnresolvedSignature 10
 UnresolvedType 12
 
 TODO: Change signature registration to only defined signatures, not signatures in bodies of rules
-TODO: Change inherited signature type recognition to something other than by naming convention
 TODO: Combine signature types into one so signatures and inherited signatures are not treated differently?
-TODO: Clean diagnostic param interfaces to inherit shared fields
 TODO: Add signature usage locations to class
 
 -- Function Placements --

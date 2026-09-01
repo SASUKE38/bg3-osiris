@@ -58,7 +58,7 @@ export abstract class ParserBase<T> {
 		if (expectedType.indexOf(token.type) == -1) {
 			matched = false;
 			this.diagnostics.push(
-				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage, expectedType })
+				unexpectedTokenDiagnosticFactory({ range: token.range, expectedMessage, expectedType })
 			);
 		}
 		return { matched, token: this.pop() };
@@ -70,7 +70,7 @@ export abstract class ParserBase<T> {
 		if (expectedType.indexOf(token.type) == -1) {
 			matched = false;
 			this.diagnostics.push(
-				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage, expectedType })
+				unexpectedTokenDiagnosticFactory({ range: token.range, expectedMessage, expectedType })
 			);
 			return { matched, token };
 		} else {
@@ -84,7 +84,7 @@ export abstract class ParserBase<T> {
 		if (expectedType.indexOf(token.type) == -1) {
 			matched = false;
 			this.diagnostics.push(
-				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage, expectedType })
+				unexpectedTokenDiagnosticFactory({ range: token.range, expectedMessage, expectedType })
 			);
 			this.pop();
 		}
@@ -133,7 +133,7 @@ export abstract class ParserBase<T> {
 		const token = this.pop();
 		if (token.type != TokenType.IDENTIFIER) {
 			this.diagnostics.push(
-				unexpectedTokenDiagnosticFactory({ actualToken: token, expectedMessage: expectedMessage.type })
+				unexpectedTokenDiagnosticFactory({ range: token.range, expectedMessage: expectedMessage.type })
 			);
 			if (token.type == TokenType.CLOSE_PARENTHESIS) return undefined;
 		}

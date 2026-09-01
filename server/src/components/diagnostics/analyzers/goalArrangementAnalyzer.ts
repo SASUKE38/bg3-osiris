@@ -1,4 +1,4 @@
-import { Diagnostic } from "vscode-languageserver";
+import { Diagnostic, Position, Range } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
 import { ASTNodeKind, GoalNode, StringNode } from "../../../parser/ast/nodes";
 import { goalAlreadyDefinedDiagnosticFactory, unresolvedGoalDiagnosticFactory } from "../message";
@@ -27,7 +27,7 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 			!this.modManager.mod?.getResource(`${searchName}.txt`, "name") &&
 			!this.modManager.mod?.getInheritedGoalOwner(searchName)
 		) {
-			return unresolvedGoalDiagnosticFactory({ name: parentTargetEdge as StringNode });
+			return unresolvedGoalDiagnosticFactory({ range: (parentTargetEdge as StringNode).selectionRange, name: (parentTargetEdge as StringNode).value });
 		}
 	}
 
@@ -37,7 +37,7 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 		for (const resource of resources) {
 			const filtered = resources.filter((value) => value.name === resource.name);
 			if (filtered.length > 1) {
-				return goalAlreadyDefinedDiagnosticFactory({ name: resource.name });
+				return goalAlreadyDefinedDiagnosticFactory({ range: Range.create(Position.create(0, 0), Position.create(0, 0)), name: resource.name });
 			}
 		}
 	}
