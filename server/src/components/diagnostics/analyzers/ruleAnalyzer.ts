@@ -3,12 +3,14 @@ import { AnalyzerBase } from "./analyzerBase";
 import {
 	ASTNode,
 	ASTNodeKind,
+	ComparisonNode,
 	RuleNode,
 	SignatureNode,
 	SignatureSectionNode
 } from "../../../parser/ast/nodes";
 import {
 	invalidDeletionFromNonDatabaseDiagnosticFactory,
+	invalidFunctionTypeInConditionDiagnosticFactory,
 	invalidProcDefinitionDiagnosticFactory,
 	InvalidSignatureInSectionParams,
 	invalidSymbolInInitialConditionDiagnosticFactory,
@@ -16,6 +18,7 @@ import {
 } from "../message";
 import { getReadableSignatureType, Signature, SignatureType } from "../../../mods/signature";
 import { InheritedSignature } from "../../../mods/mod";
+import { getReadableInheritedSignatureType } from "../../../mods/story";
 
 export class RuleAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -45,6 +48,12 @@ export class RuleAnalyzer extends AnalyzerBase {
 					);
 					thisArg.verifyDeletionsOnlyFromDatabases((child as RuleNode).actions, signatures, res);
 					thisArg.verifyValidSymbolInInitialCondition(child as RuleNode, signatures, res);
+					thisArg.verifyValidFunctionTypeInCondition(
+						(child as RuleNode).conditions,
+						signatures,
+						res,
+						inheritedSignatures
+					);
 				}
 			}
 		}
@@ -71,7 +80,10 @@ export class RuleAnalyzer extends AnalyzerBase {
 				res.push(invalidProcDefinitionDiagnosticFactory({ type: rule.type, range: rule.call.range }));
 			}
 		} else if (inheritedSignature) {
-			if (!rule.call.name.startsWith(`${rule.type}_`)) {
+			if (
+				(rule.type === "PROC" && inheritedSignature[0].type !== "Proc") ||
+				(rule.type === "QRY" && inheritedSignature[0].type !== "UserQuery")
+			) {
 				res.push(invalidProcDefinitionDiagnosticFactory({ type: rule.type, range: rule.call.range }));
 			}
 		}
@@ -131,7 +143,12 @@ export class RuleAnalyzer extends AnalyzerBase {
 						fact: isFact
 					})
 				);
-			} else if (inheritedSignature && inheritedSignature[0].name.startsWith("QRY_")) {
+			} else if (
+				inheritedSignature &&
+				(inheritedSignature[0].type === "UserQuery" ||
+					inheritedSignature[0].type === "Query" ||
+					inheritedSignature[0].type === "SysQuery")
+			) {
 				res.push(
 					factory({
 						name: signature.name,
@@ -148,13 +165,16 @@ export class RuleAnalyzer extends AnalyzerBase {
 	private verifyDeletionsOnlyFromDatabases(
 		nodes: SignatureNode[],
 		signatures: Map<string, Signature>,
-		res: Diagnostic[]
+		res: Diagnostic[],
+		inheritedSignatures?: Map<string, InheritedSignature[]>
 	) {
 		for (const node of nodes) {
 			if (node.kind !== ASTNodeKind.SIGNATURE_NODE || !node.isDeletion) continue;
 			if (
 				(signatures.has(node.name) && signatures.get(node.name)?.type !== SignatureType.Database) ||
-				!node.name.startsWith("DB_")
+				(inheritedSignatures &&
+					inheritedSignatures.has(node.name) &&
+					inheritedSignatures.get(node.name)![0].type !== "Database")
 			) {
 				res.push(invalidDeletionFromNonDatabaseDiagnosticFactory({ range: node.selectionRange }));
 			}
@@ -162,34 +182,106 @@ export class RuleAnalyzer extends AnalyzerBase {
 	}
 
 	// InvalidSymbolInInitialConition 17
-	// TODO: Finish this for inherited signatures
-	private verifyValidSymbolInInitialCondition(node: RuleNode, signatures: Map<string, Signature>, res: Diagnostic[]) {
+	private verifyValidSymbolInInitialCondition(
+		node: RuleNode,
+		signatures: Map<string, Signature>,
+		res: Diagnostic[],
+		inheritedSignatures?: Map<string, InheritedSignature[]>
+	) {
 		let isValid = true;
-		const type = signatures.get(node.call.name)?.type;
-		if (type) {
+		if (signatures.has(node.call.name)) {
+			const type = signatures.get(node.call.name)?.type;
 			switch (node.type) {
 				case "PROC":
 					if (type !== SignatureType.Proc) isValid = false;
 					break;
 				case "IF":
-					if (type !== SignatureType.Database && type !== SignatureType.BuiltinEvent) isValid = false;
+					if (
+						type !== SignatureType.Database &&
+						type !== SignatureType.BuiltinEvent &&
+						type !== SignatureType.BuiltinQuery
+					)
+						isValid = false;
 					break;
 				case "QRY":
 					if (type !== SignatureType.Query) isValid = false;
 					break;
 			}
-		} else {
+			if (!isValid) {
+				res.push(
+					invalidSymbolInInitialConditionDiagnosticFactory({
+						range: node.selectionRange,
+						ruleType: node.type,
+						signatureName: node.call.name,
+						signatureType: type ? getReadableSignatureType(type) : undefined
+					})
+				);
+			}
+		} else if (inheritedSignatures?.has(node.call.name)) {
+			const type = inheritedSignatures.get(node.call.name)![0].type;
+			switch (node.type) {
+				case "PROC":
+					if (type !== "Proc") isValid = false;
+					break;
+				case "IF":
+					if (type !== "Database" && type !== "Event") isValid = false;
+					break;
+				case "QRY":
+					if (type !== "UserQuery") isValid = false;
+					break;
+			}
+			if (!isValid) {
+				res.push(
+					invalidSymbolInInitialConditionDiagnosticFactory({
+						range: node.selectionRange,
+						ruleType: node.type,
+						signatureName: node.call.name,
+						signatureType: type ? getReadableInheritedSignatureType(type) : undefined
+					})
+				);
+			}
 		}
+	}
 
-		if (!isValid) {
-			res.push(
-				invalidSymbolInInitialConditionDiagnosticFactory({
-					range: node.selectionRange,
-					ruleType: node.type,
-					signatureName: node.call.name,
-					signatureType: type ? getReadableSignatureType(type) : undefined
-				})
-			);
+	// InvalidFunctionTypeInCondition 18
+	private verifyValidFunctionTypeInCondition(
+		conditions: (SignatureNode | ComparisonNode)[],
+		signatures: Map<string, Signature>,
+		res: Diagnostic[],
+		inheritedSignatures?: Map<string, InheritedSignature[]>
+	) {
+		for (const condition of conditions) {
+			if (condition.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
+			const signatureType = signatures.get((condition as SignatureNode).name)?.type;
+			const inheritedSignature = inheritedSignatures?.get((condition as SignatureNode).name);
+			if (
+				signatureType &&
+				signatureType !== SignatureType.Query &&
+				signatureType !== SignatureType.Database &&
+				signatureType !== SignatureType.BuiltinQuery
+			) {
+				res.push(
+					invalidFunctionTypeInConditionDiagnosticFactory({
+						range: condition.selectionRange,
+						name: (condition as SignatureNode).name,
+						actualType: getReadableSignatureType(signatureType)
+					})
+				);
+			} else if (
+				inheritedSignature &&
+				inheritedSignature[0].type !== "Query" &&
+				inheritedSignature[0].type !== "SysQuery" &&
+				inheritedSignature[0].type !== "UserQuery" &&
+				inheritedSignature[0].type !== "Database"
+			) {
+				res.push(
+					invalidFunctionTypeInConditionDiagnosticFactory({
+						range: condition.range,
+						name: (condition as SignatureNode).name,
+						actualType: getReadableInheritedSignatureType(inheritedSignature[0].type)
+					})
+				);
+			}
 		}
 	}
 }

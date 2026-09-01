@@ -1,6 +1,6 @@
 import { readFileSync, rmSync } from "fs";
 import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/edge";
-import { FunctionSignature, Story } from "./story";
+import { Function, FunctionSignature, Story } from "./story";
 import { DependencyMetaCollectionEntry } from "./mod";
 
 export class Dependency {
@@ -9,7 +9,7 @@ export class Dependency {
 	readonly ignoredOrphans: string[] = [];
 	readonly foundOrphans: string[] = [];
 	readonly activeGoals = new Map<number, string>();
-	readonly definedSignatures = new Map<string, Map<string, FunctionSignature[]>>();
+	readonly definedSignatures = new Map<string, Map<string, Function[]>>();
 	goalParents?: Map<string, string>;
 	story?: Story;
 
@@ -87,14 +87,11 @@ export class Dependency {
 
 				const definitions = this.story.functions.filter((value) => value.Name.Name === node.Name);
 				if (!this.definedSignatures.has(goalName)) {
-					this.definedSignatures.set(goalName, new Map<string, FunctionSignature[]>());
+					this.definedSignatures.set(goalName, new Map<string, Function[]>());
 				}
-				const signatureMap = this.definedSignatures.get(goalName) as Map<string, FunctionSignature[]>;
+				const signatureMap = this.definedSignatures.get(goalName) as Map<string, Function[]>;
 
-				signatureMap.set(
-					node.Name,
-					definitions.map((value) => value.Name)
-				);
+				signatureMap.set(node.Name, definitions);
 			}
 		}
 	}

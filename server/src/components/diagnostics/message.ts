@@ -86,9 +86,59 @@ export function invalidSymbolInInitialConditionDiagnosticFactory({
 	return {
 		source: diagnosticSource,
 		range,
-		message: `${ruleType} rules must begin with a ${requiredCall}, ${signatureType ? `${signatureName} is a ${signatureType}` : ``}.`,
+		message: `${ruleType} rules must begin with a ${requiredCall}${signatureType ? `, ${signatureName} is a ${signatureType}` : ``}.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.InvalidSymbolInInitialCondition
+	};
+}
+
+export interface InvalidFunctionTypeInConditionParams {
+	range: Range;
+	name: string;
+	actualType: string;
+}
+
+export function invalidFunctionTypeInConditionDiagnosticFactory({
+	range,
+	name,
+	actualType
+}: InvalidFunctionTypeInConditionParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `Conditions can only be queries or databases; ${name} is a ${actualType}.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.InvalidFunctionTypeInCondition
+	};
+}
+
+export interface RuleNamingStyleParams {
+	range: Range;
+	ruleType: "PROC" | "QRY";
+	prefix: "PROC_" | "QRY_";
+}
+
+export function ruleNamingStyleDiagnosticFactory({ range, ruleType, prefix }: RuleNamingStyleParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `${ruleType} rules must be named with a ${prefix} prefix.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.RuleNamingStyle
+	};
+}
+
+export interface DbNamingStyleParams {
+	range: Range;
+}
+
+export function DbNamingStyleDiagnosticFactory({ range }: DbNamingStyleParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `Databases must be named with a DB_ prefix.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.DbNamingStyle
 	};
 }
 

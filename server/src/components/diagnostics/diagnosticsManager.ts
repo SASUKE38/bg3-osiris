@@ -28,14 +28,19 @@ UnresolvedType 12
 
 TODO: Change signature registration to only defined signatures, not signatures in bodies of rules
 TODO: Change inherited signature type recognition to something other than by naming convention
+TODO: Combine signature types into one so signatures and inherited signatures are not treated differently?
+TODO: Clean diagnostic param interfaces to inherit shared fields
+TODO: Add signature usage locations to class
 
--- Function Placements and Naming --
+-- Function Placements --
 *InvalidProcDefinition 13
 *InvalidSymbolInFact 14
 *InvalidSymbolInStatement 15
 *CanOnlyDeleteFromDatabase 16
-InvalidSymbolInInitialCondition 17
-InvalidFunctionTypeInCondition 18
+*InvalidSymbolInInitialCondition 17
+*InvalidFunctionTypeInCondition 18
+
+-- Function Naming --
 RuleNamingStyle 23
 DbNamingStyle 26
 

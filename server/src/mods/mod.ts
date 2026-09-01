@@ -22,6 +22,7 @@ export interface InheritedGoal {
 export interface InheritedSignature {
 	name: string;
 	parameters: string[];
+	type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
 }
 
 export interface DependencyMetaCollectionEntry {
@@ -100,29 +101,30 @@ export class Mod {
 			const filteredSignatures = definedSignatures
 				? Array.from(definedSignatures.values())
 						.flat(1)
-						.filter((value) => value.Name.startsWith("PROC_") || value.Name.startsWith("QRY_"))
+						.filter((value) => value.Type === "Proc" || value.Type === "UserQuery")
 				: [];
 
 			for (const signature of filteredSignatures) {
 				const inheritedSignature: InheritedSignature = {
-					name: signature.Name,
-					parameters: Array.from(signature.Parameters.Types)
-						.map((value) => story.types[value].Name)
-						.sort()
+					name: signature.Name.Name,
+					parameters: Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name),
+					type: signature.Type
 				};
 				if (
-					this.inheritedSignatures.has(signature.Name) &&
-					!this.inheritedSignatures.get(signature.Name)?.find((value) => {
-						if (value.parameters.length !== inheritedSignature.parameters.length) return false;
+					this.inheritedSignatures.has(signature.Name.Name) &&
+					!this.inheritedSignatures.get(signature.Name.Name)?.find((value) => {
+						const aParameters = value.parameters.sort();
+						const bParameters = inheritedSignature.parameters.sort();
+						if (aParameters.length !== bParameters.length) return false;
 						for (let i = 0; i <= value.parameters.length; i++) {
-							if (value.parameters[i] !== inheritedSignature.parameters[i]) return false;
+							if (aParameters[i] !== bParameters[i]) return false;
 						}
 						return true;
 					})
 				) {
-					this.inheritedSignatures.get(signature.Name)?.push(inheritedSignature);
+					this.inheritedSignatures.get(signature.Name.Name)?.push(inheritedSignature);
 				} else {
-					this.inheritedSignatures.set(signature.Name, [inheritedSignature]);
+					this.inheritedSignatures.set(signature.Name.Name, [inheritedSignature]);
 				}
 			}
 
@@ -131,14 +133,15 @@ export class Mod {
 				owner: dependency,
 				parents: goal.ParentGoals.map((parent) => story.goals[parent.Index].Name),
 				children: goal.SubGoals.map((child) => story.goals[child.Index].Name),
-				definedSignatures: filteredSignatures
+				definedSignatures: filteredSignatures.map((value) => value.Name)
 			});
 		});
 
 		Object.values(story.databases).forEach((value) => {
 			this.inheritedDatabases.set(value.OwnerNode.Name, {
 				name: value.OwnerNode.Name,
-				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name)
+				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
+				type: "Database"
 			});
 		});
 
