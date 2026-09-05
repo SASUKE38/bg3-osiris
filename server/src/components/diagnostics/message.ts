@@ -6,7 +6,7 @@ import { ComparisonNode, SignatureNode, StringNode } from "../../parser/ast/node
 const diagnosticSource = "Osiris";
 
 interface DiagnosticParamsBase {
-	range: Range
+	range: Range;
 }
 
 //#region Rule Structure
@@ -142,7 +142,7 @@ export function DbNamingStyleDiagnosticFactory({ range }: DbNamingStyleParams) {
 //#region Goal Arrangement
 
 interface GoalArrangementDiagnosticParamsBase extends DiagnosticParamsBase {
-	name: string
+	name: string;
 }
 
 interface UnresolvedGoalParams extends GoalArrangementDiagnosticParamsBase {}
@@ -174,11 +174,15 @@ export function goalAlreadyDefinedDiagnosticFactory({ range, name }: GoalAlready
 //#region Database
 
 interface UnusedDatabaseWarningParams extends DiagnosticParamsBase {
-	name: string,
+	name: string;
 	isRead: boolean;
 }
 
-export function unusedDatabaseWarningDiagnosticFactory({ range, name, isRead }: UnusedDatabaseWarningParams): Diagnostic {
+export function unusedDatabaseWarningDiagnosticFactory({
+	range,
+	name,
+	isRead
+}: UnusedDatabaseWarningParams): Diagnostic {
 	return {
 		source: diagnosticSource,
 		range,

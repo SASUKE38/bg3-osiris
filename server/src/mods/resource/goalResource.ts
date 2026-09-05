@@ -18,10 +18,12 @@ import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from 
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
-import { Signature, SignatureType } from "../signature";
+import { Signature } from "../signature";
 import { isArrayEqual } from "../../utils/isArrayEqual";
 
 export class GoalResource extends Resource {
+	readonly readDatabases = new Set<string>();
+	readonly writtenDatabases = new Set<string>();
 	readonly kind: ResourceKind = ResourceKind.Goal;
 	parent = "";
 
@@ -158,65 +160,146 @@ export class GoalResource extends Resource {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					const rule = child as RuleNode;
-					extractSignatures([rule.call], thisArg, true, true);
-					extractSignatures(rule.conditions, thisArg, false, true);
-					extractSignatures(rule.actions, thisArg, false, false);
+					extractCallSignature(rule.call, rule.type, thisArg);
+					extractConditionSignatures(
+						rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
+						rule.type,
+						thisArg
+					);
+					extractActionSignature(rule.actions, rule.type, thisArg);
+					// extractSignatures([rule.call], thisArg, true, true);
+					// extractSignatures(rule.conditions, thisArg, false, true);
+					// extractSignatures(rule.actions, thisArg, false, false);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 					const signatures = child as SignatureSectionNode;
-					extractSignatures(signatures.content, thisArg, false, false);
+					extractSignatureSectionSignatures(signatures.content, thisArg);
+					// extractSignatures(signatures.content, thisArg, false, false);
 				} else {
 					getSignatures(child, thisArg);
 				}
 			}
 		}
 
-		function extractSignatures(
-			signatures: (SignatureNode | ComparisonNode)[],
-			thisArg: GoalResource,
-			isDefinition = false,
-			isRead = false
-		) {
-			for (let signature of signatures) {
-				if (signature.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
-				signature = signature as SignatureNode;
-				const entry = thisArg.signatures.has(signature.name)
-					? thisArg.signatures.get(signature.name)
-					: new Signature(signature.name, getSignatureType(signature.name));
-				if (entry?.type === SignatureType.Database) {
-					if (isRead) entry.isRead = true;
-					else entry.isWritten = true;
-				} else if (entry) {
-					if (isDefinition) entry.isDefined = true;
-					else entry.isCalled = true;
-				}
-				if (isDefinition) {
-					const parameterCollection: string[] = [];
-					for (const parameter of signature.parameters) {
-						const type = parameter.type ? parameter.type.value : "";
-						parameterCollection.push(type);
-					}
-					if (!entry?.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
-						entry?.parameters.push(parameterCollection);
-					}
-				}
-				thisArg.signatures.set(signature.name, entry!);
+		function extractSignature(signatureNode: SignatureNode, ruleType: "PROC" | "QRY" | "IF" | ""): Signature {
+			const signature = new Signature(
+				signatureNode.name,
+				[],
+				getSignatureType("call", ruleType, signatureNode.name)
+			);
+			const parameterCollection: string[] = [];
+			for (const parameter of signatureNode.parameters) {
+				const type = parameter.type ? parameter.type.value : "";
+				parameterCollection.push(type);
+			}
+			if (!signature?.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
+				signature?.parameters.push(parameterCollection);
+			}
+			return signature;
+		}
 
-				if (isDefinition) thisArg.definedSignatures.add(signature.name);
-				else thisArg.calledSignatures.add(signature.name);
+		function extractCallSignature(
+			signatureNode: SignatureNode,
+			ruleType: "PROC" | "QRY" | "IF",
+			thisArg: GoalResource
+		) {
+			const signature = extractSignature(signatureNode, ruleType);
+
+			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
+			thisArg.signatures.set(signature.name, signature);
+			thisArg.definedSignatures.add(signature.name);
+		}
+
+		function extractConditionSignatures(
+			signatureNodes: SignatureNode[],
+			ruleType: "PROC" | "QRY" | "IF",
+			thisArg: GoalResource
+		) {
+			for (const signatureNode of signatureNodes) {
+				const signature = extractSignature(signatureNode, ruleType);
+				if (signature.type === "Database") {
+					thisArg.readDatabases.add(signature.name);
+					thisArg.signatures.set(signature.name, signature);
+				}
+				thisArg.calledSignatures.add(signature.name);
 			}
 		}
 
-		function getSignatureType(name: string): SignatureType {
-			if (name.startsWith("PROC_")) return SignatureType.Proc;
-			else if (name.startsWith("QRY_")) return SignatureType.Query;
-			else if (name.startsWith("DB_")) return SignatureType.Database;
+		function extractActionSignature(
+			signatureNodes: SignatureNode[],
+			ruleType: "PROC" | "QRY" | "IF",
+			thisArg: GoalResource
+		) {
+			for (const signatureNode of signatureNodes) {
+				const signature = extractSignature(signatureNode, ruleType);
+				if (signature.type === "Database") {
+					thisArg.writtenDatabases.add(signature.name);
+					thisArg.signatures.set(signature.name, signature);
+				}
+				thisArg.calledSignatures.add(signature.name);
+			}
+		}
+
+		function extractSignatureSectionSignatures(signatureNodes: SignatureNode[], thisArg: GoalResource) {
+			for (const signatureNode of signatureNodes) {
+				const signature = extractSignature(signatureNode, "");
+				if (signature.type !== "Database") return;
+				thisArg.writtenDatabases.add(signature.name);
+				thisArg.signatures.set(signature.name, signature);
+				thisArg.definedSignatures.add(signature.name);
+			}
+		}
+
+		// function extractSignatures(
+		// 	signatures: (SignatureNode | ComparisonNode)[],
+		// 	thisArg: GoalResource,
+		// 	isDefinition = false,
+		// 	isRead = false
+		// ) {
+		// 	for (let signature of signatures) {
+		// 		if (signature.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
+		// 		signature = signature as SignatureNode;
+		// 		const entry = thisArg.signatures.has(signature.name)
+		// 			? thisArg.signatures.get(signature.name)
+		// 			: new Signature(signature.name, getSignatureType(signature.name));
+		// 		if (entry?.type === SignatureType.Database) {
+		// 			if (isRead) entry.isRead = true;
+		// 			else entry.isWritten = true;
+		// 		} else if (entry) {
+		// 			if (isDefinition) entry.isDefined = true;
+		// 			else entry.isCalled = true;
+		// 		}
+		// 		if (isDefinition) {
+		// 			const parameterCollection: string[] = [];
+		// 			for (const parameter of signature.parameters) {
+		// 				const type = parameter.type ? parameter.type.value : "";
+		// 				parameterCollection.push(type);
+		// 			}
+		// 			if (!entry?.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
+		// 				entry?.parameters.push(parameterCollection);
+		// 			}
+		// 		}
+		// 		thisArg.signatures.set(signature.name, entry!);
+
+		// 		if (isDefinition) thisArg.definedSignatures.add(signature.name);
+		// 		else thisArg.calledSignatures.add(signature.name);
+		// 	}
+		// }
+
+		function getSignatureType(
+			section: "call" | "condition" | "action",
+			ruleType: "PROC" | "QRY" | "IF" | "",
+			name: string
+		) {
+			if (ruleType === "" || (section !== "call" && name.startsWith("DB_"))) return "Database";
+			if (ruleType === "PROC") return "Proc";
+			else if (ruleType === "QRY") return "UserQuery";
 			else if (documentation.has(name)) {
 				const type = documentation.get(name)?.type;
-				if (type === "call") return SignatureType.BuiltinCall;
-				else if (type === "query") return SignatureType.BuiltinQuery;
-				else if (type === "event") return SignatureType.BuiltinEvent;
-			}
-			return SignatureType.Unknown;
+				if (type === "call") return "Call";
+				else if (type === "query") return "Query";
+				else if (type === "event") return "Event";
+			} else if (ruleType === "IF") return "Database";
+			return "Proc";
 		}
 
 		this.signatures.clear();

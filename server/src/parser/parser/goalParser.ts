@@ -172,7 +172,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 		}
-		if (actions.length === 0) this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ range: ruleStart.range }));
+		if (actions.length === 0)
+			this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ range: ruleStart.range }));
 
 		return new RuleNode(
 			this.getRuleType(ruleStart),

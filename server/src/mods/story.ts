@@ -52,7 +52,7 @@ export interface Function {
 	Type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
 }
 
-export function getReadableInheritedSignatureType(
+export function getReadableSignatureType(
 	type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery"
 ) {
 	switch (type) {

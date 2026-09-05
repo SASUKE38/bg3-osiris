@@ -21,15 +21,6 @@ UnresolvedTypeInSignature 6
 *GoalAlreadyDefined 7
 *UnresolvedGoal 8
 
--- Types --
-UnresolvedVariableType 9
-UnresolvedSignature 10
-UnresolvedType 12
-
-TODO: Change signature registration to only defined signatures, not signatures in bodies of rules
-TODO: Combine signature types into one so signatures and inherited signatures are not treated differently?
-TODO: Add signature usage locations to class
-
 -- Function Placements --
 *InvalidProcDefinition 13
 *InvalidSymbolInFact 14
@@ -39,12 +30,12 @@ TODO: Add signature usage locations to class
 *InvalidFunctionTypeInCondition 18
 
 -- Function Naming --
-RuleNamingStyle 23
-DbNamingStyle 26
+*RuleNamingStyle 23
+*DbNamingStyle 26
 
 -- Symbol Resolving --
 UnresolvedSymbol 19
-*UnusedDatabaseWarning 25
+UnusedDatabaseWarning 25
 UnwrittenDatabase 35
 
 -- Comparisons --
@@ -53,7 +44,10 @@ UnwrittenDatabase 35
 *RiskyComparison 34
 
 -- Parameters --
+UnresolvedVariableType 9
+UnresolvedSignature 10
 LocalTypeMismatch 11
+UnresolvedType 12
 ParamNotBound 24
 ProcTypeMismatch 30
 CastToUnrelatedType 31

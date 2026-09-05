@@ -10,6 +10,7 @@ import { Resource } from "./resource/resource";
 import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
 import { BaseModConfiguration } from "../utils/configurationSchema";
+import { Signature } from "./signature";
 
 export interface InheritedGoal {
 	name: string;
@@ -35,15 +36,15 @@ export class Mod {
 	readonly meta?: ModMetaModuleInfo;
 	readonly manager: ModManager;
 	readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
-	private readonly goals: GoalResource[] = [];
-	private readonly types = new Set<string>();
-	private readonly enums = new Map<string, string[]>();
-	private readonly inheritedGoals = new Map<string, InheritedGoal>();
-	private readonly inheritedSignatures = new Map<string, InheritedSignature[]>();
-	private readonly inheritedDatabases = new Map<string, InheritedSignature>();
-	private readonly inheritedIgnoredOrphans = new Set<string>();
-	private readonly inheritedFoundOrphans = new Set<string>();
-	private dependencies: Dependency[] = [];
+	readonly goals: GoalResource[] = [];
+	readonly types = new Set<string>();
+	readonly enums = new Map<string, string[]>();
+	readonly inheritedGoals = new Map<string, InheritedGoal>();
+	readonly inheritedSignatures = new Map<string, Signature>();
+	readonly inheritedDatabases = new Map<string, Signature>();
+	readonly inheritedIgnoredOrphans = new Set<string>();
+	readonly inheritedFoundOrphans = new Set<string>();
+	dependencies: Dependency[] = [];
 	storyTree = new StoryTree(this);
 	path: string;
 
@@ -105,26 +106,22 @@ export class Mod {
 				: [];
 
 			for (const signature of filteredSignatures) {
-				const inheritedSignature: InheritedSignature = {
-					name: signature.Name.Name,
-					parameters: Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name),
-					type: signature.Type
-				};
-				if (
-					this.inheritedSignatures.has(signature.Name.Name) &&
-					!this.inheritedSignatures.get(signature.Name.Name)?.find((value) => {
-						const aParameters = value.parameters.sort();
-						const bParameters = inheritedSignature.parameters.sort();
+				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
+				if (!this.inheritedSignatures.has(signature.Name.Name)) {
+					const inheritedSignature = new Signature(signature.Name.Name, [parameters], signature.Type);
+					this.inheritedSignatures.set(signature.Name.Name, inheritedSignature);
+				} else if (
+					!this.inheritedSignatures.get(signature.Name.Name)?.parameters.find((value) => {
+						const aParameters = value.sort();
+						const bParameters = parameters.sort();
 						if (aParameters.length !== bParameters.length) return false;
-						for (let i = 0; i <= value.parameters.length; i++) {
+						for (let i = 0; i <= value.length; i++) {
 							if (aParameters[i] !== bParameters[i]) return false;
 						}
 						return true;
 					})
 				) {
-					this.inheritedSignatures.get(signature.Name.Name)?.push(inheritedSignature);
-				} else {
-					this.inheritedSignatures.set(signature.Name.Name, [inheritedSignature]);
+					this.inheritedSignatures.get(signature.Name.Name)?.parameters.push(parameters);
 				}
 			}
 
@@ -138,11 +135,14 @@ export class Mod {
 		});
 
 		Object.values(story.databases).forEach((value) => {
-			this.inheritedDatabases.set(value.OwnerNode.Name, {
-				name: value.OwnerNode.Name,
-				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
-				type: "Database"
-			});
+			this.inheritedDatabases.set(
+				value.OwnerNode.Name,
+				new Signature(
+					value.OwnerNode.Name,
+					[Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name)],
+					"Database"
+				)
+			);
 		});
 
 		dependency.ignoredOrphans.forEach((value) => this.inheritedIgnoredOrphans.add(value));
@@ -164,14 +164,6 @@ export class Mod {
 
 	getAllInheritedGoals(): Map<string, InheritedGoal> {
 		return this.inheritedGoals;
-	}
-
-	getAllInheritedSignatures(): Map<string, InheritedSignature[]> {
-		return this.inheritedSignatures;
-	}
-
-	getAllInheritedDatabases(): Map<string, InheritedSignature> {
-		return this.inheritedDatabases;
 	}
 
 	getAllDependencies(): Dependency[] {

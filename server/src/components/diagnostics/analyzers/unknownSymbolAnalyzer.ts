@@ -14,33 +14,32 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 		const signatures = await this.modManager.getAllDefinedSignatures();
 
 		function doAnalysis(thisArg: UnknownSymbolAnalyzer, node?: ASTNode) {
-			if (!node) return;
-			for (const child of node.getNodeChildren()) {
-				if (!child) continue;
-				if (child.kind === ASTNodeKind.RULE_NODE) {
-					for (const signature of (child as RuleNode).actions) {
-						if (signatures.has(signature.name) && signatures.get(signature.name)?.isDefined) {
-							thisArg.unresolvedSymbols.delete(signature.name);
-						} else {
-							if (thisArg.unresolvedSymbols.has(signature.name)) {
-								thisArg.unresolvedSymbols
-									.get(signature.name)
-									?.push({ uri: document.uri, range: signature.range });
-							} else {
-								thisArg.unresolvedSymbols.set(signature.name, [
-									{ uri: document.uri, range: signature.range }
-								]);
-							}
-							res.push({
-								message: "Unresolved symbol",
-								range: signature.range
-							});
-						}
-					}
-				}
-
-				doAnalysis(thisArg, child);
-			}
+			// if (!node) return;
+			// for (const child of node.getNodeChildren()) {
+			// 	if (!child) continue;
+			// 	if (child.kind === ASTNodeKind.RULE_NODE) {
+			// 		for (const signature of (child as RuleNode).actions) {
+			// 			if (signatures.has(signature.name) && signatures.get(signature.name)?.isDefined) {
+			// 				thisArg.unresolvedSymbols.delete(signature.name);
+			// 			} else {
+			// 				if (thisArg.unresolvedSymbols.has(signature.name)) {
+			// 					thisArg.unresolvedSymbols
+			// 						.get(signature.name)
+			// 						?.push({ uri: document.uri, range: signature.range });
+			// 				} else {
+			// 					thisArg.unresolvedSymbols.set(signature.name, [
+			// 						{ uri: document.uri, range: signature.range }
+			// 					]);
+			// 				}
+			// 				res.push({
+			// 					message: "Unresolved symbol",
+			// 					range: signature.range
+			// 				});
+			// 			}
+			// 		}
+			// 	}
+			// 	doAnalysis(thisArg, child);
+			// }
 		}
 
 		doAnalysis(this, root);

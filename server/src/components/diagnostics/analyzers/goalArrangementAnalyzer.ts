@@ -27,7 +27,10 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 			!this.modManager.mod?.getResource(`${searchName}.txt`, "name") &&
 			!this.modManager.mod?.getInheritedGoalOwner(searchName)
 		) {
-			return unresolvedGoalDiagnosticFactory({ range: (parentTargetEdge as StringNode).selectionRange, name: (parentTargetEdge as StringNode).value });
+			return unresolvedGoalDiagnosticFactory({
+				range: (parentTargetEdge as StringNode).selectionRange,
+				name: (parentTargetEdge as StringNode).value
+			});
 		}
 	}
 
@@ -37,7 +40,10 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 		for (const resource of resources) {
 			const filtered = resources.filter((value) => value.name === resource.name);
 			if (filtered.length > 1) {
-				return goalAlreadyDefinedDiagnosticFactory({ range: Range.create(Position.create(0, 0), Position.create(0, 0)), name: resource.name });
+				return goalAlreadyDefinedDiagnosticFactory({
+					range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+					name: resource.name
+				});
 			}
 		}
 	}

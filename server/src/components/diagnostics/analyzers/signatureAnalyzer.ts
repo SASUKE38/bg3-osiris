@@ -1,7 +1,7 @@
 import { Diagnostic } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
 import { ASTNode, ASTNodeKind, SignatureNode } from "../../../parser/ast/nodes";
-import { Signature, SignatureType } from "../../../mods/signature";
+import { Signature } from "../../../mods/signature";
 import { unusedDatabaseWarningDiagnosticFactory } from "../message";
 
 export class SignatureAnalyzer extends AnalyzerBase {
@@ -17,24 +17,24 @@ export class SignatureAnalyzer extends AnalyzerBase {
 				if (child.kind === ASTNodeKind.SIGNATURE_NODE) {
 					if (signatures.has((child as SignatureNode).name)) {
 						const signature = signatures.get((child as SignatureNode).name) as Signature;
-						if (signature.type === SignatureType.Database) {
-							if (!signature.isRead && signature.isWritten) {
-								res.push(
-									unusedDatabaseWarningDiagnosticFactory({
-										range: (child as SignatureNode).selectionRange,
-										name: (child as SignatureNode).name,
-										isRead: false
-									})
-								);
-							} else if (!signature.isWritten && signature.isRead) {
-								res.push(
-									unusedDatabaseWarningDiagnosticFactory({
-										range: (child as SignatureNode).selectionRange,
-										name: (child as SignatureNode).name,
-										isRead: true
-									})
-								);
-							}
+						if (signature.type === "Database") {
+							// if (!signature.isRead && signature.isWritten) {
+							// 	res.push(
+							// 		unusedDatabaseWarningDiagnosticFactory({
+							// 			range: (child as SignatureNode).selectionRange,
+							// 			name: (child as SignatureNode).name,
+							// 			isRead: false
+							// 		})
+							// 	);
+							// } else if (!signature.isWritten && signature.isRead) {
+							// 	res.push(
+							// 		unusedDatabaseWarningDiagnosticFactory({
+							// 			range: (child as SignatureNode).selectionRange,
+							// 			name: (child as SignatureNode).name,
+							// 			isRead: true
+							// 		})
+							// 	);
+							// }
 						}
 					}
 				} else {

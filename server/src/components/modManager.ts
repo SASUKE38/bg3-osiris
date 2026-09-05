@@ -401,27 +401,33 @@ export class ModManager extends ComponentBase {
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
 		const res = new Map<string, Signature>();
-		const activeFiles = this.mod?.getAllGoals();
-		if (!activeFiles) return res;
+		if (!this.mod) return res;
 
-		for (const resource of activeFiles) {
-			for (const signature of (await resource.getData("signatures")).values()) {
-				if (res.has(signature.name)) {
-					const entrySignature = res.get(signature.name) as Signature;
-					entrySignature.isDefined = entrySignature.isDefined || signature.isDefined;
-					entrySignature.isCalled = entrySignature.isCalled || signature.isCalled;
-					entrySignature.isRead = entrySignature.isRead || signature.isRead;
-					entrySignature.isWritten = entrySignature.isWritten || signature.isWritten;
-					for (const parameterCollection of signature.parameters) {
-						if (!entrySignature.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
-							entrySignature.parameters.push(parameterCollection);
-						}
+		function processSignature(signature: Signature) {
+			if (res.has(signature.name)) {
+				const entrySignature = res.get(signature.name) as Signature;
+				for (const parameterCollection of signature.parameters) {
+					if (!entrySignature.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
+						entrySignature.parameters.push(parameterCollection);
 					}
-				} else {
-					res.set(signature.name, signature.getCopy());
 				}
+				entrySignature.type = signature.type;
+				res.set(signature.name, entrySignature);
+			} else {
+				res.set(signature.name, signature.getCopy());
 			}
 		}
+
+		for (const resource of this.mod.getAllGoals()) {
+			for (const signature of (await resource.getData("signatures")).values()) {
+				processSignature(signature);
+			}
+		}
+
+		for (const signature of this.mod.inheritedSignatures.values()) {
+			processSignature(signature);
+		}
+
 		return res;
 	}
 
