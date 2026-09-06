@@ -158,7 +158,7 @@ export class ModManager extends ComponentBase {
 		params: RequestGetStoryTreeNodePathParams
 	): Promise<RequestGetStoryTreeNodePathResult> => {
 		if (!this.mod) return { path: null };
-		const path = this.mod.getResource(`${params.name}.txt`, "name")?.path;
+		const path = this.mod.getGoalResource(`${params.name}.txt`, "name")?.path;
 		return { path: path ? encodePath(path) : path };
 	};
 
@@ -178,7 +178,7 @@ export class ModManager extends ComponentBase {
 		if (params.name.length === 0) return { reason: "The goal name cannot be empty." };
 		if (!/^[A-Za-z0-9_-]+$/.test(params.name))
 			return { reason: "The goal name can only contain _, -, and alphanumeric characters." };
-		if (this.mod.getResource(`${params.name}.txt`, "name") || this.mod.getInheritedGoalOwner(params.name))
+		if (this.mod.getGoalResource(`${params.name}.txt`, "name") || this.mod.getInheritedGoalOwner(params.name))
 			return { reason: "The goal's name must be unique." };
 		return { reason: "" };
 	};
@@ -252,7 +252,7 @@ export class ModManager extends ComponentBase {
 		if (!this.mod) return;
 		await this.mod.storyTree.deleteStoryTreeNode(params.name);
 		rmSync(join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`));
-		this.mod.removeResource(`${params.name}.txt`, "name");
+		this.mod.removeGoalResource(`${params.name}.txt`, "name");
 	};
 
 	/**
@@ -264,13 +264,13 @@ export class ModManager extends ComponentBase {
 	 */
 	private readonly handleRenameStoryTreeNode = async (params: RequestRenameStoryTreeNodeParams) => {
 		if (!this.mod) return;
-		const resource = this.mod.getResource(`${params.oldName}.txt`, "name");
+		const resource = this.mod.getGoalResource(`${params.oldName}.txt`, "name");
 		if (!resource) return;
 
 		const children = this.mod.storyTree.nodeMapping.get(params.oldName)?.children;
 		if (children) {
 			for (const child of children) {
-				if (!child.data || !this.mod.getResource(`${child.data.name}.txt`, "name")) {
+				if (!child.data || !this.mod.getGoalResource(`${child.data.name}.txt`, "name")) {
 					this.server.connection.window.showErrorMessage("Goals with inherited children cannot be renamed.");
 					return;
 				}
@@ -287,7 +287,7 @@ export class ModManager extends ComponentBase {
 			const childResources = children.map((value) => {
 				if (!value.data) return;
 				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				const resource = this.mod!.getResource(`${value.data.name}.txt`, "name");
+				const resource = this.mod!.getGoalResource(`${value.data.name}.txt`, "name");
 				return resource;
 			});
 			const edits: Record<string, TextEdit[]> = {};
@@ -319,7 +319,7 @@ export class ModManager extends ComponentBase {
 	private readonly handleMoveStoryTreeNode = async (params: RequestMoveStoryTreeNodeParams) => {
 		if (!this.mod) return;
 		await this.mod.storyTree.moveStoryTreeNode(params.targetName, params.sourceName);
-		const resource = this.mod.getResource(`${params.sourceName}.txt`, "name");
+		const resource = this.mod.getGoalResource(`${params.sourceName}.txt`, "name");
 		if (!resource || resource.kind !== ResourceKind.Goal) return;
 		const edit = await this.getParentTargetEdgeEdit(resource as GoalResource, params.targetName, true);
 		if (!edit) return;
@@ -375,14 +375,14 @@ export class ModManager extends ComponentBase {
 	 * @param path The path of the {@link Resource} to find. It is recommended to normalize the path first.
 	 * @returns The {@link Resource} pointed to by the path, or `undefined` if it does not exist.
 	 */
-	findResource(path: string): Resource | undefined {
+	findGoalResource(path: string): GoalResource | undefined {
 		if (this.mod) {
-			const file = this.mod.getResource(path);
+			const file = this.mod.getGoalResource(path);
 			if (file) return file;
 		}
 	}
 
-	getAllResources(): Resource[] {
+	getAllResources(): GoalResource[] {
 		if (this.mod) {
 			return this.mod.getAllGoals();
 		}
@@ -391,7 +391,7 @@ export class ModManager extends ComponentBase {
 
 	createResource(name: string, path: string) {
 		if (this.mod) {
-			this.mod.createResource(name, path);
+			this.mod.createGoalResource(name, path);
 		}
 	}
 

@@ -68,7 +68,13 @@ GameObjectNameMismatch 29
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer, GoalArrangementAnalyzer, RuleAnalyzer, UnknownSymbolAnalyzer];
+	private readonly analyzers = [
+		ComparisonAnalyzer,
+		SignatureAnalyzer,
+		GoalArrangementAnalyzer,
+		RuleAnalyzer,
+		UnknownSymbolAnalyzer
+	];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
@@ -85,7 +91,7 @@ export class DiagnosticManager extends ComponentBase {
 	}
 
 	handleDidOpen = async (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.server.modManager.findResource(decodePath(event.document.uri));
+		const file = this.server.modManager.findGoalResource(decodePath(event.document.uri));
 		if (file) {
 			if (event.document.version >= file.getTextDocument().version) {
 				file.setTextDocument(event.document);
@@ -95,7 +101,7 @@ export class DiagnosticManager extends ComponentBase {
 	};
 
 	handleDidChangeContent = async (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.server.modManager.findResource(decodePath(event.document.uri));
+		const file = this.server.modManager.findGoalResource(decodePath(event.document.uri));
 		if (file) {
 			file.setTextDocument(event.document);
 			file.invalidate();
@@ -104,7 +110,7 @@ export class DiagnosticManager extends ComponentBase {
 	};
 
 	async handleDiagnostics(document: TextDocument): Promise<void> {
-		const resource = this.server.modManager.findResource(decodePath(document.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(document.uri));
 		if (!resource) return;
 		const semanticDiagnostics = (
 			await Promise.all(

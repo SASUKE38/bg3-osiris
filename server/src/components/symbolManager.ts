@@ -50,7 +50,7 @@ export class SymbolManager extends ComponentBase {
 	 * @returns An {@link Array} of {@link DocumentSymbol} instances in this mod.
 	 */
 	private handleDocumentSymbol = async (params: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		if (!resource) return Promise.resolve([]);
 		return await resource.getData("symbols");
 	};
@@ -75,7 +75,7 @@ export class SymbolManager extends ComponentBase {
 	 * @returns A {@link SemanticTokens} instance of the Semantic Tokens for a given document.
 	 */
 	private handleSemanticTokens = async (params: SemanticTokensParams): Promise<SemanticTokens> => {
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		if (!resource) return { data: [] };
 		return { data: await resource.getData("semanticTokens") };
 	};
@@ -160,13 +160,13 @@ export class SymbolManager extends ComponentBase {
 	 * @returns A {@link Range} instance if the given parameters contain a valid position or null otherwise.
 	 */
 	async validateRenameOrReferences(params: PrepareRenameParams | ReferenceParams): Promise<Range | null> {
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		if (resource) {
 			const symbols = await resource.getSymbolsAt(params.position);
 			if (symbols.length <= 1) return null;
 
 			const document = this.server.modManager
-				.findResource(decodePath(params.textDocument.uri))
+				.findGoalResource(decodePath(params.textDocument.uri))
 				?.getTextDocument();
 			if (!document) return null;
 

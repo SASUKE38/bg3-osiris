@@ -32,7 +32,7 @@ export class DefinitionsProvider extends ComponentBase {
 	 * @returns An {@link Array} of {@link Location} instances that contain the definitions found for the request.
 	 */
 	private handleDefinition = async (params: DefinitionParams): Promise<Location[] | null> => {
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		if (resource) {
 			const symbolsAt = await resource.getSymbolsAt(params.position);
 			const searchSymbol = symbolsAt[symbolsAt.length - 1];

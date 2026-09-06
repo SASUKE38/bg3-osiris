@@ -36,7 +36,7 @@ export class SignatureHelpProvider extends ComponentBase {
 	 */
 	private handleSignatureHelp = async (params: SignatureHelpParams): Promise<SignatureHelp | null> => {
 		const { documentationManager, modManager } = this.server;
-		const resource = modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = modManager.findGoalResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resource?.getNodesAt(params.position);
 		const textDocument = resource?.getTextDocument();
 		const signature = nodesAt?.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE) as

@@ -33,11 +33,20 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
-	private verifyDatabaseUses(child: SignatureNode, readDatabases: Set<string>, writtenDatabases: Set<string>, res: Diagnostic[]) {
-		if ((!readDatabases.has(child.name) && writtenDatabases.has(child.name))) {
-			res.push(unusedDatabaseWarningDiagnosticFactory({range: child.selectionRange, name: child.name, isRead: false}))
+	private verifyDatabaseUses(
+		child: SignatureNode,
+		readDatabases: Set<string>,
+		writtenDatabases: Set<string>,
+		res: Diagnostic[]
+	) {
+		if (!readDatabases.has(child.name) && writtenDatabases.has(child.name)) {
+			res.push(
+				unusedDatabaseWarningDiagnosticFactory({ range: child.selectionRange, name: child.name, isRead: false })
+			);
 		} else if (readDatabases.has(child.name) && !writtenDatabases.has(child.name)) {
-			res.push(unusedDatabaseWarningDiagnosticFactory({range: child.selectionRange, name: child.name, isRead: true}))
+			res.push(
+				unusedDatabaseWarningDiagnosticFactory({ range: child.selectionRange, name: child.name, isRead: true })
+			);
 		}
 	}
 }

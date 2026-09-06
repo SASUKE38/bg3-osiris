@@ -46,7 +46,7 @@ export class CompletionProvider extends ComponentBase {
 	For type enums: Add enum members
 	*/
 	private handleCompletion = async (params: CompletionParams): Promise<CompletionItem[]> => {
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resource?.getNodesAt(params.position);
 		let res: CompletionItem[] = [];
 		if (resource && nodesAt && nodesAt.length > 0) {

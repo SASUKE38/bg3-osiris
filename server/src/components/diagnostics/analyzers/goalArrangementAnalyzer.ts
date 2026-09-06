@@ -24,7 +24,7 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 		const searchName = (parentTargetEdge as StringNode).value;
 		if (
 			searchName !== "" &&
-			!this.modManager.mod?.getResource(`${searchName}.txt`, "name") &&
+			!this.modManager.mod?.getGoalResource(`${searchName}.txt`, "name") &&
 			!this.modManager.mod?.getInheritedGoalOwner(searchName)
 		) {
 			return unresolvedGoalDiagnosticFactory({

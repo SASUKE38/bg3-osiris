@@ -46,7 +46,7 @@ export class RenameProvider extends ComponentBase {
 	 * @returns A {@link WorkspaceEdit} if this request is valid, null otherwise.
 	 */
 	private handleRenameRequest = async (params: RenameParams): Promise<WorkspaceEdit | null> => {
-		const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		if (resource) {
 			const symbolsAt = await resource.getSymbolsAt(params.position);
 			const oldSymbol = symbolsAt[symbolsAt.length - 1];

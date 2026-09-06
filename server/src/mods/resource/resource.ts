@@ -1,28 +1,21 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ASTNode } from "../../parser/ast/nodes";
-import { Diagnostic, DocumentSymbol, Position, uinteger, WorkspaceSymbol } from "vscode-languageserver";
-import { readFileSync } from "fs";
-import { encodePath } from "../../utils/pathUtils";
-import { Signature } from "../signature";
+import { Diagnostic, DocumentSymbol, Position } from "vscode-languageserver";
 import { Mod } from "../mod";
 
 export enum ResourceKind {
 	None,
-	Goal
+	Goal,
+	Header
 }
 
 export abstract class Resource {
 	readonly kind: ResourceKind = ResourceKind.None;
 	readonly mod;
+	protected abstract document: TextDocument;
 	protected ast?: ASTNode;
-	protected document: TextDocument;
 	protected symbols: DocumentSymbol[] = [];
-	protected workspaceSymbols: WorkspaceSymbol[] = [];
-	protected semanticTokens: uinteger[] = [];
-	protected signatures = new Map<string, Signature>();
-	protected definedSignatures = new Set<string>();
-	protected calledSignatures = new Set<string>();
 	private valid = false;
 	path;
 	name;
@@ -32,13 +25,9 @@ export abstract class Resource {
 		this.mod = mod;
 		this.name = name;
 		this.path = path;
-
-		this.document = TextDocument.create(encodePath(path), "osiris", 1, readFileSync(path, { encoding: "utf-8" }));
 	}
 
 	abstract load(): Promise<ASTNode | undefined>;
-
-	abstract loadSymbols(): Promise<[DocumentSymbol[], WorkspaceSymbol[]]>;
 
 	isValid() {
 		return this.valid;
@@ -108,12 +97,9 @@ export abstract class Resource {
 		return await this.load();
 	}
 
-	async getData(data: "signatures"): Promise<Map<string, Signature>>;
 	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
-	async getData(data: "semanticTokens"): Promise<uinteger[]>;
-	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
 	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
-	async getData(data: "diagnostics" | "semanticTokens" | "workspaceSymbols" | "symbols" | "signatures") {
+	async getData(data: "diagnostics" | "symbols") {
 		if (!this.isValid()) await this.load();
 		return this[data];
 	}

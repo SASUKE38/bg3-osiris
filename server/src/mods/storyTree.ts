@@ -108,7 +108,7 @@ export class StoryTree {
 			const isOverriden =
 				!child.data || child.data.name === ""
 					? false
-					: this.mod.getResource(`${child.data.name}.txt`, "name") !== undefined;
+					: this.mod.getGoalResource(`${child.data.name}.txt`, "name") !== undefined;
 			res.push({ node: child, isOverriden, hasChildren: child.children.length > 0 });
 		}
 		return res;

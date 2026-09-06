@@ -37,7 +37,7 @@ export class CallHierarchyProvider extends ComponentBase {
 	 * for creating a call hierarchy, null otherwise.
 	 */
 	private handlePrepare = async (params: CallHierarchyPrepareParams): Promise<CallHierarchyItem[] | null> => {
-		const resoure = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+		const resoure = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resoure?.getNodesAt(params.position);
 		const signature = nodesAt?.find((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as
 			| SignatureNode

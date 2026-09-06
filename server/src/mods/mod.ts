@@ -1,5 +1,5 @@
 import { ModMetaModuleInfo, ModMetaModuleShortDesc } from "./modMeta";
-import { readdirSync, rmSync } from "fs";
+import { existsSync, readdirSync, rmSync } from "fs";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
 import { join, sep } from "path";
@@ -11,6 +11,7 @@ import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
 import { BaseModConfiguration } from "../utils/configurationSchema";
 import { Signature } from "./signature";
+import { HeaderResource } from "./resource/headerResource";
 
 export interface InheritedGoal {
 	name: string;
@@ -29,15 +30,15 @@ export interface DependencyMetaCollectionEntry {
 export class Mod {
 	readonly meta?: ModMetaModuleInfo;
 	readonly manager: ModManager;
-	readonly goalSubdirectory = join("Story", "RawFiles", "Goals");
+	readonly headerSubdirectory = join("Story", "RawFiles");
+	readonly goalSubdirectory = join(this.headerSubdirectory, "Goals");
 	readonly goals: GoalResource[] = [];
-	readonly types = new Set<string>();
-	readonly enums = new Map<string, string[]>();
 	readonly inheritedGoals = new Map<string, InheritedGoal>();
 	readonly inheritedSignatures = new Map<string, Signature>();
 	readonly inheritedDatabases = new Map<string, Signature>();
 	readonly inheritedIgnoredOrphans = new Set<string>();
 	readonly inheritedFoundOrphans = new Set<string>();
+	header?: HeaderResource;
 	dependencies: Dependency[] = [];
 	storyTree = new StoryTree(this);
 	path: string;
@@ -46,6 +47,11 @@ export class Mod {
 		this.path = path;
 		this.manager = manager;
 		this.meta = meta;
+
+		const headerPath = join(this.path, this.headerSubdirectory, "story_header.div");
+		if (existsSync(headerPath)) {
+			this.header = new HeaderResource(this, "story_header.div", headerPath);
+		}
 	}
 
 	/**
@@ -54,7 +60,7 @@ export class Mod {
 	async initialize() {
 		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
 			if (this.path) {
-				this.createResource(file, join(this.path, this.goalSubdirectory, file));
+				this.createGoalResource(file, join(this.path, this.goalSubdirectory, file));
 			}
 		}
 
@@ -79,15 +85,6 @@ export class Mod {
 	private mergeStory(dependency: Dependency) {
 		const { story } = dependency;
 		if (!story) return;
-
-		Object.values(story.types).forEach((value) => this.types.add(value.Name));
-
-		Object.values(story.enums).forEach((value) => {
-			this.enums.set(
-				story.types[value.UnderlyingType].Name,
-				value.Elements.map((element) => element.Name)
-			);
-		});
 
 		// TODO: Delete unused signatures?
 		Object.values(Array.from(dependency.activeGoals.keys())).forEach((key) => {
@@ -143,11 +140,11 @@ export class Mod {
 		dependency.foundOrphans.forEach((value) => this.inheritedFoundOrphans.add(value));
 	}
 
-	getResource(searchTerm: string, query: "path" | "name" = "path"): Resource | undefined {
+	getGoalResource(searchTerm: string, query: "path" | "name" = "path"): GoalResource | undefined {
 		return this.goals.find((file) => file[query] === searchTerm);
 	}
 
-	removeResource(searchTerm: string, query: "path" | "name" = "path") {
+	removeGoalResource(searchTerm: string, query: "path" | "name" = "path") {
 		const index = this.goals.findIndex((file) => file[query] === searchTerm);
 		if (index >= 0) this.goals.splice(index, 1);
 	}
@@ -164,7 +161,7 @@ export class Mod {
 		return this.dependencies;
 	}
 
-	createResource(name: string, path: string) {
+	createGoalResource(name: string, path: string) {
 		this.goals.push(new GoalResource(this, name, path));
 	}
 

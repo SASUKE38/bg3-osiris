@@ -37,7 +37,7 @@ export class ReferencesProvider extends ComponentBase {
 	 */
 	private handleReferences = async (params: ReferenceParams): Promise<Location[] | null> => {
 		if (await this.server.symbolManager.validateRenameOrReferences(params)) {
-			const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+			const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 			if (resource) {
 				const symbolsAt = await resource.getSymbolsAt(params.position);
 				const searchSymbol = symbolsAt[symbolsAt.length - 1];
@@ -64,7 +64,7 @@ export class ReferencesProvider extends ComponentBase {
 	 */
 	private handleDocumentHighlight = async (params: DocumentHighlightParams): Promise<DocumentHighlight[] | null> => {
 		if (await this.server.symbolManager.validateRenameOrReferences(params)) {
-			const resource = this.server.modManager.findResource(decodePath(params.textDocument.uri));
+			const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 			if (resource) {
 				const symbolsAt = await resource.getSymbolsAt(params.position);
 				const searchSymbol = symbolsAt[symbolsAt.length - 1];
