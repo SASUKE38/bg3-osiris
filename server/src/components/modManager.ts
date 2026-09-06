@@ -398,6 +398,30 @@ export class ModManager extends ComponentBase {
 	//#endregion
 
 	//#region Signature Processing
+	// TODO: Make inherited signatures not reload at every call to get databases and get signatures
+
+	async getReadDatabases(): Promise<Set<string>> {
+		return await this.getDatabases("readDatabases");
+	}
+
+	async getWrittenDatabases(): Promise<Set<string>> {
+		return await this.getDatabases("writtenDatabases");
+	}
+
+	private async getDatabases(field: "readDatabases" | "writtenDatabases"): Promise<Set<string>> {
+		const res = new Set<string>();
+		if (!this.mod) return res;
+
+		for (const resource of this.mod.getAllGoals()) {
+			(await resource.getData(field)).forEach((value) => res.add(value));
+		}
+
+		for (const database of this.mod.inheritedDatabases.keys()) {
+			res.add(database);
+		}
+
+		return res;
+	}
 
 	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
 		const res = new Map<string, Signature>();

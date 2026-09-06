@@ -20,12 +20,6 @@ export interface InheritedGoal {
 	definedSignatures: FunctionSignature[];
 }
 
-export interface InheritedSignature {
-	name: string;
-	parameters: string[];
-	type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
-}
-
 export interface DependencyMetaCollectionEntry {
 	path: string;
 	internalPath: string;

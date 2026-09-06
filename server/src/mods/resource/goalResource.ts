@@ -14,7 +14,7 @@ import {
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
 import { Resource, ResourceKind } from "./resource";
-import { DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
+import { Diagnostic, DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
@@ -22,10 +22,21 @@ import { Signature } from "../signature";
 import { isArrayEqual } from "../../utils/isArrayEqual";
 
 export class GoalResource extends Resource {
-	readonly readDatabases = new Set<string>();
-	readonly writtenDatabases = new Set<string>();
+	private readonly readDatabases = new Set<string>();
+	private readonly writtenDatabases = new Set<string>();
 	readonly kind: ResourceKind = ResourceKind.Goal;
 	parent = "";
+
+	async getData(data: "signatures"): Promise<Map<string, Signature>>;
+	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
+	async getData(data: "semanticTokens"): Promise<uinteger[]>;
+	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
+	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
+	async getData(data: "readDatabases" | "writtenDatabases"): Promise<Set<string>>;
+	async getData(data: "diagnostics" | "semanticTokens" | "workspaceSymbols" | "symbols" | "signatures" | "readDatabases" | "writtenDatabases"): Promise<DocumentSymbol[] | WorkspaceSymbol[] | number[] | Map<string, Signature> | Diagnostic[] | Set<string>> {
+		if (!this.isValid()) await this.load();
+		return this[data];
+	}
 
 	/**
 	 * Parses the {@link document} associated with this resource if it has been loaded

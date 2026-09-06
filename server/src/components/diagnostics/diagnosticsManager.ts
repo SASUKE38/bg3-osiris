@@ -33,6 +33,8 @@ UnresolvedTypeInSignature 6
 *RuleNamingStyle 23
 *DbNamingStyle 26
 
+TODO: Figure out how to handle orphans with databases
+
 -- Symbol Resolving --
 UnresolvedSymbol 19
 UnusedDatabaseWarning 25
@@ -66,7 +68,7 @@ GameObjectNameMismatch 29
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 
-	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer, GoalArrangementAnalyzer, RuleAnalyzer];
+	private readonly analyzers = [ComparisonAnalyzer, SignatureAnalyzer, GoalArrangementAnalyzer, RuleAnalyzer, UnknownSymbolAnalyzer];
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
