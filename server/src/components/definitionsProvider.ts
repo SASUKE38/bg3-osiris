@@ -33,18 +33,19 @@ export class DefinitionsProvider extends ComponentBase {
 	 */
 	private handleDefinition = async (params: DefinitionParams): Promise<Location[] | null> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
-		if (resource) {
-			const symbolsAt = await resource.getSymbolsAt(params.position);
-			const searchSymbol = symbolsAt[symbolsAt.length - 1];
-			if (searchSymbol.kind === SymbolKind.Variable) {
-				return this.getVariableDefinition(params.textDocument.uri, symbolsAt, searchSymbol);
-			} else if (
-				searchSymbol.kind === SymbolKind.Function &&
-				!searchSymbol.name.startsWith("DB_") &&
-				!(await this.server.documentationManager.getDocumentation()).has(searchSymbol.name)
-			) {
-				return await this.getSignatureDefinitions(searchSymbol);
-			}
+		if (!resource) return null;
+		const symbolsAt = await resource.getSymbolsAt(params.position);
+		const searchSymbol = symbolsAt[symbolsAt.length - 1];
+		if (!searchSymbol) return null;
+
+		if (searchSymbol.kind === SymbolKind.Variable) {
+			return this.getVariableDefinition(params.textDocument.uri, symbolsAt, searchSymbol);
+		} else if (
+			searchSymbol.kind === SymbolKind.Function &&
+			!searchSymbol.name.startsWith("DB_") &&
+			!(await this.server.documentationManager.getDocumentation()).has(searchSymbol.name)
+		) {
+			return await this.getSignatureDefinitions(searchSymbol);
 		}
 
 		return null;

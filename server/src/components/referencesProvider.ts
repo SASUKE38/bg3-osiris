@@ -38,17 +38,17 @@ export class ReferencesProvider extends ComponentBase {
 	private handleReferences = async (params: ReferenceParams): Promise<Location[] | null> => {
 		if (await this.server.symbolManager.validateRenameOrReferences(params)) {
 			const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
-			if (resource) {
-				const symbolsAt = await resource.getSymbolsAt(params.position);
-				const searchSymbol = symbolsAt[symbolsAt.length - 1];
+			if (!resource) return null;
+			const symbolsAt = await resource.getSymbolsAt(params.position);
+			const searchSymbol = symbolsAt[symbolsAt.length - 1];
+			if (!searchSymbol) return null;
 
-				if (searchSymbol.kind === SymbolKind.Variable) {
-					return Promise.resolve(
-						this.findVariableReferences(params.textDocument.uri, symbolsAt, searchSymbol)
-					);
-				} else if (searchSymbol.kind === SymbolKind.Function || searchSymbol.kind === SymbolKind.Constant) {
-					return await this.findNestedReferences(searchSymbol);
-				}
+			if (searchSymbol.kind === SymbolKind.Variable) {
+				return Promise.resolve(
+					this.findVariableReferences(params.textDocument.uri, symbolsAt, searchSymbol)
+				);
+			} else if (searchSymbol.kind === SymbolKind.Function || searchSymbol.kind === SymbolKind.Constant) {
+				return await this.findNestedReferences(searchSymbol);
 			}
 		}
 
