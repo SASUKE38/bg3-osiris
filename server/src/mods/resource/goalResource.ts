@@ -18,8 +18,7 @@ import { Diagnostic, DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSy
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
-import { Signature } from "../signature";
-import { isArrayEqual } from "../../utils/isArrayEqual";
+import { Signature, SignatureCollection } from "../signature";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
 
@@ -28,7 +27,7 @@ export class GoalResource extends Resource {
 	private readonly writtenDatabases = new Set<string>();
 	private workspaceSymbols: WorkspaceSymbol[] = [];
 	private semanticTokens: uinteger[] = [];
-	private signatures = new Map<string, Signature>();
+	private signatures = new SignatureCollection();
 	private definedSignatures = new Set<string>();
 	private calledSignatures = new Set<string>();
 	readonly kind: ResourceKind = ResourceKind.Goal;
@@ -41,7 +40,7 @@ export class GoalResource extends Resource {
 		this.document = TextDocument.create(encodePath(path), "osiris", 1, readFileSync(path, { encoding: "utf-8" }));
 	}
 
-	async getData(data: "signatures"): Promise<Map<string, Signature>>;
+	async getData(data: "signatures"): Promise<SignatureCollection>;
 	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
 	async getData(data: "semanticTokens"): Promise<uinteger[]>;
 	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
@@ -56,7 +55,7 @@ export class GoalResource extends Resource {
 			| "signatures"
 			| "readDatabases"
 			| "writtenDatabases"
-	): Promise<DocumentSymbol[] | WorkspaceSymbol[] | number[] | Map<string, Signature> | Diagnostic[] | Set<string>> {
+	): Promise<DocumentSymbol[] | WorkspaceSymbol[] | number[] | SignatureCollection | Diagnostic[] | Set<string>> {
 		if (!this.isValid()) await this.load();
 		return this[data];
 	}
@@ -211,20 +210,11 @@ export class GoalResource extends Resource {
 		}
 
 		function extractSignature(signatureNode: SignatureNode, ruleType: "PROC" | "QRY" | "IF" | ""): Signature {
-			const signature = new Signature(
+			return new Signature(
 				signatureNode.name,
-				[],
+				signatureNode.parameters.map((value) => value.type ? value.type.value : ""),
 				getSignatureType("call", ruleType, signatureNode.name)
 			);
-			const parameterCollection: string[] = [];
-			for (const parameter of signatureNode.parameters) {
-				const type = parameter.type ? parameter.type.value : "";
-				parameterCollection.push(type);
-			}
-			if (!signature?.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
-				signature?.parameters.push(parameterCollection);
-			}
-			return signature;
 		}
 
 		function extractCallSignature(
@@ -235,7 +225,7 @@ export class GoalResource extends Resource {
 			const signature = extractSignature(signatureNode, ruleType);
 
 			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
-			thisArg.signatures.set(signature.name, signature);
+			thisArg.signatures.set(signature);
 			thisArg.definedSignatures.add(signature.name);
 		}
 
@@ -248,7 +238,7 @@ export class GoalResource extends Resource {
 				const signature = extractSignature(signatureNode, ruleType);
 				if (signature.type === "Database") {
 					thisArg.readDatabases.add(signature.name);
-					thisArg.signatures.set(signature.name, signature);
+					thisArg.signatures.set(signature);
 				}
 				thisArg.calledSignatures.add(signature.name);
 			}
@@ -263,7 +253,7 @@ export class GoalResource extends Resource {
 				const signature = extractSignature(signatureNode, ruleType);
 				if (signature.type === "Database") {
 					thisArg.writtenDatabases.add(signature.name);
-					thisArg.signatures.set(signature.name, signature);
+					thisArg.signatures.set(signature);
 				}
 				thisArg.calledSignatures.add(signature.name);
 			}
@@ -274,7 +264,7 @@ export class GoalResource extends Resource {
 				const signature = extractSignature(signatureNode, "");
 				if (signature.type !== "Database") return;
 				thisArg.writtenDatabases.add(signature.name);
-				thisArg.signatures.set(signature.name, signature);
+				thisArg.signatures.set(signature);
 				thisArg.definedSignatures.add(signature.name);
 			}
 		}
@@ -296,6 +286,8 @@ export class GoalResource extends Resource {
 			return "Proc";
 		}
 
+		this.readDatabases.clear();
+		this.writtenDatabases.clear();
 		this.signatures.clear();
 		this.calledSignatures.clear();
 		this.definedSignatures.clear();

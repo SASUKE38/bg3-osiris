@@ -21,8 +21,7 @@ import {
 import { copyFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
 import { Resource, ResourceKind } from "../mods/resource/resource";
 import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
-import { Signature } from "../mods/signature";
-import { isArrayEqual } from "../utils/isArrayEqual";
+import { SignatureCollection } from "../mods/signature";
 import {
 	requestAddStoryTreeNode,
 	RequestAddStoryTreeNodeParams,
@@ -423,34 +422,15 @@ export class ModManager extends ComponentBase {
 		return res;
 	}
 
-	async getAllDefinedSignatures(): Promise<Map<string, Signature>> {
-		const res = new Map<string, Signature>();
+	async getAllDefinedSignatures(): Promise<SignatureCollection> {
+		let res = new SignatureCollection();
 		if (!this.mod) return res;
 
-		function processSignature(signature: Signature) {
-			if (res.has(signature.name)) {
-				const entrySignature = res.get(signature.name) as Signature;
-				for (const parameterCollection of signature.parameters) {
-					if (!entrySignature.parameters.find((value) => isArrayEqual(value, parameterCollection))) {
-						entrySignature.parameters.push(parameterCollection);
-					}
-				}
-				entrySignature.type = signature.type;
-				res.set(signature.name, entrySignature);
-			} else {
-				res.set(signature.name, signature.getCopy());
-			}
-		}
-
 		for (const resource of this.mod.getAllGoals()) {
-			for (const signature of (await resource.getData("signatures")).values()) {
-				processSignature(signature);
-			}
+			res = new SignatureCollection([...res.entries(), ...(await resource.getData("signatures")).entries()])
 		}
 
-		for (const signature of this.mod.inheritedSignatures.values()) {
-			processSignature(signature);
-		}
+		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedSignatures.entries()])
 
 		return res;
 	}

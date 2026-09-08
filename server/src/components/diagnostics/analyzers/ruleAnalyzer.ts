@@ -18,7 +18,7 @@ import {
 	invalidSymbolInStatementDiagnosticFactory,
 	ruleNamingStyleDiagnosticFactory
 } from "../message";
-import { Signature } from "../../../mods/signature";
+import { SignatureCollection } from "../../../mods/signature";
 import { getReadableSignatureType } from "../../../mods/story";
 
 export class RuleAnalyzer extends AnalyzerBase {
@@ -63,11 +63,11 @@ export class RuleAnalyzer extends AnalyzerBase {
 	// InvalidProcDefinition 13
 	private verifyProcDefinition(
 		rule: RuleNode,
-		signatures: Map<string, Signature>,
+		signatures: SignatureCollection,
 		res: Diagnostic[]
 	): Diagnostic | undefined {
 		if (rule.type !== "PROC" && rule.type !== "QRY") return;
-		const signature = signatures.get(rule.call.name);
+		const signature = signatures.get(rule.call);
 		if (!signature) return;
 		if (
 			(rule.type === "PROC" && signature.type !== "Proc") ||
@@ -78,7 +78,7 @@ export class RuleAnalyzer extends AnalyzerBase {
 	}
 
 	// InvalidSymbolInFact 14
-	private verifySymbolsInFact(section: SignatureSectionNode, signatures: Map<string, Signature>, res: Diagnostic[]) {
+	private verifySymbolsInFact(section: SignatureSectionNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		return RuleAnalyzer.procSectionVerifierHelper(
 			section.content,
 			signatures,
@@ -89,7 +89,7 @@ export class RuleAnalyzer extends AnalyzerBase {
 	}
 
 	// InvalidSymbolInStatement 15
-	private verifySymbolsInStatement(rule: RuleNode, signatures: Map<string, Signature>, res: Diagnostic[]) {
+	private verifySymbolsInStatement(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		return RuleAnalyzer.procSectionVerifierHelper(
 			rule.actions,
 			signatures,
@@ -101,13 +101,13 @@ export class RuleAnalyzer extends AnalyzerBase {
 
 	private static procSectionVerifierHelper(
 		signatureSection: SignatureNode[],
-		signatures: Map<string, Signature>,
+		signatures: SignatureCollection,
 		factory: ({ name, type, range, fact }: InvalidSignatureInSectionParams) => Diagnostic,
 		isFact: boolean,
 		res: Diagnostic[]
 	) {
 		for (const signature of signatureSection) {
-			const type = signatures.get(signature.name)?.type;
+			const type = signatures.get(signature)?.type;
 			if (type === "Query" || type === "UserQuery" || type === "SysQuery") {
 				res.push(
 					factory({
@@ -124,23 +124,23 @@ export class RuleAnalyzer extends AnalyzerBase {
 	// CanOnlyDeleteFromDatabase 16
 	private verifyDeletionsOnlyFromDatabases(
 		nodes: SignatureNode[],
-		signatures: Map<string, Signature>,
+		signatures: SignatureCollection,
 		res: Diagnostic[]
 	) {
 		for (const node of nodes) {
 			if (node.kind !== ASTNodeKind.SIGNATURE_NODE || !node.isDeletion) continue;
-			if (signatures.has(node.name) && signatures.get(node.name)?.type !== "Database") {
+			if (signatures.has(node) && signatures.get(node)?.type !== "Database") {
 				res.push(invalidDeletionFromNonDatabaseDiagnosticFactory({ range: node.selectionRange }));
 			}
 		}
 	}
 
 	// InvalidSymbolInInitialConition 17
-	private verifyValidSymbolInInitialCondition(node: RuleNode, signatures: Map<string, Signature>, res: Diagnostic[]) {
+	private verifyValidSymbolInInitialCondition(node: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		let isValid = true;
-		if (!signatures.has(node.call.name)) return;
+		if (!signatures.has(node.call)) return;
 
-		const type = signatures.get(node.call.name)?.type;
+		const type = signatures.get(node.call)?.type;
 		switch (node.type) {
 			case "PROC":
 				if (type !== "Proc") isValid = false;
@@ -168,12 +168,12 @@ export class RuleAnalyzer extends AnalyzerBase {
 	// InvalidFunctionTypeInCondition 18
 	private verifyValidFunctionTypeInCondition(
 		conditions: (SignatureNode | ComparisonNode)[],
-		signatures: Map<string, Signature>,
+		signatures: SignatureCollection,
 		res: Diagnostic[]
 	) {
 		for (const condition of conditions) {
 			if (condition.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
-			const signatureType = signatures.get((condition as SignatureNode).name)?.type;
+			const signatureType = signatures.get(condition as SignatureNode)?.type;
 			if (
 				signatureType &&
 				signatureType !== "Query" &&
@@ -206,7 +206,7 @@ export class RuleAnalyzer extends AnalyzerBase {
 	}
 
 	// DbNamingStyle 26
-	private verifyDbNamingStyleInRule(node: RuleNode, signatures: Map<string, Signature>, res: Diagnostic[]) {
+	private verifyDbNamingStyleInRule(node: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		for (const child of node.getNodeChildren()) {
 			if (child?.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
 			this.verifyDbNamingStyle(child as SignatureNode, signatures, res);
@@ -215,7 +215,7 @@ export class RuleAnalyzer extends AnalyzerBase {
 
 	private verifyDbNamingStyleInSignatureSection(
 		node: SignatureSectionNode,
-		signatures: Map<string, Signature>,
+		signatures: SignatureCollection,
 		res: Diagnostic[]
 	) {
 		for (const child of node.content) {
@@ -223,8 +223,8 @@ export class RuleAnalyzer extends AnalyzerBase {
 		}
 	}
 
-	private verifyDbNamingStyle(child: SignatureNode, signatures: Map<string, Signature>, res: Diagnostic[]) {
-		const signature = signatures.get(child.name);
+	private verifyDbNamingStyle(child: SignatureNode, signatures: SignatureCollection, res: Diagnostic[]) {
+		const signature = signatures.get(child);
 		if (signature?.type === "Database" && !signature.name.startsWith("DB_")) {
 			res.push(DbNamingStyleDiagnosticFactory({ range: child.selectionRange }));
 		}

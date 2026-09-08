@@ -11,39 +11,39 @@ export class SignatureAnalyzer extends AnalyzerBase {
 		const signatures = await this.modManager.getAllDefinedSignatures();
 		if (!root) return res;
 
-		function doAnalysis(node: ASTNode, thisArg: SignatureAnalyzer) {
-			for (const child of node.getNodeChildren()) {
-				if (!child) continue;
-				if (child.kind === ASTNodeKind.SIGNATURE_NODE) {
-					if (signatures.has((child as SignatureNode).name)) {
-						const signature = signatures.get((child as SignatureNode).name) as Signature;
-						if (signature.type === "Database") {
-							// if (!signature.isRead && signature.isWritten) {
-							// 	res.push(
-							// 		unusedDatabaseWarningDiagnosticFactory({
-							// 			range: (child as SignatureNode).selectionRange,
-							// 			name: (child as SignatureNode).name,
-							// 			isRead: false
-							// 		})
-							// 	);
-							// } else if (!signature.isWritten && signature.isRead) {
-							// 	res.push(
-							// 		unusedDatabaseWarningDiagnosticFactory({
-							// 			range: (child as SignatureNode).selectionRange,
-							// 			name: (child as SignatureNode).name,
-							// 			isRead: true
-							// 		})
-							// 	);
-							// }
-						}
-					}
-				} else {
-					doAnalysis(child, thisArg);
-				}
-			}
-		}
+		// function doAnalysis(node: ASTNode, thisArg: SignatureAnalyzer) {
+		// 	for (const child of node.getNodeChildren()) {
+		// 		if (!child) continue;
+		// 		if (child.kind === ASTNodeKind.SIGNATURE_NODE) {
+		// 			if (signatures.has((child as SignatureNode).name)) {
+		// 				const signature = signatures.get((child as SignatureNode).name) as Signature;
+		// 				if (signature.type === "Database") {
+		// 					// if (!signature.isRead && signature.isWritten) {
+		// 					// 	res.push(
+		// 					// 		unusedDatabaseWarningDiagnosticFactory({
+		// 					// 			range: (child as SignatureNode).selectionRange,
+		// 					// 			name: (child as SignatureNode).name,
+		// 					// 			isRead: false
+		// 					// 		})
+		// 					// 	);
+		// 					// } else if (!signature.isWritten && signature.isRead) {
+		// 					// 	res.push(
+		// 					// 		unusedDatabaseWarningDiagnosticFactory({
+		// 					// 			range: (child as SignatureNode).selectionRange,
+		// 					// 			name: (child as SignatureNode).name,
+		// 					// 			isRead: true
+		// 					// 		})
+		// 					// 	);
+		// 					// }
+		// 				}
+		// 			}
+		// 		} else {
+		// 			doAnalysis(child, thisArg);
+		// 		}
+		// 	}
+		// }
 
-		doAnalysis(root, this);
+		// doAnalysis(root, this);
 		return res;
 	}
 }

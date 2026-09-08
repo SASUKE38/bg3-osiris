@@ -6,11 +6,10 @@ import { join, sep } from "path";
 import { extractFromPak } from "../utils/edge";
 import { ModManager } from "../components/modManager";
 import { readdir } from "fs/promises";
-import { Resource } from "./resource/resource";
 import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
 import { BaseModConfiguration } from "../utils/configurationSchema";
-import { Signature } from "./signature";
+import { Signature, SignatureCollection } from "./signature";
 import { HeaderResource } from "./resource/headerResource";
 
 export interface InheritedGoal {
@@ -34,7 +33,7 @@ export class Mod {
 	readonly goalSubdirectory = join(this.headerSubdirectory, "Goals");
 	readonly goals: GoalResource[] = [];
 	readonly inheritedGoals = new Map<string, InheritedGoal>();
-	readonly inheritedSignatures = new Map<string, Signature>();
+	readonly inheritedSignatures = new SignatureCollection();
 	readonly inheritedDatabases = new Map<string, Signature>();
 	readonly inheritedIgnoredOrphans = new Set<string>();
 	readonly inheritedFoundOrphans = new Set<string>();
@@ -91,29 +90,12 @@ export class Mod {
 			const goal = story.goals[key];
 			const definedSignatures = dependency.definedSignatures.get(goal.Name);
 			const filteredSignatures = definedSignatures
-				? Array.from(definedSignatures.values())
-						.flat(1)
-						.filter((value) => value.Type === "Proc" || value.Type === "UserQuery")
+				? Array.from(definedSignatures.values()).flat(1)
 				: [];
 
 			for (const signature of filteredSignatures) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				if (!this.inheritedSignatures.has(signature.Name.Name)) {
-					const inheritedSignature = new Signature(signature.Name.Name, [parameters], signature.Type);
-					this.inheritedSignatures.set(signature.Name.Name, inheritedSignature);
-				} else if (
-					!this.inheritedSignatures.get(signature.Name.Name)?.parameters.find((value) => {
-						const aParameters = value.sort();
-						const bParameters = parameters.sort();
-						if (aParameters.length !== bParameters.length) return false;
-						for (let i = 0; i <= value.length; i++) {
-							if (aParameters[i] !== bParameters[i]) return false;
-						}
-						return true;
-					})
-				) {
-					this.inheritedSignatures.get(signature.Name.Name)?.parameters.push(parameters);
-				}
+				this.inheritedSignatures.set(new Signature(signature.Name.Name, parameters, signature.Type))
 			}
 
 			this.inheritedGoals.set(goal.Name, {
@@ -130,7 +112,7 @@ export class Mod {
 				value.OwnerNode.Name,
 				new Signature(
 					value.OwnerNode.Name,
-					[Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name)],
+					Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
 					"Database"
 				)
 			);
