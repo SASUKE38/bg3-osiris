@@ -6,12 +6,13 @@ import { StoryOutlineProvider } from "./storyOutline/storyOutlineProvider";
 import { join } from "path";
 import { InheritedGoalContentProvider } from "./storyOutline/inheritedGoalContentProvider";
 import { notificationClientRunning, notificationServerRunning } from "bg3-osiris-shared";
+import { ProgressProvider } from "./progressProvider/progressProvider";
 
 export const clients = new Map<string, Client>();
 
 type ComponentContainer = new (context: ExtensionContext) => ComponentBase;
 
-const components: ComponentContainer[] = [];
+const components: ComponentContainer[] = [ProgressProvider];
 
 let _sortedWorkspaceFolders: string[] | undefined;
 function sortedWorkspaceFolders(): string[] {

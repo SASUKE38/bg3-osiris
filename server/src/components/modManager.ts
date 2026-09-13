@@ -23,6 +23,8 @@ import { Resource, ResourceKind } from "../mods/resource/resource";
 import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
 import { SignatureCollection } from "../mods/signature";
 import {
+	notificationModInitializing,
+	notificationModReady,
 	requestAddStoryTreeNode,
 	RequestAddStoryTreeNodeParams,
 	RequestAddStoryTreeNodeResult,
@@ -478,10 +480,12 @@ export class ModManager extends ComponentBase {
 	 */
 	private async createMod(path: string, meta?: ModMetaModuleInfo): Promise<Mod> {
 		const mod = new Mod(path, this, meta);
+		this.server.connection.sendNotification(notificationModInitializing);
 		mod.initialize().then(() => {
 			for (const resource of mod.getAllGoals()) {
 				this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 			}
+			this.server.connection.sendNotification(notificationModReady);
 		});
 		return mod;
 	}
