@@ -10,6 +10,7 @@ export class Dependency {
 	readonly foundOrphans: string[] = [];
 	readonly activeGoals = new Map<number, string>();
 	readonly definedSignatures = new Map<string, Map<string, Function[]>>();
+	readonly builtinSignatures = new Map<string, Function[]>();
 	goalParents?: Map<string, string>;
 	story?: Story;
 
@@ -93,6 +94,20 @@ export class Dependency {
 
 				signatureMap.set(node.Name, definitions);
 			}
+		}
+
+		for (const func of this.story.functions.filter(
+			(value) =>
+				value.Type === "Event" ||
+				value.Type === "Call" ||
+				value.Type === "Query" ||
+				value.Type === "SysCall" ||
+				value.Type === "SysQuery"
+		)) {
+			this.builtinSignatures.set(
+				func.Name.Name,
+				this.story.functions.filter((value) => value.Name.Name === func.Name.Name)
+			);
 		}
 	}
 }

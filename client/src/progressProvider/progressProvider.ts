@@ -9,18 +9,17 @@ export class ProgressProvider extends ComponentBase {
 	private static readonly modReadyEvent = "ProgressProvider.modReadyEvent";
 
 	initializeComponent(connection: LanguageClient): void {
-		connection.onNotification(notificationModInitializing, this.handleMakeProgress)
+		connection.onNotification(notificationModInitializing, this.handleMakeProgress);
 
-		connection.onNotification(notificationModReady, args =>
-      		this.emitter.emit(ProgressProvider.modReadyEvent, args)
-    	);
+		connection.onNotification(notificationModReady, (args) =>
+			this.emitter.emit(ProgressProvider.modReadyEvent, args)
+		);
 	}
 
 	private handleMakeProgress = async () => {
-
 		const createProgress = () => {
 			const { emitter } = this;
-			return new Promise<void>(resolve => {
+			return new Promise<void>((resolve) => {
 				function onReady() {
 					emitter.removeListener(ProgressProvider.modReadyEvent, onReady);
 					resolve();
@@ -28,12 +27,15 @@ export class ProgressProvider extends ComponentBase {
 
 				emitter.addListener(ProgressProvider.modReadyEvent, onReady);
 			});
-		}
+		};
 
-		window.withProgress({
-			location: ProgressLocation.Notification,
-			title: "Mod Initializing",
-			cancellable: false
-		}, createProgress);
-	}
+		window.withProgress(
+			{
+				location: ProgressLocation.Notification,
+				title: "Mod Initializing",
+				cancellable: false
+			},
+			createProgress
+		);
+	};
 }

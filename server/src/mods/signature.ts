@@ -2,22 +2,11 @@ import { SignatureNode } from "../parser/ast/nodes";
 
 export type SignatureType = "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
 
-export class Signature {
+export interface Signature {
 	name: string;
 	type: SignatureType;
-	parameters: string[] = [];
-
-	constructor(name: string, parameters: string[], type: SignatureType) {
-		this.name = name;
-		this.parameters = parameters;
-		this.type = type;
-	}
-
-	getCopy() {
-		const res = new Signature(this.name, [], this.type);
-		res.parameters = this.parameters.copyWithin(0, 0);
-		return res;
-	}
+	parameters: string[];
+	outParamMask?: Uint8Array;
 }
 
 export class SignatureCollection {

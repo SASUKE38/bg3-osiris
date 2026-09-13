@@ -8,42 +8,39 @@ export class SignatureAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
 		const res: Diagnostic[] = [];
 		const root = await this.resource.getRootNode();
-		const signatures = await this.modManager.getAllDefinedSignatures();
 		if (!root) return res;
+		const readDatabases = await this.modManager.getReadDatabases();
+		const writtenDatabases = await this.modManager.getWrittenDatabases();
 
-		// function doAnalysis(node: ASTNode, thisArg: SignatureAnalyzer) {
-		// 	for (const child of node.getNodeChildren()) {
-		// 		if (!child) continue;
-		// 		if (child.kind === ASTNodeKind.SIGNATURE_NODE) {
-		// 			if (signatures.has((child as SignatureNode).name)) {
-		// 				const signature = signatures.get((child as SignatureNode).name) as Signature;
-		// 				if (signature.type === "Database") {
-		// 					// if (!signature.isRead && signature.isWritten) {
-		// 					// 	res.push(
-		// 					// 		unusedDatabaseWarningDiagnosticFactory({
-		// 					// 			range: (child as SignatureNode).selectionRange,
-		// 					// 			name: (child as SignatureNode).name,
-		// 					// 			isRead: false
-		// 					// 		})
-		// 					// 	);
-		// 					// } else if (!signature.isWritten && signature.isRead) {
-		// 					// 	res.push(
-		// 					// 		unusedDatabaseWarningDiagnosticFactory({
-		// 					// 			range: (child as SignatureNode).selectionRange,
-		// 					// 			name: (child as SignatureNode).name,
-		// 					// 			isRead: true
-		// 					// 		})
-		// 					// 	);
-		// 					// }
-		// 				}
-		// 			}
-		// 		} else {
-		// 			doAnalysis(child, thisArg);
-		// 		}
-		// 	}
-		// }
+		function doAnalysis(node: ASTNode, thisArg: SignatureAnalyzer) {
+			for (const child of node.getNodeChildren()) {
+				if (!child) continue;
+				if (child.kind === ASTNodeKind.SIGNATURE_NODE) {
+					thisArg.verifyDatabaseUses(child as SignatureNode, readDatabases, writtenDatabases, res);
+				} else {
+					doAnalysis(child, thisArg);
+				}
+			}
+		}
 
-		// doAnalysis(root, this);
+		doAnalysis(root, this);
 		return res;
+	}
+
+	private verifyDatabaseUses(
+		child: SignatureNode,
+		readDatabases: Set<string>,
+		writtenDatabases: Set<string>,
+		res: Diagnostic[]
+	) {
+		if (!readDatabases.has(child.name) && writtenDatabases.has(child.name)) {
+			res.push(
+				unusedDatabaseWarningDiagnosticFactory({ range: child.selectionRange, name: child.name, isRead: false })
+			);
+		} else if (readDatabases.has(child.name) && !writtenDatabases.has(child.name)) {
+			res.push(
+				unusedDatabaseWarningDiagnosticFactory({ range: child.selectionRange, name: child.name, isRead: true })
+			);
+		}
 	}
 }

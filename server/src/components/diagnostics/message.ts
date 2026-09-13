@@ -173,7 +173,7 @@ export function goalAlreadyDefinedDiagnosticFactory({ range, name }: GoalAlready
 
 //#region Database
 
-interface UnusedDatabaseWarningParams extends DiagnosticParamsBase {
+export interface UnusedDatabaseWarningParams extends DiagnosticParamsBase {
 	name: string;
 	isRead: boolean;
 }
@@ -292,4 +292,22 @@ export function unexpectedTokenDiagnosticFactory({
 		code: DiagnosticCode.UnexpectedToken
 	};
 }
+//#endregion
+
+//#region Symbol Resolving
+
+export interface UnresolvedSymbolParams extends DiagnosticParamsBase {
+	signature: SignatureNode;
+}
+
+export function unresolvedSymbolDiagnosticFactory({ range, signature }: UnresolvedSymbolParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `'${signature.name}' could not be resolved.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnresolvedSymbol
+	};
+}
+
 //#endregion

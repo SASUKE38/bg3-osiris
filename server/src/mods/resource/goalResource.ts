@@ -215,11 +215,11 @@ export class GoalResource extends Resource {
 			section: "call" | "condition" | "action",
 			ruleType: "PROC" | "QRY" | "IF" | ""
 		): Signature {
-			return new Signature(
-				signatureNode.name,
-				signatureNode.parameters.map((value) => (value.type ? value.type.value : "")),
-				getSignatureType(section, ruleType, signatureNode)
-			);
+			return {
+				name: signatureNode.name,
+				parameters: signatureNode.parameters.map((value) => (value.type ? value.type.value : "")),
+				type: getSignatureType(section, ruleType, signatureNode)
+			};
 		}
 
 		function extractCallSignature(

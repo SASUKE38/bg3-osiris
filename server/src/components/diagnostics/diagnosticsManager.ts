@@ -36,9 +36,8 @@ UnresolvedTypeInSignature 6
 TODO: Figure out how to handle orphans with databases
 
 -- Symbol Resolving --
-UnresolvedSymbol 19
-UnusedDatabaseWarning 25
-UnwrittenDatabase 35
+*UnresolvedSymbol 19
+*UnusedDatabaseWarning 25
 
 -- Comparisons --
 *StringLtGtComparison 20
@@ -63,6 +62,7 @@ GuidPrefixNotKnown 22
 UnresolvedGameObjectName 27
 GameObjectTypeMismatch 28
 GameObjectNameMismatch 29
+UnwrittenDatabase 35
 */
 
 export class DiagnosticManager extends ComponentBase {
