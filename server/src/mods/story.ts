@@ -1,3 +1,5 @@
+import { SignatureType } from "./signature";
+
 export interface Story {
 	databases: Record<number, Database>;
 	enums: Record<number, Enum>;
@@ -49,38 +51,7 @@ export interface Function {
 	Meta4: number;
 	Name: FunctionSignature;
 	NodeRef: Reference;
-	Type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
-}
-
-export function getReadableSignatureType(
-	type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery"
-) {
-	switch (type) {
-		case "Event":
-			return "event";
-			break;
-		case "Call":
-			return "call";
-			break;
-		case "Query":
-			return "query";
-			break;
-		case "Database":
-			return "database";
-			break;
-		case "Proc":
-			return "proc";
-			break;
-		case "SysQuery":
-			return "query";
-			break;
-		case "SysCall":
-			return "call";
-			break;
-		case "UserQuery":
-			return "user-defined query";
-			break;
-	}
+	Type: SignatureType;
 }
 
 export interface FunctionSignature {

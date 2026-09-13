@@ -1,15 +1,13 @@
 import { SignatureNode } from "../parser/ast/nodes";
 
+export type SignatureType = "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
+
 export class Signature {
 	name: string;
-	type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
+	type: SignatureType;
 	parameters: string[] = [];
 
-	constructor(
-		name: string,
-		parameters: string[],
-		type: "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery"
-	) {
+	constructor(name: string, parameters: string[], type: SignatureType) {
 		this.name = name;
 		this.parameters = parameters;
 		this.type = type;
@@ -25,10 +23,13 @@ export class Signature {
 export class SignatureCollection {
 	private readonly map: Map<string, Signature>;
 
-	constructor()
+	constructor();
 	constructor(iterable?: Iterable<readonly [string, Signature]> | null | undefined);
 	constructor(entries?: readonly (readonly [string, Signature])[] | null);
-	constructor(iterable?: Iterable<readonly [string, Signature]> | null | undefined, entries?: readonly (readonly [string, Signature])[] | null) {
+	constructor(
+		iterable?: Iterable<readonly [string, Signature]> | null | undefined,
+		entries?: readonly (readonly [string, Signature])[] | null
+	) {
 		if (entries) this.map = new Map<string, Signature>(entries);
 		else if (iterable) this.map = new Map<string, Signature>(iterable);
 		else this.map = new Map<string, Signature>();
@@ -56,5 +57,34 @@ export class SignatureCollection {
 
 	clear() {
 		this.map.clear();
+	}
+}
+
+export function getReadableSignatureType(type: SignatureType) {
+	switch (type) {
+		case "Event":
+			return "event";
+			break;
+		case "Call":
+			return "call";
+			break;
+		case "Query":
+			return "query";
+			break;
+		case "Database":
+			return "database";
+			break;
+		case "Proc":
+			return "proc";
+			break;
+		case "SysQuery":
+			return "query";
+			break;
+		case "SysCall":
+			return "call";
+			break;
+		case "UserQuery":
+			return "user-defined query";
+			break;
 	}
 }

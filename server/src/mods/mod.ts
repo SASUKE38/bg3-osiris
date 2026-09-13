@@ -57,13 +57,15 @@ export class Mod {
 	 * Initializes this {@link Mod}.
 	 */
 	async initialize() {
+		await this.initializeDependencies();
+
 		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
 			if (this.path) {
-				this.createGoalResource(file, join(this.path, this.goalSubdirectory, file));
+				await this.createGoalResource(file, join(this.path, this.goalSubdirectory, file));
 			}
 		}
 
-		this.initializeDependencies();
+		this.storyTree.createTree(this.goals, this.dependencies);
 	}
 
 	private async initializeDependencies() {
@@ -78,7 +80,6 @@ export class Mod {
 			})
 		);
 		this.dependencies.push(...dependencies);
-		this.storyTree.createTree(this.goals, this.dependencies);
 	}
 
 	private mergeStory(dependency: Dependency) {
@@ -89,13 +90,11 @@ export class Mod {
 		Object.values(Array.from(dependency.activeGoals.keys())).forEach((key) => {
 			const goal = story.goals[key];
 			const definedSignatures = dependency.definedSignatures.get(goal.Name);
-			const filteredSignatures = definedSignatures
-				? Array.from(definedSignatures.values()).flat(1)
-				: [];
+			const filteredSignatures = definedSignatures ? Array.from(definedSignatures.values()).flat(1) : [];
 
 			for (const signature of filteredSignatures) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				this.inheritedSignatures.set(new Signature(signature.Name.Name, parameters, signature.Type))
+				this.inheritedSignatures.set(new Signature(signature.Name.Name, parameters, signature.Type));
 			}
 
 			this.inheritedGoals.set(goal.Name, {
@@ -143,8 +142,11 @@ export class Mod {
 		return this.dependencies;
 	}
 
-	createGoalResource(name: string, path: string) {
-		this.goals.push(new GoalResource(this, name, path));
+	async createGoalResource(name: string, path: string) {
+		const resource = new GoalResource(this, name, path);
+		await resource.load();
+		this.goals.push(resource);
+		this.manager.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 	}
 
 	getInheritedGoalOwner(goalName: string): Dependency | undefined {

@@ -18,7 +18,7 @@ import { Diagnostic, DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSy
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
-import { Signature, SignatureCollection } from "../signature";
+import { Signature, SignatureCollection, SignatureType } from "../signature";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
 
@@ -186,6 +186,7 @@ export class GoalResource extends Resource {
 	async loadSignatures() {
 		const root = this.ast;
 		const documentation = await this.mod.manager.server.documentationManager.getDocumentation();
+		const inheritedSignatures = this.mod.inheritedSignatures;
 		if (!root) return;
 
 		function getSignatures(node: ASTNode, thisArg: GoalResource) {
@@ -209,11 +210,15 @@ export class GoalResource extends Resource {
 			}
 		}
 
-		function extractSignature(signatureNode: SignatureNode, ruleType: "PROC" | "QRY" | "IF" | ""): Signature {
+		function extractSignature(
+			signatureNode: SignatureNode,
+			section: "call" | "condition" | "action",
+			ruleType: "PROC" | "QRY" | "IF" | ""
+		): Signature {
 			return new Signature(
 				signatureNode.name,
-				signatureNode.parameters.map((value) => value.type ? value.type.value : ""),
-				getSignatureType("call", ruleType, signatureNode.name)
+				signatureNode.parameters.map((value) => (value.type ? value.type.value : "")),
+				getSignatureType(section, ruleType, signatureNode)
 			);
 		}
 
@@ -222,7 +227,7 @@ export class GoalResource extends Resource {
 			ruleType: "PROC" | "QRY" | "IF",
 			thisArg: GoalResource
 		) {
-			const signature = extractSignature(signatureNode, ruleType);
+			const signature = extractSignature(signatureNode, "call", ruleType);
 
 			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
 			thisArg.signatures.set(signature);
@@ -235,7 +240,7 @@ export class GoalResource extends Resource {
 			thisArg: GoalResource
 		) {
 			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, ruleType);
+				const signature = extractSignature(signatureNode, "condition", ruleType);
 				if (signature.type === "Database") {
 					thisArg.readDatabases.add(signature.name);
 					thisArg.signatures.set(signature);
@@ -250,7 +255,7 @@ export class GoalResource extends Resource {
 			thisArg: GoalResource
 		) {
 			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, ruleType);
+				const signature = extractSignature(signatureNode, "action", ruleType);
 				if (signature.type === "Database") {
 					thisArg.writtenDatabases.add(signature.name);
 					thisArg.signatures.set(signature);
@@ -261,7 +266,7 @@ export class GoalResource extends Resource {
 
 		function extractSignatureSectionSignatures(signatureNodes: SignatureNode[], thisArg: GoalResource) {
 			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, "");
+				const signature = extractSignature(signatureNode, "call", "");
 				if (signature.type !== "Database") return;
 				thisArg.writtenDatabases.add(signature.name);
 				thisArg.signatures.set(signature);
@@ -272,17 +277,26 @@ export class GoalResource extends Resource {
 		function getSignatureType(
 			section: "call" | "condition" | "action",
 			ruleType: "PROC" | "QRY" | "IF" | "",
-			name: string
-		) {
-			if (ruleType === "" || (section !== "call" && name.startsWith("DB_"))) return "Database";
-			if (ruleType === "PROC") return "Proc";
-			else if (ruleType === "QRY") return "UserQuery";
-			else if (documentation.has(name)) {
-				const type = documentation.get(name)?.type;
-				if (type === "call") return "Call";
-				else if (type === "query") return "Query";
-				else if (type === "event") return "Event";
-			} else if (ruleType === "IF") return "Database";
+			signature: SignatureNode
+		): SignatureType {
+			if (inheritedSignatures.has(signature)) {
+				const inheritedSignature = inheritedSignatures.get(signature);
+				if (
+					inheritedSignature?.type === "Event" ||
+					inheritedSignature?.type === "Call" ||
+					inheritedSignature?.type === "Query" ||
+					inheritedSignature?.type === "SysCall" ||
+					inheritedSignature?.type === "SysQuery"
+				)
+					return inheritedSignature.type;
+			}
+			if (section === "call") {
+				if (ruleType === "PROC") return "Proc";
+				else if (ruleType === "QRY") return "UserQuery";
+				else if (ruleType === "IF" || ruleType === "") return "Database";
+			} else {
+				if (signature.name.startsWith("DB_")) return "Database";
+			}
 			return "Proc";
 		}
 

@@ -207,7 +207,7 @@ export class ModManager extends ComponentBase {
 		const path = join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`);
 		const content = `Version 1\r\nSubGoalCombiner SGC_AND\r\nINITSECTION\r\n\r\nKBSECTION\r\n\r\nEXITSECTION\r\n\r\nENDEXITSECTION\r\n${params.parent === "" ? "" : `ParentTargetEdge "${params.parent}"`}`;
 		writeFileSync(path, content, { encoding: "utf-8" });
-		this.createResource(`${params.name}.txt`, path);
+		await this.createResource(`${params.name}.txt`, path);
 		return { path };
 	};
 
@@ -231,7 +231,7 @@ export class ModManager extends ComponentBase {
 		);
 		if (file.OutputPaths[0]) {
 			copyFileSync(file.OutputPaths[0], join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`));
-			this.createResource(
+			await this.createResource(
 				`${params.name}.txt`,
 				join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`)
 			);
@@ -388,9 +388,9 @@ export class ModManager extends ComponentBase {
 		return [];
 	}
 
-	createResource(name: string, path: string) {
+	async createResource(name: string, path: string) {
 		if (this.mod) {
-			this.mod.createGoalResource(name, path);
+			await this.mod.createGoalResource(name, path);
 		}
 	}
 
@@ -427,10 +427,10 @@ export class ModManager extends ComponentBase {
 		if (!this.mod) return res;
 
 		for (const resource of this.mod.getAllGoals()) {
-			res = new SignatureCollection([...res.entries(), ...(await resource.getData("signatures")).entries()])
+			res = new SignatureCollection([...res.entries(), ...(await resource.getData("signatures")).entries()]);
 		}
 
-		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedSignatures.entries()])
+		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedSignatures.entries()]);
 
 		return res;
 	}
@@ -464,9 +464,9 @@ export class ModManager extends ComponentBase {
 	 *
 	 * @param path The path of the mod to load. Should contain the mod's meta.lsx.
 	 */
-	async createModFromPath(path: string, isDependency?: boolean): Promise<Mod | undefined> {
+	async createModFromPath(path: string): Promise<Mod | undefined> {
 		const meta = this.readModMeta(join(path, "meta.lsx"));
-		return await this.createMod(path, meta, isDependency);
+		return await this.createMod(path, meta);
 	}
 
 	/**
@@ -476,10 +476,14 @@ export class ModManager extends ComponentBase {
 	 * @param path The path to the mod directory to load. Should contain the mod's meta.lsx.
 	 * @returns The loaded {@link Mod}.
 	 */
-	private async createMod(path: string, meta?: ModMetaModuleInfo, isDependency?: boolean): Promise<Mod> {
-		const mod = isDependency ? new Mod(path, this, meta) : new Mod(path, this, meta);
-		await mod.initialize();
-		return Promise.resolve(mod);
+	private async createMod(path: string, meta?: ModMetaModuleInfo): Promise<Mod> {
+		const mod = new Mod(path, this, meta);
+		mod.initialize().then(() => {
+			for (const resource of mod.getAllGoals()) {
+				this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
+			}
+		});
+		return mod;
 	}
 
 	/**

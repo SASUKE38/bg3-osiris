@@ -18,8 +18,7 @@ import {
 	invalidSymbolInStatementDiagnosticFactory,
 	ruleNamingStyleDiagnosticFactory
 } from "../message";
-import { SignatureCollection } from "../../../mods/signature";
-import { getReadableSignatureType } from "../../../mods/story";
+import { getReadableSignatureType, SignatureCollection } from "../../../mods/signature";
 
 export class RuleAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
