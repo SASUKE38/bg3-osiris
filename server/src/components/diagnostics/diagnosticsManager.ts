@@ -7,6 +7,7 @@ import { ComparisonAnalyzer } from "./analyzers/comparisonAnalyzer";
 import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
 import { GoalArrangementAnalyzer } from "./analyzers/goalArrangementAnalyzer";
 import { RuleAnalyzer } from "./analyzers/ruleAnalyzer";
+import { ParameterAnalyzer } from "./analyzers/parameterAnalyzer";
 
 /*
 === Header Only ===
@@ -49,7 +50,7 @@ UnresolvedVariableType 9
 UnresolvedSignature 10
 LocalTypeMismatch 11
 UnresolvedType 12
-ParamNotBound 24
+*ParamNotBound 24
 ProcTypeMismatch 30
 CastToUnrelatedType 31
 CastToUnrelatedGuidAlias 32
@@ -73,7 +74,8 @@ export class DiagnosticManager extends ComponentBase {
 		SignatureAnalyzer,
 		GoalArrangementAnalyzer,
 		RuleAnalyzer,
-		UnknownSymbolAnalyzer
+		UnknownSymbolAnalyzer,
+		ParameterAnalyzer
 	];
 
 	getCapabilities(): Partial<ServerCapabilities> {

@@ -311,3 +311,22 @@ export function unresolvedSymbolDiagnosticFactory({ range, signature }: Unresolv
 }
 
 //#endregion
+
+//#region Parameters
+
+export interface ParamNotBoundDiagnostic extends DiagnosticParamsBase {
+	name: string;
+	isPlaceholder: boolean;
+}
+
+export function paramNotBoundDiagnosticFactory({ range, name, isPlaceholder }: ParamNotBoundDiagnostic): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: isPlaceholder ? "A placeholder is not allowed here." : `'${name}' is not bound here.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.ParamNotBound
+	};
+}
+
+//#endregion
