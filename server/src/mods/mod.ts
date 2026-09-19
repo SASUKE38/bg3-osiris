@@ -12,6 +12,17 @@ import { BaseModConfiguration } from "../utils/configurationSchema";
 import { Signature, SignatureCollection } from "./signature";
 import { HeaderResource } from "./resource/headerResource";
 
+export interface InheritedType {
+	name: string;
+	alias: string;
+	isBuiltin: boolean;
+}
+
+export interface InheritedEnum {
+	underlyingType: string;
+	members: string[];
+}
+
 export interface InheritedGoal {
 	name: string;
 	owner: Dependency;
@@ -37,6 +48,8 @@ export class Mod {
 	readonly inheritedDatabases = new Map<string, Signature>();
 	readonly inheritedIgnoredOrphans = new Set<string>();
 	readonly inheritedFoundOrphans = new Set<string>();
+	readonly inheritedTypes = new Map<string, InheritedType>();
+	readonly inheritedEnums = new Map<string, InheritedEnum>();
 	header?: HeaderResource;
 	dependencies: Dependency[] = [];
 	storyTree = new StoryTree(this);
@@ -128,6 +141,21 @@ export class Mod {
 
 		dependency.ignoredOrphans.forEach((value) => this.inheritedIgnoredOrphans.add(value));
 		dependency.foundOrphans.forEach((value) => this.inheritedFoundOrphans.add(value));
+
+		Object.values(story.types).forEach((value) => {
+			this.inheritedTypes.set(value.Name, {
+				name: value.Name,
+				alias: story.types[value.Alias].Name,
+				isBuiltin: value.IsBuiltin
+			});
+		});
+		
+		Object.values(story.enums).forEach((value) => {
+			this.inheritedEnums.set(story.types[value.UnderlyingType].Name, {
+				underlyingType: story.types[value.UnderlyingType].Name,
+				members: value.Elements.map((element) => element.Name)
+			});
+		});
 	}
 
 	getGoalResource(searchTerm: string, query: "path" | "name" = "path"): GoalResource | undefined {
@@ -246,5 +274,11 @@ export class Mod {
 		doMetaSearch(meta.dependencies);
 
 		return res;
+	}
+
+	getRootType(type: InheritedType | undefined): string {
+		if (!type) return "";
+		if (type.alias === "UNKNOWN") return type.name;
+		else return this.getRootType(this.inheritedTypes.get(type.alias))
 	}
 }

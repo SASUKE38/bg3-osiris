@@ -1,7 +1,7 @@
-import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
-import { Token, TokenType, typeReadableMapping } from "../../parser/tokens";
+import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
+import { TokenType, typeReadableMapping } from "../../parser/tokens";
 import { DiagnosticCode } from "./diagnosticCode";
-import { ComparisonNode, SignatureNode, StringNode } from "../../parser/ast/nodes";
+import { SignatureNode } from "../../parser/ast/nodes";
 
 const diagnosticSource = "Osiris";
 

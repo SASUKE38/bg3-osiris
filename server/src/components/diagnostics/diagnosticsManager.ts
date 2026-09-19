@@ -49,7 +49,6 @@ TODO: Figure out how to handle orphans with databases
 UnresolvedVariableType 9
 UnresolvedSignature 10
 LocalTypeMismatch 11
-UnresolvedType 12
 *ParamNotBound 24
 ProcTypeMismatch 30
 CastToUnrelatedType 31

@@ -35,8 +35,8 @@ export interface Enum {
 }
 
 export interface Type {
-	Alias: never;
-	Index: never;
+	Alias: number;
+	Index: number;
 	IsBuiltin: boolean;
 	Name: string;
 }

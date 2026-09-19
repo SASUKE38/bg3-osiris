@@ -24,6 +24,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (child.kind !== ASTNodeKind.RULE_NODE) doAnalysis(child, thisArg);
 				else {
 					thisArg.verifyParameterBinding(child as RuleNode, signatures, res);
+					thisArg.verifyLocalTypeMatches(child as RuleNode, signatures, res);
 				}
 			}
 		}
@@ -32,13 +33,12 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
-	verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const boundParameters = new Set<string>(["_"]);
 		const functions = [rule.call, ...rule.conditions, ...rule.actions];
 		const actionStartIndex = rule.conditions.length + 1;
 		for (let i = 0; i < functions.length; i++) {
 			const node = functions[i];
-			// Signature
 			if (node.kind === ASTNodeKind.SIGNATURE_NODE) {
 				this.verifyParameterBindingInSignature(
 					node as SignatureNode,
@@ -55,7 +55,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		}
 	}
 
-	verifyParameterBindingInSignature(
+	private verifyParameterBindingInSignature(
 		node: SignatureNode,
 		rule: RuleNode,
 		signatures: SignatureCollection,
@@ -119,7 +119,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		}
 	}
 
-	verifyParameterBindingInComparison(node: ComparisonNode, boundParameters: Set<string>, res: Diagnostic[]) {
+	private verifyParameterBindingInComparison(node: ComparisonNode, boundParameters: Set<string>, res: Diagnostic[]) {
 		for (const operand of node.getNodeChildren()) {
 			if (operand?.kind !== ASTNodeKind.IDENTIFIER_NODE) continue;
 			if ((operand as IdentifierNode).value.startsWith("_")) {
@@ -140,6 +140,16 @@ export class ParameterAnalyzer extends AnalyzerBase {
 						})
 					);
 				}
+			}
+		}
+	}
+
+	private verifyLocalTypeMatches(node: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+		const signature = signatures.get(node.call);
+		if (!signature || signature.parameters.length !== node.call.parameters.length) return;
+		for (let i = 0; i < signature.parameters.length; i++) {
+			if (node.call.parameters[i].type && node.call.parameters[i].type?.value !== signature.parameters[i]) {
+				res.push({ range: node.call.selectionRange, message: "bad signature type" });
 			}
 		}
 	}
