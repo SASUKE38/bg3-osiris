@@ -9,7 +9,7 @@ import {
 	SignatureNode
 } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
-import { paramNotBoundDiagnosticFactory } from "../message";
+import { localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory } from "../message";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -33,6 +33,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
+	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const boundParameters = new Set<string>(["_"]);
 		const functions = [rule.call, ...rule.conditions, ...rule.actions];
@@ -144,12 +145,18 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		}
 	}
 
+	// LocalTypeMismatch 11
 	private verifyLocalTypeMatches(node: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const signature = signatures.get(node.call);
-		if (!signature || signature.parameters.length !== node.call.parameters.length) return;
+		if (!this.modManager.mod || !signature || signature.parameters.length !== node.call.parameters.length) return;
+		const { mod } = this.modManager;
 		for (let i = 0; i < signature.parameters.length; i++) {
-			if (node.call.parameters[i].type && node.call.parameters[i].type?.value !== signature.parameters[i]) {
-				res.push({ range: node.call.selectionRange, message: "bad signature type" });
+			if (!node.call.parameters[i].type?.value) continue;
+			const typeA = mod.inheritedTypes.get(node.call.parameters[i].type?.value!);
+			const typeB = mod.inheritedTypes.get(signature.parameters[i]);
+			if (!typeA || !typeB) continue;
+			if (node.call.parameters[i].type && !mod.areAliasTypes(typeA, typeB)) {
+				res.push(localTypeMismatchDiagnosticFactory({ range: node.call.parameters[i].type!.selectionRange, actualName: typeA.name, expectedName: typeB.name}))
 			}
 		}
 	}

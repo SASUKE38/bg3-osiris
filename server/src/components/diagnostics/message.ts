@@ -314,12 +314,27 @@ export function unresolvedSymbolDiagnosticFactory({ range, signature }: Unresolv
 
 //#region Parameters
 
-export interface ParamNotBoundDiagnostic extends DiagnosticParamsBase {
+export interface LocalTypeMismatchDiagnosticParams extends DiagnosticParamsBase {
+	actualName: string;
+	expectedName: string;
+}
+
+export function localTypeMismatchDiagnosticFactory({ range, actualName, expectedName}: LocalTypeMismatchDiagnosticParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `The intrinsic type of '${actualName}' does not match the specified intrinsic type of '${expectedName}'.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.LocalTypeMismatch
+	}
+}
+
+export interface ParamNotBoundDiagnosticParams extends DiagnosticParamsBase {
 	name: string;
 	isPlaceholder: boolean;
 }
 
-export function paramNotBoundDiagnosticFactory({ range, name, isPlaceholder }: ParamNotBoundDiagnostic): Diagnostic {
+export function paramNotBoundDiagnosticFactory({ range, name, isPlaceholder }: ParamNotBoundDiagnosticParams): Diagnostic {
 	return {
 		source: diagnosticSource,
 		range,

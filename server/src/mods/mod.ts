@@ -276,9 +276,38 @@ export class Mod {
 		return res;
 	}
 
-	getRootType(type: InheritedType | undefined): string {
+	//#region Types
+
+	getIntrinsicType(type: InheritedType | undefined): string {
 		if (!type) return "";
 		if (type.alias === "UNKNOWN") return type.name;
-		else return this.getRootType(this.inheritedTypes.get(type.alias))
+		else return this.getIntrinsicType(this.inheritedTypes.get(type.alias))
 	}
+
+	areAliasTypes(typeA: InheritedType, typeB: InheritedType) {
+		return this.getIntrinsicType(typeA) === this.getIntrinsicType(typeB);
+	}
+
+	getIntrinsicCompatibilityType(type: InheritedType) {
+		switch (type.name) {
+			case "INTEGER":
+			case "INTEGER64":
+			case "FLOAT":
+				return "INTEGER"
+				break;
+			case "STRING":
+			case "GUIDSTRING":
+				return "STRING"
+				break;
+			default:
+				return "UNKNOWN"
+				break;
+		}
+	}
+
+	areIntrinsicTypesCompatible(typeA: InheritedType, typeB: InheritedType) {
+		return this.getIntrinsicCompatibilityType(typeA) === this.getIntrinsicCompatibilityType(typeB);
+	}
+
+	//#endregion
 }
