@@ -118,8 +118,21 @@ export class IdentifierNode extends SingletonNode<string> {
 	kind = ASTNodeKind.IDENTIFIER_NODE;
 }
 
+export const enum NumberNodeKind {
+	None,
+	Integer,
+	Integer64,
+	Real
+}
+
 export class NumberNode extends SingletonNode<number> {
 	kind = ASTNodeKind.NUMBER_NODE;
+	numberKind: NumberNodeKind;
+
+	constructor(value: number, range: Range, numberKind: NumberNodeKind) {
+		super(value, range);
+		this.numberKind = numberKind;
+	}
 }
 
 // Goal Nodes

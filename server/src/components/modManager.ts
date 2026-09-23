@@ -417,8 +417,8 @@ export class ModManager extends ComponentBase {
 			(await resource.getData(field)).forEach((value) => res.add(value));
 		}
 
-		for (const database of this.mod.inheritedDatabases.keys()) {
-			res.add(database);
+		for (const database of this.mod.inheritedDatabases.entries()) {
+			res.add(database[0].substring(0, database[0].length - 2));
 		}
 
 		return res;
@@ -433,6 +433,7 @@ export class ModManager extends ComponentBase {
 		}
 
 		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedSignatures.entries()]);
+		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedDatabases.entries()]);
 
 		return res;
 	}

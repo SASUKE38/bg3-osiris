@@ -6,6 +6,9 @@ import {
 	ComparisonNode,
 	EnumTypeNode,
 	IdentifierNode,
+	NumberNode,
+	NumberNodeKind,
+	ParameterNode,
 	RuleNode,
 	SignatureNode,
 	SignatureSectionNode,
@@ -185,7 +188,6 @@ export class GoalResource extends Resource {
 
 	async loadSignatures() {
 		const root = this.ast;
-		const documentation = await this.mod.manager.server.documentationManager.getDocumentation();
 		const inheritedSignatures = this.mod.inheritedSignatures;
 		if (!root) return;
 
@@ -194,13 +196,15 @@ export class GoalResource extends Resource {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					const rule = child as RuleNode;
-					extractCallSignature(rule.call, rule.type, thisArg);
+					const parameters = new Map<string, string>();
+					extractCallSignature(rule.call, rule.type, parameters, thisArg);
 					extractConditionSignatures(
 						rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
 						rule.type,
+						parameters,
 						thisArg
 					);
-					extractActionSignature(rule.actions, rule.type, thisArg);
+					extractActionSignature(rule.actions, rule.type, parameters, thisArg);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 					const signatures = child as SignatureSectionNode;
 					extractSignatureSectionSignatures(signatures.content, thisArg);
@@ -210,40 +214,89 @@ export class GoalResource extends Resource {
 			}
 		}
 
+		function mergeSignatures(signature: Signature, thisArg: GoalResource) {
+			if (!thisArg.signatures.has(signature)) thisArg.signatures.set(signature);
+			else {
+				const storedSignature = thisArg.signatures.get(signature)!;
+				for (let i = 0; i < signature.parameters.length; i++) {
+					if (storedSignature.parameters[i] === "" && signature.parameters[i] !== "") {
+						storedSignature.parameters[i] = signature.parameters[i];
+					}
+				}
+			}
+		}
+
+		function inferType(parameterNode: ParameterNode, parameters?: Map<string, string>) {
+			if (parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE && parameters?.has((parameterNode.content as IdentifierNode).value)) {
+				return parameters.get((parameterNode.content as IdentifierNode).value)!;
+			}
+			switch (parameterNode.content.kind) {
+				case ASTNodeKind.IDENTIFIER_NODE:
+					if (!(parameterNode.content as IdentifierNode).value.startsWith("_")) return "GUIDSTRING";
+					else return "";
+					break;
+				case ASTNodeKind.STRING_NODE:
+					return "STRING";
+					break;
+				case ASTNodeKind.NUMBER_NODE:
+					if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer) return "INTEGER";
+					else if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real) return "REAL";
+					else return "INTEGER64";
+					break;
+				default:
+					return "";
+					break;
+			}
+		}
+
 		function extractSignature(
 			signatureNode: SignatureNode,
 			section: "call" | "condition" | "action",
-			ruleType: "PROC" | "QRY" | "IF" | ""
+			ruleType: "PROC" | "QRY" | "IF" | "",
+			parameters?: Map<string, string>
 		): Signature {
 			return {
 				name: signatureNode.name,
-				parameters: signatureNode.parameters.map((value) => (value.type ? value.type.value : "")),
+				parameters: signatureNode.parameters.map((value) => (value.type ? value.type.value : inferType(value, parameters))),
 				type: getSignatureType(section, ruleType, signatureNode)
 			};
+		}
+
+		function registerParameters(parameters: Map<string, string>, signatureNode: SignatureNode) {
+			for (const parameter of signatureNode.parameters) {
+				if (parameter.content.kind === ASTNodeKind.IDENTIFIER_NODE && (parameter.content as IdentifierNode).value.startsWith("_") && (parameter.content as IdentifierNode).value !== "_" && parameter.type) {
+					parameters.set((parameter.content as IdentifierNode).value, parameter.type.value);
+				}
+			}
 		}
 
 		function extractCallSignature(
 			signatureNode: SignatureNode,
 			ruleType: "PROC" | "QRY" | "IF",
+			parameters: Map<string, string>,
 			thisArg: GoalResource
 		) {
 			const signature = extractSignature(signatureNode, "call", ruleType);
+			registerParameters(parameters, signatureNode);
 
 			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
-			thisArg.signatures.set(signature);
+			mergeSignatures(signature, thisArg);
 			thisArg.definedSignatures.add(signature.name);
 		}
 
 		function extractConditionSignatures(
 			signatureNodes: SignatureNode[],
 			ruleType: "PROC" | "QRY" | "IF",
+			parameters: Map<string, string>,
 			thisArg: GoalResource
 		) {
 			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, "condition", ruleType);
+				registerParameters(parameters, signatureNode);
+				const signature = extractSignature(signatureNode, "condition", ruleType, parameters);
+
 				if (signature.type === "Database") {
 					thisArg.readDatabases.add(signature.name);
-					thisArg.signatures.set(signature);
+					mergeSignatures(signature, thisArg);
 				}
 				thisArg.calledSignatures.add(signature.name);
 			}
@@ -252,13 +305,16 @@ export class GoalResource extends Resource {
 		function extractActionSignature(
 			signatureNodes: SignatureNode[],
 			ruleType: "PROC" | "QRY" | "IF",
+			parameters: Map<string, string>,
 			thisArg: GoalResource
 		) {
 			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, "action", ruleType);
+				registerParameters(parameters, signatureNode);
+				const signature = extractSignature(signatureNode, "action", ruleType, parameters);
+
 				if (signature.type === "Database") {
 					thisArg.writtenDatabases.add(signature.name);
-					thisArg.signatures.set(signature);
+					mergeSignatures(signature, thisArg);
 				}
 				thisArg.calledSignatures.add(signature.name);
 			}
@@ -269,7 +325,7 @@ export class GoalResource extends Resource {
 				const signature = extractSignature(signatureNode, "call", "");
 				if (signature.type !== "Database") return;
 				thisArg.writtenDatabases.add(signature.name);
-				thisArg.signatures.set(signature);
+				mergeSignatures(signature, thisArg);
 				thisArg.definedSignatures.add(signature.name);
 			}
 		}

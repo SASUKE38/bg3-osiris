@@ -9,7 +9,7 @@ import { readdir } from "fs/promises";
 import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
 import { BaseModConfiguration } from "../utils/configurationSchema";
-import { Signature, SignatureCollection } from "./signature";
+import { SignatureCollection } from "./signature";
 import { HeaderResource } from "./resource/headerResource";
 
 export interface InheritedType {
@@ -45,7 +45,7 @@ export class Mod {
 	readonly goals: GoalResource[] = [];
 	readonly inheritedGoals = new Map<string, InheritedGoal>();
 	readonly inheritedSignatures = new SignatureCollection();
-	readonly inheritedDatabases = new Map<string, Signature>();
+	readonly inheritedDatabases = new SignatureCollection();
 	readonly inheritedIgnoredOrphans = new Set<string>();
 	readonly inheritedFoundOrphans = new Set<string>();
 	readonly inheritedTypes = new Map<string, InheritedType>();
@@ -132,7 +132,7 @@ export class Mod {
 		});
 
 		Object.values(story.databases).forEach((value) => {
-			this.inheritedDatabases.set(value.OwnerNode.Name, {
+			this.inheritedDatabases.set({
 				name: value.OwnerNode.Name,
 				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
 				type: "Database"
@@ -149,7 +149,7 @@ export class Mod {
 				isBuiltin: value.IsBuiltin
 			});
 		});
-		
+
 		Object.values(story.enums).forEach((value) => {
 			this.inheritedEnums.set(story.types[value.UnderlyingType].Name, {
 				underlyingType: story.types[value.UnderlyingType].Name,
@@ -281,7 +281,7 @@ export class Mod {
 	getIntrinsicType(type: InheritedType | undefined): string {
 		if (!type) return "";
 		if (type.alias === "UNKNOWN") return type.name;
-		else return this.getIntrinsicType(this.inheritedTypes.get(type.alias))
+		else return this.getIntrinsicType(this.inheritedTypes.get(type.alias));
 	}
 
 	areAliasTypes(typeA: InheritedType, typeB: InheritedType) {
@@ -293,14 +293,14 @@ export class Mod {
 			case "INTEGER":
 			case "INTEGER64":
 			case "FLOAT":
-				return "INTEGER"
+				return "INTEGER";
 				break;
 			case "STRING":
 			case "GUIDSTRING":
-				return "STRING"
+				return "STRING";
 				break;
 			default:
-				return "UNKNOWN"
+				return "UNKNOWN";
 				break;
 		}
 	}

@@ -314,19 +314,37 @@ export function unresolvedSymbolDiagnosticFactory({ range, signature }: Unresolv
 
 //#region Parameters
 
+export interface UnresolvedSignatureDiagnosticParams extends DiagnosticParamsBase {
+	name: string
+}
+
+export function unresolvedSignatureDiagnosticFactory({ range, name }: UnresolvedSignatureDiagnosticParams): Diagnostic {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `The fully typed signature of '${name}' could not be determined.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnresolvedSignature
+	}
+}
+
 export interface LocalTypeMismatchDiagnosticParams extends DiagnosticParamsBase {
 	actualName: string;
 	expectedName: string;
 }
 
-export function localTypeMismatchDiagnosticFactory({ range, actualName, expectedName}: LocalTypeMismatchDiagnosticParams): Diagnostic {
+export function localTypeMismatchDiagnosticFactory({
+	range,
+	actualName,
+	expectedName
+}: LocalTypeMismatchDiagnosticParams): Diagnostic {
 	return {
 		source: diagnosticSource,
 		range,
 		message: `The intrinsic type of '${actualName}' does not match the specified intrinsic type of '${expectedName}'.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.LocalTypeMismatch
-	}
+	};
 }
 
 export interface ParamNotBoundDiagnosticParams extends DiagnosticParamsBase {
@@ -334,7 +352,11 @@ export interface ParamNotBoundDiagnosticParams extends DiagnosticParamsBase {
 	isPlaceholder: boolean;
 }
 
-export function paramNotBoundDiagnosticFactory({ range, name, isPlaceholder }: ParamNotBoundDiagnosticParams): Diagnostic {
+export function paramNotBoundDiagnosticFactory({
+	range,
+	name,
+	isPlaceholder
+}: ParamNotBoundDiagnosticParams): Diagnostic {
 	return {
 		source: diagnosticSource,
 		range,

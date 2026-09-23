@@ -9,7 +9,7 @@ import {
 	SignatureNode
 } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
-import { localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory } from "../message";
+import { localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory, unresolvedSignatureDiagnosticFactory } from "../message";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -24,7 +24,6 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (child.kind !== ASTNodeKind.RULE_NODE) doAnalysis(child, thisArg);
 				else {
 					thisArg.verifyParameterBinding(child as RuleNode, signatures, res);
-					thisArg.verifyLocalTypeMatches(child as RuleNode, signatures, res);
 				}
 			}
 		}
@@ -35,7 +34,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const boundParameters = new Set<string>(["_"]);
+		const parameters = new Map<string, string>([["_", "UNKNOWN"]]);
 		const functions = [rule.call, ...rule.conditions, ...rule.actions];
 		const actionStartIndex = rule.conditions.length + 1;
 		for (let i = 0; i < functions.length; i++) {
@@ -45,13 +44,14 @@ export class ParameterAnalyzer extends AnalyzerBase {
 					node as SignatureNode,
 					rule,
 					signatures,
-					boundParameters,
+					parameters,
 					i,
 					actionStartIndex,
 					res
 				);
+				this.verifyVariableTypes(node as SignatureNode, signatures, parameters, res);
 			} else {
-				this.verifyParameterBindingInComparison(node as ComparisonNode, boundParameters, res);
+				this.verifyParameterBindingInComparison(node as ComparisonNode, parameters, res);
 			}
 		}
 	}
@@ -60,7 +60,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		node: SignatureNode,
 		rule: RuleNode,
 		signatures: SignatureCollection,
-		boundParameters: Set<string>,
+		parameters: Map<string, string>,
 		i: number,
 		actionStartIndex: number,
 		res: Diagnostic[]
@@ -81,7 +81,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 			// A parameter in an out query slot
 			if (isOut && !isDeletion) {
-				boundParameters.add((parameterNode.content as IdentifierNode).value);
+				parameters.set((parameterNode.content as IdentifierNode).value, parameterNode.type ? parameterNode.type.value : signature.parameters[j]);
 			} else if (
 				// THEN section cannot bind
 				i >= actionStartIndex ||
@@ -95,7 +95,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 					!(rule.type === "QRY" && i === 0 && signature.type === "UserQuery") &&
 					!isOut)
 			) {
-				if (!boundParameters.has((parameterNode.content as IdentifierNode).value)) {
+				if (!parameters.has((parameterNode.content as IdentifierNode).value)) {
 					res.push(
 						paramNotBoundDiagnosticFactory({
 							range: parameterNode.selectionRange,
@@ -114,13 +114,17 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				}
 			} else {
 				if (i < actionStartIndex && !isDeletion) {
-					boundParameters.add((parameterNode.content as IdentifierNode).value);
+					parameters.set((parameterNode.content as IdentifierNode).value, parameterNode.type ? parameterNode.type.value : signature.parameters[j]);
 				}
 			}
 		}
 	}
 
-	private verifyParameterBindingInComparison(node: ComparisonNode, boundParameters: Set<string>, res: Diagnostic[]) {
+	private verifyParameterBindingInComparison(
+		node: ComparisonNode,
+		boundParameters: Map<string, string>,
+		res: Diagnostic[]
+	) {
 		for (const operand of node.getNodeChildren()) {
 			if (operand?.kind !== ASTNodeKind.IDENTIFIER_NODE) continue;
 			if ((operand as IdentifierNode).value.startsWith("_")) {
@@ -146,17 +150,45 @@ export class ParameterAnalyzer extends AnalyzerBase {
 	}
 
 	// LocalTypeMismatch 11
-	private verifyLocalTypeMatches(node: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const signature = signatures.get(node.call);
-		if (!this.modManager.mod || !signature || signature.parameters.length !== node.call.parameters.length) return;
-		const { mod } = this.modManager;
-		for (let i = 0; i < signature.parameters.length; i++) {
-			if (!node.call.parameters[i].type?.value) continue;
-			const typeA = mod.inheritedTypes.get(node.call.parameters[i].type?.value!);
-			const typeB = mod.inheritedTypes.get(signature.parameters[i]);
+	// TODO: Figure out types for non-variables
+	private verifyVariableTypes(
+		node: SignatureNode,
+		signatures: SignatureCollection,
+		parameters: Map<string, string>,
+		res: Diagnostic[]
+	) {
+		const signature = signatures.get(node);
+		if (!signature || signature.parameters.length != node.parameters.length) return;
+		for (let j = 0; j < signature.parameters.length; j++) {
+			if (
+				node.parameters[j].content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
+				(node.parameters[j].content as IdentifierNode).value === "_"
+			)
+				continue;
+			const actualParameter = node.parameters[j];
+			const expectedParameter = signature.parameters[j];
+			if (!(actualParameter.content as IdentifierNode).value.startsWith("_")) continue;
+			if (expectedParameter === "") {
+				res.push(unresolvedSignatureDiagnosticFactory({range: node.selectionRange, name: node.name}));
+				return; 
+			}
+
+			const boundType = parameters.get((actualParameter.content as IdentifierNode).value);
+			if (!boundType) continue;
+			const { mod } = this.modManager;
+			if (!mod) continue;
+
+			const actualType = actualParameter.type ? actualParameter.type.value : boundType;
+			const typeA = mod.inheritedTypes.get(actualType);
+			const typeB = mod.inheritedTypes.get(expectedParameter);
 			if (!typeA || !typeB) continue;
-			if (node.call.parameters[i].type && !mod.areAliasTypes(typeA, typeB)) {
-				res.push(localTypeMismatchDiagnosticFactory({ range: node.call.parameters[i].type!.selectionRange, actualName: typeA.name, expectedName: typeB.name}))
+
+			if (!mod.areAliasTypes(typeA, typeB)) {
+				if (actualParameter.type) {
+					res.push(localTypeMismatchDiagnosticFactory({range: actualParameter.type.selectionRange, actualName: actualType, expectedName: expectedParameter}))
+				} else {
+					res.push(localTypeMismatchDiagnosticFactory({range: actualParameter.selectionRange, actualName: typeA.name, expectedName: expectedParameter}))
+				}
 			}
 		}
 	}

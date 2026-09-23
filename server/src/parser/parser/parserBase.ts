@@ -1,5 +1,13 @@
 import { Diagnostic, Range } from "vscode-languageserver";
-import { IdentifierNode, StringNode, NumberNode, TypeNode, OperatorNode, TypeEnumMemberNode } from "../ast/nodes";
+import {
+	IdentifierNode,
+	StringNode,
+	NumberNode,
+	TypeNode,
+	OperatorNode,
+	TypeEnumMemberNode,
+	NumberNodeKind
+} from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import { expectedMessage, unexpectedTokenDiagnosticFactory } from "../../components/diagnostics/message";
 
@@ -109,12 +117,12 @@ export abstract class ParserBase<T> {
 
 	protected parseInteger(): NumberNode {
 		const token = this.pop();
-		return new NumberNode(parseInt(token.value), token.range);
+		return new NumberNode(parseInt(token.value), token.range, NumberNodeKind.Integer);
 	}
 
 	protected parseFloat(): NumberNode {
 		const token = this.pop();
-		return new NumberNode(parseFloat(token.value), token.range);
+		return new NumberNode(parseFloat(token.value), token.range, NumberNodeKind.Real);
 	}
 
 	protected parseGUID(): IdentifierNode {
