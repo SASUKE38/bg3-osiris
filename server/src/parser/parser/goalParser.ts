@@ -259,19 +259,15 @@ export class GoalParser extends ParserBase<GoalNode> {
 						parameterSubNode = this.parseIdentifier();
 						break;
 					case TokenType.ENUM_MEMBER:
-						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameterSubNode = this.parseTypeEnumMember();
 						break;
 					case TokenType.STRING:
-						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameterSubNode = this.parseString();
 						break;
 					case TokenType.INTEGER:
-						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameterSubNode = this.parseInteger();
 						break;
 					case TokenType.FLOAT:
-						this.verifyNoType(parameter, type, allowIdentifiers);
 						parameterSubNode = this.parseFloat();
 						break;
 					case TokenType.GUID:
@@ -323,16 +319,5 @@ export class GoalParser extends ParserBase<GoalNode> {
 				end: name.range.end
 			}
 		);
-	}
-
-	private verifyNoType(parameter: Token, type?: TypeNode, allowIdentifiers = true) {
-		if (type != null) {
-			this.diagnostics.push(
-				unexpectedTokenDiagnosticFactory({
-					range: parameter.range,
-					expectedType: allowIdentifiers ? [TokenType.GUID, TokenType.IDENTIFIER] : [TokenType.GUID]
-				})
-			);
-		}
 	}
 }

@@ -5,8 +5,11 @@ import {
 	ASTNodeKind,
 	ComparisonNode,
 	IdentifierNode,
+	NumberNode,
+	NumberNodeKind,
 	RuleNode,
-	SignatureNode
+	SignatureNode,
+	SignatureSectionNode
 } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
 import { localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory, unresolvedSignatureDiagnosticFactory } from "../message";
@@ -21,9 +24,13 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		function doAnalysis(node: ASTNode, thisArg: ParameterAnalyzer) {
 			for (const child of node.getNodeChildren()) {
 				if (!child) continue;
-				if (child.kind !== ASTNodeKind.RULE_NODE) doAnalysis(child, thisArg);
-				else {
+				if (child.kind === ASTNodeKind.RULE_NODE) {
 					thisArg.verifyParameterBinding(child as RuleNode, signatures, res);
+					thisArg.verifyConstantTypes([(child as RuleNode).call, ...(child as RuleNode).conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[], ...(child as RuleNode).actions], signatures, res);
+				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
+					thisArg.verifyConstantTypes((child as SignatureSectionNode).content, signatures, res);
+				} else {
+					doAnalysis(child, thisArg);
 				}
 			}
 		}
@@ -32,6 +39,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
+	// TODO: Figure out types for comparisons
 	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const parameters = new Map<string, string>([["_", "UNKNOWN"]]);
@@ -150,7 +158,6 @@ export class ParameterAnalyzer extends AnalyzerBase {
 	}
 
 	// LocalTypeMismatch 11
-	// TODO: Figure out types for non-variables
 	private verifyVariableTypes(
 		node: SignatureNode,
 		signatures: SignatureCollection,
@@ -189,6 +196,55 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				} else {
 					res.push(localTypeMismatchDiagnosticFactory({range: actualParameter.selectionRange, actualName: typeA.name, expectedName: expectedParameter}))
 				}
+			}
+		}
+	}
+
+	private verifyConstantTypes(signatureNodes: SignatureNode[], signatures: SignatureCollection, res: Diagnostic[]) {
+		for (const node of signatureNodes) {
+			if (node.kind === ASTNodeKind.SIGNATURE_NODE) {
+				const signature = signatures.get(node as SignatureNode);
+				if (!signature || signature.parameters.length !== (node as SignatureNode).parameters.length) return;
+
+				for (let i = 0; i < (node as SignatureNode).parameters.length; i++) {
+					const parameterNode = (node as SignatureNode).parameters[i];
+					
+					if (signature.parameters[i] === "") {
+						res.push(unresolvedSignatureDiagnosticFactory({range: node.selectionRange, name: node.name}));
+						return; 
+					}
+
+					let searchType = "UNKNOWN";
+
+					if (parameterNode.type) {
+						searchType = parameterNode.type.value;
+					} else {
+						switch (parameterNode.content.kind) {
+							case ASTNodeKind.IDENTIFIER_NODE:
+								if ((parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
+								searchType = "GUIDSTRING";
+								break;
+							case ASTNodeKind.STRING_NODE:
+								searchType = "STRING";
+								break;
+							case ASTNodeKind.NUMBER_NODE:
+								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer) searchType = "INTEGER"
+								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer64) searchType = "INTEGER64"
+								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real) searchType = "REAL"
+								break;
+						}
+					}
+
+					const { mod } = this.modManager;
+					const typeA = mod?.inheritedTypes.get(searchType);
+					const typeB = mod?.inheritedTypes.get(signature.parameters[i]);
+					if (!mod || !typeA || !typeB) continue;
+					if (!mod.areAliasTypes(typeA, typeB)) {
+						res.push(localTypeMismatchDiagnosticFactory({range: parameterNode.type ? parameterNode.type.selectionRange : parameterNode.selectionRange, actualName: searchType, expectedName: signature.parameters[i]}))
+					}
+				}
+			} else {
+
 			}
 		}
 	}
