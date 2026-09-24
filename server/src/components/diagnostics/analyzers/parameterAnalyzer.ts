@@ -12,7 +12,7 @@ import {
 	SignatureSectionNode
 } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
-import { localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory, unresolvedSignatureDiagnosticFactory } from "../message";
+import { castToUnrelatedGuidAliasDiagnostiFactory, localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory, unresolvedSignatureDiagnosticFactory } from "../message";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -27,6 +27,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					thisArg.verifyParameterBinding(child as RuleNode, signatures, res);
 					thisArg.verifyConstantTypes([(child as RuleNode).call, ...(child as RuleNode).conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[], ...(child as RuleNode).actions], signatures, res);
+					thisArg.verifyCastsToRelatedGuidAliases((child as RuleNode), signatures, res);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 					thisArg.verifyConstantTypes((child as SignatureSectionNode).content, signatures, res);
 				} else {
@@ -39,7 +40,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
-	// TODO: Figure out types for comparisons
+	// TODO: Figure out types for comparisons, casts between number types
 	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const parameters = new Map<string, string>([["_", "UNKNOWN"]]);
@@ -245,6 +246,29 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				}
 			} else {
 
+			}
+		}
+	}
+
+	// CastToUnrelatedGuidAlias 32
+	private verifyCastsToRelatedGuidAliases(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+		const signatureNodes = [rule.call, ...rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[], ...rule.actions];
+		if (!this.modManager.mod) return;
+		const { mod } = this.modManager;
+		for (const signatureNode of signatureNodes) {
+			const signature = signatures.get(signatureNode);
+			if (!signature) continue;
+
+			for (let i = 0; i < signature.parameters.length; i++) {
+				const parameterNode = signatureNode.parameters[i];
+				const parameterType = signature.parameters[i];
+				if (!parameterNode.type || (parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE)) continue;
+				const typeA = mod.inheritedTypes.get(parameterNode.type.value);
+				const typeB = mod.inheritedTypes.get(parameterType);
+				if (!typeA || !typeB) continue;
+				if (mod.isGuidToGuidCastUnrelated(typeA, typeB)) {
+					res.push(castToUnrelatedGuidAliasDiagnostiFactory({range: parameterNode.type.selectionRange, parameterName: (parameterNode.content as IdentifierNode).value, typeName: parameterNode.type.value}))
+				}
 			}
 		}
 	}

@@ -366,4 +366,19 @@ export function paramNotBoundDiagnosticFactory({
 	};
 }
 
+export interface CastToUnrelatedGuidAliasDiagnosticParams extends DiagnosticParamsBase {
+	parameterName: string,
+	typeName: string
+}
+
+export function castToUnrelatedGuidAliasDiagnostiFactory({range, parameterName, typeName}: CastToUnrelatedGuidAliasDiagnosticParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `'${parameterName}' converted to unrelated type '${typeName}'`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.CastToUnrelatedGuidAlias
+	}
+}
+
 //#endregion

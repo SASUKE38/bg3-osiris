@@ -309,5 +309,9 @@ export class Mod {
 		return this.getIntrinsicCompatibilityType(typeA) === this.getIntrinsicCompatibilityType(typeB);
 	}
 
+	isGuidToGuidCastUnrelated(typeA: InheritedType, typeB: InheritedType) {
+		return this.areAliasTypes(typeA, typeB) && this.getIntrinsicType(typeA) === "GUIDSTRING" && typeA.name !== "GUIDSTRING" && typeB.name !== "GUIDSTRING" && typeA.name !== typeB.name;
+	}
+
 	//#endregion
 }
