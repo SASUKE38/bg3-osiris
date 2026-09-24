@@ -289,7 +289,8 @@ export class Mod {
 	}
 
 	getIntrinsicCompatibilityType(type: InheritedType) {
-		switch (type.name) {
+		const intrinsicType = this.getIntrinsicType(type);
+		switch (intrinsicType) {
 			case "INTEGER":
 			case "INTEGER64":
 			case "FLOAT":
@@ -310,7 +311,13 @@ export class Mod {
 	}
 
 	isGuidToGuidCastUnrelated(typeA: InheritedType, typeB: InheritedType) {
-		return this.areAliasTypes(typeA, typeB) && this.getIntrinsicType(typeA) === "GUIDSTRING" && typeA.name !== "GUIDSTRING" && typeB.name !== "GUIDSTRING" && typeA.name !== typeB.name;
+		return (
+			this.areAliasTypes(typeA, typeB) &&
+			this.getIntrinsicType(typeA) === "GUIDSTRING" &&
+			typeA.name !== "GUIDSTRING" &&
+			typeB.name !== "GUIDSTRING" &&
+			typeA.name !== typeB.name
+		);
 	}
 
 	//#endregion

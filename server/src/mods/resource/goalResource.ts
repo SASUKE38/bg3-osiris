@@ -227,7 +227,10 @@ export class GoalResource extends Resource {
 		}
 
 		function inferType(parameterNode: ParameterNode, parameters?: Map<string, string>) {
-			if (parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE && parameters?.has((parameterNode.content as IdentifierNode).value)) {
+			if (
+				parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
+				parameters?.has((parameterNode.content as IdentifierNode).value)
+			) {
 				return parameters.get((parameterNode.content as IdentifierNode).value)!;
 			}
 			switch (parameterNode.content.kind) {
@@ -257,14 +260,21 @@ export class GoalResource extends Resource {
 		): Signature {
 			return {
 				name: signatureNode.name,
-				parameters: signatureNode.parameters.map((value) => (value.type ? value.type.value : inferType(value, parameters))),
+				parameters: signatureNode.parameters.map((value) =>
+					value.type ? value.type.value : inferType(value, parameters)
+				),
 				type: getSignatureType(section, ruleType, signatureNode)
 			};
 		}
 
 		function registerParameters(parameters: Map<string, string>, signatureNode: SignatureNode) {
 			for (const parameter of signatureNode.parameters) {
-				if (parameter.content.kind === ASTNodeKind.IDENTIFIER_NODE && (parameter.content as IdentifierNode).value.startsWith("_") && (parameter.content as IdentifierNode).value !== "_" && parameter.type) {
+				if (
+					parameter.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
+					(parameter.content as IdentifierNode).value.startsWith("_") &&
+					(parameter.content as IdentifierNode).value !== "_" &&
+					parameter.type
+				) {
 					parameters.set((parameter.content as IdentifierNode).value, parameter.type.value);
 				}
 			}

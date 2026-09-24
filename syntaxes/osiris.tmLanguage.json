@@ -67,7 +67,7 @@
 				},
 				{
 					"name": "entity.name.type.osiris",
-					"match": "\\([A-Z]+\\)"
+					"match": "\\([A-Z]+[0-9]*\\)"
 				}
 			]
 		},

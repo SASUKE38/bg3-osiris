@@ -315,7 +315,7 @@ export function unresolvedSymbolDiagnosticFactory({ range, signature }: Unresolv
 //#region Parameters
 
 export interface UnresolvedSignatureDiagnosticParams extends DiagnosticParamsBase {
-	name: string
+	name: string;
 }
 
 export function unresolvedSignatureDiagnosticFactory({ range, name }: UnresolvedSignatureDiagnosticParams): Diagnostic {
@@ -325,7 +325,7 @@ export function unresolvedSignatureDiagnosticFactory({ range, name }: Unresolved
 		message: `The fully typed signature of '${name}' could not be determined.`,
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.UnresolvedSignature
-	}
+	};
 }
 
 export interface LocalTypeMismatchDiagnosticParams extends DiagnosticParamsBase {
@@ -366,19 +366,41 @@ export function paramNotBoundDiagnosticFactory({
 	};
 }
 
-export interface CastToUnrelatedGuidAliasDiagnosticParams extends DiagnosticParamsBase {
-	parameterName: string,
-	typeName: string
+export interface UnrelatedCastDiagnosticParamsBase extends DiagnosticParamsBase {
+	parameterName: string;
+	typeName: string;
 }
 
-export function castToUnrelatedGuidAliasDiagnostiFactory({range, parameterName, typeName}: CastToUnrelatedGuidAliasDiagnosticParams) {
+export interface CastToUnrelatedTypeDiagnosticParams extends UnrelatedCastDiagnosticParamsBase {}
+
+export function castToUnrelatedTypeDiagnosticFactory({
+	range,
+	parameterName,
+	typeName
+}: CastToUnrelatedTypeDiagnosticParams) {
 	return {
 		source: diagnosticSource,
 		range,
 		message: `'${parameterName}' converted to unrelated type '${typeName}'`,
 		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.CastToUnrelatedType
+	};
+}
+
+export interface CastToUnrelatedGuidAliasDiagnosticParams extends UnrelatedCastDiagnosticParamsBase {}
+
+export function castToUnrelatedGuidAliasDiagnostiFactory({
+	range,
+	parameterName,
+	typeName
+}: CastToUnrelatedGuidAliasDiagnosticParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `'${parameterName}' converted to unrelated alias '${typeName}'`,
+		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.CastToUnrelatedGuidAlias
-	}
+	};
 }
 
 //#endregion

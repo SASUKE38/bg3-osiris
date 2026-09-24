@@ -12,7 +12,13 @@ import {
 	SignatureSectionNode
 } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
-import { castToUnrelatedGuidAliasDiagnostiFactory, localTypeMismatchDiagnosticFactory, paramNotBoundDiagnosticFactory, unresolvedSignatureDiagnosticFactory } from "../message";
+import {
+	castToUnrelatedGuidAliasDiagnostiFactory,
+	castToUnrelatedTypeDiagnosticFactory,
+	localTypeMismatchDiagnosticFactory,
+	paramNotBoundDiagnosticFactory,
+	unresolvedSignatureDiagnosticFactory
+} from "../message";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -26,8 +32,18 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					thisArg.verifyParameterBinding(child as RuleNode, signatures, res);
-					thisArg.verifyConstantTypes([(child as RuleNode).call, ...(child as RuleNode).conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[], ...(child as RuleNode).actions], signatures, res);
-					thisArg.verifyCastsToRelatedGuidAliases((child as RuleNode), signatures, res);
+					thisArg.verifyConstantTypes(
+						[
+							(child as RuleNode).call,
+							...((child as RuleNode).conditions.filter(
+								(value) => value.kind === ASTNodeKind.SIGNATURE_NODE
+							) as SignatureNode[]),
+							...(child as RuleNode).actions
+						],
+						signatures,
+						res
+					);
+					thisArg.verifyRelatedCasts(child as RuleNode, signatures, res);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 					thisArg.verifyConstantTypes((child as SignatureSectionNode).content, signatures, res);
 				} else {
@@ -90,7 +106,10 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 			// A parameter in an out query slot
 			if (isOut && !isDeletion) {
-				parameters.set((parameterNode.content as IdentifierNode).value, parameterNode.type ? parameterNode.type.value : signature.parameters[j]);
+				parameters.set(
+					(parameterNode.content as IdentifierNode).value,
+					parameterNode.type ? parameterNode.type.value : signature.parameters[j]
+				);
 			} else if (
 				// THEN section cannot bind
 				i >= actionStartIndex ||
@@ -123,7 +142,10 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				}
 			} else {
 				if (i < actionStartIndex && !isDeletion) {
-					parameters.set((parameterNode.content as IdentifierNode).value, parameterNode.type ? parameterNode.type.value : signature.parameters[j]);
+					parameters.set(
+						(parameterNode.content as IdentifierNode).value,
+						parameterNode.type ? parameterNode.type.value : signature.parameters[j]
+					);
 				}
 			}
 		}
@@ -177,8 +199,8 @@ export class ParameterAnalyzer extends AnalyzerBase {
 			const expectedParameter = signature.parameters[j];
 			if (!(actualParameter.content as IdentifierNode).value.startsWith("_")) continue;
 			if (expectedParameter === "") {
-				res.push(unresolvedSignatureDiagnosticFactory({range: node.selectionRange, name: node.name}));
-				return; 
+				res.push(unresolvedSignatureDiagnosticFactory({ range: node.selectionRange, name: node.name }));
+				return;
 			}
 
 			const boundType = parameters.get((actualParameter.content as IdentifierNode).value);
@@ -193,9 +215,21 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 			if (!mod.areAliasTypes(typeA, typeB)) {
 				if (actualParameter.type) {
-					res.push(localTypeMismatchDiagnosticFactory({range: actualParameter.type.selectionRange, actualName: actualType, expectedName: expectedParameter}))
+					res.push(
+						localTypeMismatchDiagnosticFactory({
+							range: actualParameter.type.selectionRange,
+							actualName: actualType,
+							expectedName: expectedParameter
+						})
+					);
 				} else {
-					res.push(localTypeMismatchDiagnosticFactory({range: actualParameter.selectionRange, actualName: typeA.name, expectedName: expectedParameter}))
+					res.push(
+						localTypeMismatchDiagnosticFactory({
+							range: actualParameter.selectionRange,
+							actualName: typeA.name,
+							expectedName: expectedParameter
+						})
+					);
 				}
 			}
 		}
@@ -209,10 +243,10 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 				for (let i = 0; i < (node as SignatureNode).parameters.length; i++) {
 					const parameterNode = (node as SignatureNode).parameters[i];
-					
+
 					if (signature.parameters[i] === "") {
-						res.push(unresolvedSignatureDiagnosticFactory({range: node.selectionRange, name: node.name}));
-						return; 
+						res.push(unresolvedSignatureDiagnosticFactory({ range: node.selectionRange, name: node.name }));
+						return;
 					}
 
 					let searchType = "UNKNOWN";
@@ -229,9 +263,12 @@ export class ParameterAnalyzer extends AnalyzerBase {
 								searchType = "STRING";
 								break;
 							case ASTNodeKind.NUMBER_NODE:
-								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer) searchType = "INTEGER"
-								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer64) searchType = "INTEGER64"
-								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real) searchType = "REAL"
+								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer)
+									searchType = "INTEGER";
+								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer64)
+									searchType = "INTEGER64";
+								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real)
+									searchType = "REAL";
 								break;
 						}
 					}
@@ -241,20 +278,31 @@ export class ParameterAnalyzer extends AnalyzerBase {
 					const typeB = mod?.inheritedTypes.get(signature.parameters[i]);
 					if (!mod || !typeA || !typeB) continue;
 					if (!mod.areAliasTypes(typeA, typeB)) {
-						res.push(localTypeMismatchDiagnosticFactory({range: parameterNode.type ? parameterNode.type.selectionRange : parameterNode.selectionRange, actualName: searchType, expectedName: signature.parameters[i]}))
+						res.push(
+							localTypeMismatchDiagnosticFactory({
+								range: parameterNode.type
+									? parameterNode.type.selectionRange
+									: parameterNode.selectionRange,
+								actualName: searchType,
+								expectedName: signature.parameters[i]
+							})
+						);
 					}
 				}
 			} else {
-
 			}
 		}
 	}
 
-	// CastToUnrelatedGuidAlias 32
-	private verifyCastsToRelatedGuidAliases(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const signatureNodes = [rule.call, ...rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[], ...rule.actions];
-		if (!this.modManager.mod) return;
+	// CastToUnrelatedType 31
+	private verifyCastsToRelatedTypes(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+		const signatureNodes = [
+			rule.call,
+			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
+			...rule.actions
+		];
 		const { mod } = this.modManager;
+		if (!mod) return;
 		for (const signatureNode of signatureNodes) {
 			const signature = signatures.get(signatureNode);
 			if (!signature) continue;
@@ -262,12 +310,50 @@ export class ParameterAnalyzer extends AnalyzerBase {
 			for (let i = 0; i < signature.parameters.length; i++) {
 				const parameterNode = signatureNode.parameters[i];
 				const parameterType = signature.parameters[i];
-				if (!parameterNode.type || (parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE)) continue;
+				if (!parameterNode.type || parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE) continue;
+			}
+		}
+	}
+
+	// CastToUnrelatedGuidAlias 32
+	private verifyRelatedCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+		const signatureNodes = [
+			rule.call,
+			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
+			...rule.actions
+		];
+		const { mod } = this.modManager;
+		if (!mod) return;
+		for (const signatureNode of signatureNodes) {
+			const signature = signatures.get(signatureNode);
+			if (!signature) continue;
+
+			for (let i = 0; i < signature.parameters.length; i++) {
+				const parameterNode = signatureNode.parameters[i];
+				const parameterType = signature.parameters[i];
+				if (!parameterNode.type || parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE) continue;
 				const typeA = mod.inheritedTypes.get(parameterNode.type.value);
 				const typeB = mod.inheritedTypes.get(parameterType);
 				if (!typeA || !typeB) continue;
+
 				if (mod.isGuidToGuidCastUnrelated(typeA, typeB)) {
-					res.push(castToUnrelatedGuidAliasDiagnostiFactory({range: parameterNode.type.selectionRange, parameterName: (parameterNode.content as IdentifierNode).value, typeName: parameterNode.type.value}))
+					res.push(
+						castToUnrelatedGuidAliasDiagnostiFactory({
+							range: parameterNode.type.selectionRange,
+							parameterName: (parameterNode.content as IdentifierNode).value,
+							typeName: parameterNode.type.value
+						})
+					);
+				}
+
+				if (!mod.areIntrinsicTypesCompatible(typeA, typeB)) {
+					res.push(
+						castToUnrelatedTypeDiagnosticFactory({
+							range: parameterNode.type.selectionRange,
+							parameterName: (parameterNode.content as IdentifierNode).value,
+							typeName: parameterNode.type.value
+						})
+					);
 				}
 			}
 		}
