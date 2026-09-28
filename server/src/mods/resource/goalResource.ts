@@ -24,6 +24,7 @@ import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
 import { Signature, SignatureCollection, SignatureType } from "../signature";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
+import { mergeSignature } from "../../utils/signatureUtils";
 
 export class GoalResource extends Resource {
 	private readonly readDatabases = new Set<string>();
@@ -217,12 +218,7 @@ export class GoalResource extends Resource {
 		function mergeSignatures(signature: Signature, thisArg: GoalResource) {
 			if (!thisArg.signatures.has(signature)) thisArg.signatures.set(signature);
 			else {
-				const storedSignature = thisArg.signatures.get(signature)!;
-				for (let i = 0; i < signature.parameters.length; i++) {
-					if (storedSignature.parameters[i] === "" && signature.parameters[i] !== "") {
-						storedSignature.parameters[i] = signature.parameters[i];
-					}
-				}
+				mergeSignature(signature, thisArg.signatures);
 			}
 		}
 
@@ -256,6 +252,7 @@ export class GoalResource extends Resource {
 			signatureNode: SignatureNode,
 			section: "call" | "condition" | "action",
 			ruleType: "PROC" | "QRY" | "IF" | "",
+			thisArg: GoalResource,
 			parameters?: Map<string, string>
 		): Signature {
 			return {
@@ -263,7 +260,11 @@ export class GoalResource extends Resource {
 				parameters: signatureNode.parameters.map((value) =>
 					value.type ? value.type.value : inferType(value, parameters)
 				),
-				type: getSignatureType(section, ruleType, signatureNode)
+				type: getSignatureType(section, ruleType, signatureNode),
+				definitions:
+					section === "call" && (ruleType === "PROC" || ruleType === "QRY")
+						? [Location.create(thisArg.document.uri, signatureNode.selectionRange)]
+						: []
 			};
 		}
 
@@ -286,7 +287,7 @@ export class GoalResource extends Resource {
 			parameters: Map<string, string>,
 			thisArg: GoalResource
 		) {
-			const signature = extractSignature(signatureNode, "call", ruleType);
+			const signature = extractSignature(signatureNode, "call", ruleType, thisArg);
 			registerParameters(parameters, signatureNode);
 
 			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
@@ -302,7 +303,7 @@ export class GoalResource extends Resource {
 		) {
 			for (const signatureNode of signatureNodes) {
 				registerParameters(parameters, signatureNode);
-				const signature = extractSignature(signatureNode, "condition", ruleType, parameters);
+				const signature = extractSignature(signatureNode, "condition", ruleType, thisArg, parameters);
 
 				if (signature.type === "Database") {
 					thisArg.readDatabases.add(signature.name);
@@ -320,7 +321,7 @@ export class GoalResource extends Resource {
 		) {
 			for (const signatureNode of signatureNodes) {
 				registerParameters(parameters, signatureNode);
-				const signature = extractSignature(signatureNode, "action", ruleType, parameters);
+				const signature = extractSignature(signatureNode, "action", ruleType, thisArg, parameters);
 
 				if (signature.type === "Database") {
 					thisArg.writtenDatabases.add(signature.name);
@@ -332,7 +333,7 @@ export class GoalResource extends Resource {
 
 		function extractSignatureSectionSignatures(signatureNodes: SignatureNode[], thisArg: GoalResource) {
 			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, "call", "");
+				const signature = extractSignature(signatureNode, "call", "", thisArg);
 				if (signature.type !== "Database") return;
 				thisArg.writtenDatabases.add(signature.name);
 				mergeSignatures(signature, thisArg);

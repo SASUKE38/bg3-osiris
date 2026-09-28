@@ -19,6 +19,7 @@ import {
 	paramNotBoundDiagnosticFactory,
 	unresolvedSignatureDiagnosticFactory
 } from "../message";
+import { isOutParameter } from "../../../utils/signatureUtils";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -56,7 +57,6 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
-	// TODO: Figure out types for comparisons, casts between number types
 	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const parameters = new Map<string, string>([["_", "UNKNOWN"]]);
@@ -99,9 +99,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				!(parameterNode.content as IdentifierNode).value.startsWith("_")
 			)
 				continue;
-			const isOut = signature.outParamMask
-				? ((signature.outParamMask[j >> 3] << (j & 7)) & 0x80) === 0x80
-				: false;
+			const isOut = isOutParameter(signature, j);
 			const isDeletion = node.isDeletion;
 
 			// A parameter in an out query slot
@@ -295,26 +293,6 @@ export class ParameterAnalyzer extends AnalyzerBase {
 	}
 
 	// CastToUnrelatedType 31
-	private verifyCastsToRelatedTypes(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const signatureNodes = [
-			rule.call,
-			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
-			...rule.actions
-		];
-		const { mod } = this.modManager;
-		if (!mod) return;
-		for (const signatureNode of signatureNodes) {
-			const signature = signatures.get(signatureNode);
-			if (!signature) continue;
-
-			for (let i = 0; i < signature.parameters.length; i++) {
-				const parameterNode = signatureNode.parameters[i];
-				const parameterType = signature.parameters[i];
-				if (!parameterNode.type || parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE) continue;
-			}
-		}
-	}
-
 	// CastToUnrelatedGuidAlias 32
 	private verifyRelatedCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const signatureNodes = [

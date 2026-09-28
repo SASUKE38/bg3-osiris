@@ -1,3 +1,4 @@
+import { Location } from "vscode-languageserver";
 import { SignatureNode } from "../parser/ast/nodes";
 
 export type SignatureType = "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
@@ -7,6 +8,7 @@ export interface Signature {
 	type: SignatureType;
 	parameters: string[];
 	outParamMask?: Uint8Array;
+	definitions: Location[];
 }
 
 export class SignatureCollection {

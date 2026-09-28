@@ -1,13 +1,8 @@
-import {
-	Connection,
-	DefinitionParams,
-	DocumentSymbol,
-	Location,
-	ServerCapabilities,
-	SymbolKind
-} from "vscode-languageserver";
+import { Connection, DefinitionParams, Location, ServerCapabilities } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
-import { decodePath, encodePath } from "../utils/pathUtils";
+import { decodePath } from "../utils/pathUtils";
+import { ASTNodeKind, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
+import { isOutParameter } from "../utils/signatureUtils";
 
 /**
  * Server component that handles Definition and Implementation requests.
@@ -34,63 +29,56 @@ export class DefinitionsProvider extends ComponentBase {
 	private handleDefinition = async (params: DefinitionParams): Promise<Location[] | null> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		if (!resource) return null;
-		const symbolsAt = await resource.getSymbolsAt(params.position);
-		const searchSymbol = symbolsAt[symbolsAt.length - 1];
-		if (!searchSymbol) return null;
 
-		if (searchSymbol.kind === SymbolKind.Variable) {
-			return this.getVariableDefinition(params.textDocument.uri, symbolsAt, searchSymbol);
-		} else if (
-			searchSymbol.kind === SymbolKind.Function &&
-			!searchSymbol.name.startsWith("DB_") &&
-			!(await this.server.documentationManager.getDocumentation()).has(searchSymbol.name)
-		) {
-			return await this.getSignatureDefinitions(searchSymbol);
+		const signatures = await this.server.modManager.getAllDefinedSignatures();
+		const nodesAt = await resource.getNodesAt(params.position);
+		const searchNode = nodesAt[nodesAt.length - 1];
+		if (!searchNode) return null;
+
+		if (searchNode.kind === ASTNodeKind.IDENTIFIER_NODE) {
+			if ((searchNode as IdentifierNode).value === "_" || !(searchNode as IdentifierNode).value.startsWith("_"))
+				return null;
+			for (const node of nodesAt) {
+				if (node.kind !== ASTNodeKind.RULE_NODE) continue;
+
+				const signatureNodes = [
+					(node as RuleNode).call,
+					...((node as RuleNode).conditions.filter(
+						(value) => value.kind === ASTNodeKind.SIGNATURE_NODE
+					) as SignatureNode[])
+				];
+				for (let i = 0; i < signatureNodes.length; i++) {
+					const signature = signatures.get(signatureNodes[i]);
+					const ruleType = (node as RuleNode).type;
+					if (!signature) continue;
+					for (let j = 0; j < signatureNodes[i].parameters.length; j++) {
+						const parameter = signatureNodes[i].parameters[j];
+						if (
+							parameter.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
+							(parameter.content as IdentifierNode).value !== (searchNode as IdentifierNode).value
+						)
+							continue;
+						const isOut = isOutParameter(signature, j);
+						const isDeletion = signatureNodes[i].isDeletion;
+
+						if (
+							(isOut && !isDeletion) ||
+							signature.type === "Database" ||
+							signature.type === "Event" ||
+							(i === 0 && ruleType === "PROC" && signature.type === "Proc") ||
+							(i === 0 && ruleType === "QRY" && signature.type === "UserQuery")
+						) {
+							return [Location.create(resource.getTextDocument().uri, parameter.selectionRange)];
+						}
+					}
+				}
+			}
+		} else if (searchNode.kind === ASTNodeKind.SIGNATURE_NODE) {
+			const signature = signatures.get(searchNode as SignatureNode);
+			if (signature?.type !== "Proc" && signature?.type !== "UserQuery") return null;
+			return signature.definitions ? signature.definitions : null;
 		}
 
 		return null;
 	};
-
-	/**
-	 * Finds variable definitions for a given symbol.
-	 *
-	 * @param document The URI for this request.
-	 * @param symbolsAt The symbols at this request's position.
-	 * @param searchSymbol The symbol to search for.
-	 * @returns An {@link Array} of {@link Location} instances if definitions can be found for this
-	 * request, null otherwise.
-	 */
-	private getVariableDefinition(
-		document: string,
-		symbolsAt: DocumentSymbol[],
-		searchSymbol: DocumentSymbol
-	): Location[] | null {
-		const uses = this.server.symbolManager.findVariableUses(symbolsAt, searchSymbol);
-		return uses.length > 0 ? [Location.create(document, uses[0])] : null;
-	}
-
-	/**
-	 * Finds signature definitions for a given symbol.
-	 *
-	 * @param searchSymbol The symbol to search for.
-	 * @returns An {@link Array} of {@link Location} instances containing the definitions for this request.
-	 */
-	private async getSignatureDefinitions(searchSymbol: DocumentSymbol): Promise<Location[]> {
-		const symbols = await this.server.symbolManager.getAllSymbols();
-		const res: Location[] = [];
-		for (const entry of symbols.entries()) {
-			if (entry[1].length != 3) continue;
-			const rules = entry[1][1].children;
-			if (!rules) continue;
-			for (const rule of rules) {
-				if (!rule.children) continue;
-				const nameSymbol = rule.children[0];
-				if (nameSymbol.name === searchSymbol.name) {
-					res.push(Location.create(encodePath(entry[0]), nameSymbol.selectionRange));
-				}
-			}
-		}
-
-		return res;
-	}
 }

@@ -107,7 +107,12 @@ export class Mod {
 
 			for (const signature of filteredSignatures) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				this.inheritedSignatures.set({ name: signature.Name.Name, parameters, type: signature.Type });
+				this.inheritedSignatures.set({
+					name: signature.Name.Name,
+					parameters,
+					type: signature.Type,
+					definitions: []
+				});
 			}
 
 			this.inheritedGoals.set(goal.Name, {
@@ -126,7 +131,8 @@ export class Mod {
 					name: signature.Name.Name,
 					parameters,
 					type: signature.Type,
-					outParamMask: signature.Name.OutParamMask
+					outParamMask: signature.Name.OutParamMask,
+					definitions: []
 				});
 			}
 		});
@@ -135,7 +141,8 @@ export class Mod {
 			this.inheritedDatabases.set({
 				name: value.OwnerNode.Name,
 				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
-				type: "Database"
+				type: "Database",
+				definitions: []
 			});
 		});
 
