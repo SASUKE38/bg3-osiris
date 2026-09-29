@@ -34,6 +34,8 @@ export class GoalResource extends Resource {
 	private signatures = new SignatureCollection();
 	private definedSignatures = new Set<string>();
 	private calledSignatures = new Set<string>();
+	private constants = new Set<string>();
+	private strings = new Set<string>();
 	readonly kind: ResourceKind = ResourceKind.Goal;
 	protected symbols: DocumentSymbol[] = [];
 	protected document: TextDocument;
@@ -50,6 +52,7 @@ export class GoalResource extends Resource {
 	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
 	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
 	async getData(data: "readDatabases" | "writtenDatabases"): Promise<Set<string>>;
+	async getData(data: "constants" | "strings"): Promise<Set<string>>;
 	async getData(
 		data:
 			| "diagnostics"
@@ -59,6 +62,8 @@ export class GoalResource extends Resource {
 			| "signatures"
 			| "readDatabases"
 			| "writtenDatabases"
+			| "constants"
+			| "strings"
 	): Promise<DocumentSymbol[] | WorkspaceSymbol[] | number[] | SignatureCollection | Diagnostic[] | Set<string>> {
 		if (!this.isValid()) await this.load();
 		return this[data];
@@ -91,10 +96,10 @@ export class GoalResource extends Resource {
 			const document = TextDocument.create(this.path, "osiris", 1, content);
 			doParse(this, document);
 		}
-		await Promise.all([this.loadSymbols(), this.loadSignatures()]);
+		await Promise.all([this.loadSymbols(), this.loadSignatures(), this.loadConstants(), this.loadStrings()]);
 		this.mod.manager.updateSignatures(this.path, this.calledSignatures, this.definedSignatures);
 		this.validate();
-		return Promise.resolve(this.ast);
+		return this.ast;
 	}
 
 	async loadSymbols(): Promise<[DocumentSymbol[], WorkspaceSymbol[]]> {
@@ -373,5 +378,40 @@ export class GoalResource extends Resource {
 		this.calledSignatures.clear();
 		this.definedSignatures.clear();
 		getSignatures(root, this);
+	}
+
+	async loadConstants() {
+		const root = this.ast;
+		if (!root) return;
+
+		function getConstants(node: ASTNode, thisArg: GoalResource) {
+			for (const child of node.getNodeChildren()) {
+				if (!child) continue;
+				if (child.kind !== ASTNodeKind.IDENTIFIER_NODE) getConstants(child, thisArg);
+				else {
+					if ((child as IdentifierNode).value.startsWith("_")) continue;
+					thisArg.constants.add((child as IdentifierNode).value);
+				}
+			}
+		}
+
+		this.constants.clear();
+		getConstants(root, this);
+	}
+
+	async loadStrings() {
+		const root = this.ast;
+		if (!root) return;
+
+		function getStrings(node: ASTNode, thisArg: GoalResource) {
+			for (const child of node.getNodeChildren()) {
+				if (!child) continue;
+				if (child.kind !== ASTNodeKind.STRING_NODE) getStrings(child, thisArg);
+				else thisArg.strings.add((child as StringNode).value);
+			}
+		}
+
+		this.strings.clear();
+		getStrings(root, this);
 	}
 }

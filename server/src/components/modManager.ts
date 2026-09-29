@@ -397,6 +397,23 @@ export class ModManager extends ComponentBase {
 		}
 	}
 
+	async getAllConstants() {
+		return await this.getAllConstantLikes("constants");
+	}
+
+	async getAllStrings() {
+		return await this.getAllConstantLikes("strings");
+	}
+
+	private async getAllConstantLikes(type: "strings" | "constants") {
+		const res = new Set<string>();
+		if (!this.mod) return res;
+		for (const resource of this.mod.getAllGoals()) {
+			(await resource.getData(type)).forEach((value) => res.add(value));
+		}
+		return res;
+	}
+
 	//#endregion
 
 	//#region Signature Processing
