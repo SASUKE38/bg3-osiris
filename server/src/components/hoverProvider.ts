@@ -2,7 +2,9 @@ import { Connection, Hover, HoverParams, MarkupKind, ServerCapabilities } from "
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
 import { rangeContainsPosition } from "../utils/positionUtils";
-import { ASTNodeKind, IdentifierNode, SignatureNode } from "../parser/ast/nodes";
+import { ASTNode, ASTNodeKind, IdentifierNode, ParameterNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
+import { getReadableSignatureType, Signature, SignatureCollection } from "../mods/signature";
+import { getParameterBinding, isOutParameter } from "../utils/signatureUtils";
 
 /**
  * Server component that manages hover requests.
@@ -40,50 +42,91 @@ export class HoverProvider extends ComponentBase {
 			}
 		}
 		if (!signatureNode) return null;
-		const signature = (await modManager.getAllDefinedSignatures()).get(signatureNode);
+		const signatures = (await modManager.getAllDefinedSignatures());
+		const signature = signatures.get(signatureNode);
 		if (!signature) return null;
 
 		switch (hoveredNode.kind) {
 			case ASTNodeKind.SIGNATURE_NODE:
+				return this.handleSignatureHover(signature);
 				break;
 			case ASTNodeKind.IDENTIFIER_NODE:
+				if ((hoveredNode as IdentifierNode).value === "_") return null;
+				let i = 0
+				while (i < signatureNode.parameters.length && !rangeContainsPosition(signatureNode.parameters[i].selectionRange, params.position)) i++;
+				const parameterNode = signatureNode.parameters[i];
 				if ((hoveredNode as IdentifierNode).value.startsWith("_")) {
-					return {
-						contents: {
-							kind: MarkupKind.Markdown,
-							value: ["```osiris", `(UNKNOWN) ${(hoveredNode as IdentifierNode).value}`, "```"].join("\n")
-						}
-					};
+					return this.handleVariableHover(parameterNode, nodesAt, signatures, hoveredNode as IdentifierNode);
 				} else {
-					return {
-						contents: {
-							kind: MarkupKind.Markdown,
-							value: ["```osiris", `(UNKNOWN) ${(hoveredNode as IdentifierNode).value}`, "```"].join("\n")
-						}
-					};
+					return this.handleConstantHover(i, parameterNode, signature, hoveredNode as IdentifierNode);
 				}
 				break;
 			default:
 				break;
 		}
 		return null;
-		// Function:
-		// Get the associated signature for the function
-		// If the signature is a builtin, get the documentation from the documentation manager. If none exists, go to handling for non-builtin signatures
-		// Otherwise, format the signature as such: `type Name ((PARAMETERTYPE)_, [out](PARAMETERTYPE)_)`
-
-		// Variable:
-		// Get the type of the variable.
-		// Display the hover as `type _Name`
-
-		// Getting variable type:
-		// Loop over the signatures.
-		// Find the first occurence of the variable in a valid binding location.
-		// Get the type of the parameter slot of that signature.
-		// If a valid type/binding location cannot be found, use UNKNOWN
-
-		// Constant:
-		// Display the name of the constant as as `type Name`
-		// Determine type by defaulting to GUIDSTRING or using the type in the type cast/parameter slot if there is a valid type there
 	};
+
+	private async handleSignatureHover(signature: Signature): Promise<Hover> {
+		if (signature.type === "Call" || signature.type === "Event" || signature.type === "Query" || signature.type === "SysCall" || signature.type === "SysQuery") {
+			const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join("\n")
+			if (documentation !== "") return {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: documentation
+				}
+			}
+		}
+		const content: string[] = [getReadableSignatureType(signature.type), " ", signature.name, "("];
+
+		for (let i = 0; i < signature.parameters.length; i++) {
+			if (isOutParameter(signature, i)) content.push("[out]");
+			content.push(`(${signature.parameters[i]})_`)
+			if (i !== signature.parameters.length - 1) content.push(", ")
+		}
+
+		content.push(")");
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: ["```osiris\n", ...content, "\n```"].join("")
+			}
+		}
+	}
+
+	private async handleVariableHover(parameterNode: ParameterNode, nodesAt: ASTNode[], signatures: SignatureCollection, hoveredNode: IdentifierNode): Promise<Hover | null> {
+		let type: string | undefined;
+		if (parameterNode.type) {
+			type = parameterNode.type.value;
+		}
+
+		let ruleNode: RuleNode | undefined;
+		for (const node of nodesAt) {
+			if (node.kind === ASTNodeKind.RULE_NODE) ruleNode = node as RuleNode;
+		}
+		if (!ruleNode) return null;
+		const bindingData = getParameterBinding(ruleNode, hoveredNode, signatures);
+		if (bindingData) type = bindingData.signature.parameters[bindingData.bindingIndex];
+
+		if (!type) type = "UNKNOWN";
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: ["```osiris", `(${type}) ${(hoveredNode as IdentifierNode).value}`, "```"].join("\n")
+			}
+		};
+	}
+
+	private handleConstantHover(parameterIndex: number, parameterNode: ParameterNode, signature: Signature, hoveredNode: IdentifierNode): Hover {
+		let type: string | undefined = undefined
+		if (parameterNode.type) type = `(${parameterNode.type.value})`;
+		else if (signature.parameters[parameterIndex]) type = `(${signature.parameters[parameterIndex]})`;
+		else type = "(GUIDSTRING)";
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: ["```osiris", `${type} ${hoveredNode.value}`, "```"].join("\n")
+			}
+		};
+	}
 }

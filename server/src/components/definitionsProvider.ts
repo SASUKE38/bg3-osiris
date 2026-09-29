@@ -2,7 +2,7 @@ import { Connection, DefinitionParams, Location, ServerCapabilities } from "vsco
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
 import { ASTNodeKind, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
-import { isOutParameter } from "../utils/signatureUtils";
+import { getParameterBinding } from "../utils/signatureUtils";
 
 /**
  * Server component that handles Definition and Implementation requests.
@@ -41,36 +41,9 @@ export class DefinitionsProvider extends ComponentBase {
 			for (const node of nodesAt) {
 				if (node.kind !== ASTNodeKind.RULE_NODE) continue;
 
-				const signatureNodes = [
-					(node as RuleNode).call,
-					...((node as RuleNode).conditions.filter(
-						(value) => value.kind === ASTNodeKind.SIGNATURE_NODE
-					) as SignatureNode[])
-				];
-				for (let i = 0; i < signatureNodes.length; i++) {
-					const signature = signatures.get(signatureNodes[i]);
-					const ruleType = (node as RuleNode).type;
-					if (!signature) continue;
-					for (let j = 0; j < signatureNodes[i].parameters.length; j++) {
-						const parameter = signatureNodes[i].parameters[j];
-						if (
-							parameter.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
-							(parameter.content as IdentifierNode).value !== (searchNode as IdentifierNode).value
-						)
-							continue;
-						const isOut = isOutParameter(signature, j);
-						const isDeletion = signatureNodes[i].isDeletion;
-
-						if (
-							(isOut && !isDeletion) ||
-							signature.type === "Database" ||
-							signature.type === "Event" ||
-							(i === 0 && ruleType === "PROC" && signature.type === "Proc") ||
-							(i === 0 && ruleType === "QRY" && signature.type === "UserQuery")
-						) {
-							return [Location.create(resource.getTextDocument().uri, parameter.selectionRange)];
-						}
-					}
+				const bindingData = getParameterBinding(node as RuleNode, searchNode as IdentifierNode, signatures);
+				if (bindingData) {
+					return [Location.create(resource.getTextDocument().uri, bindingData?.parameterNode.selectionRange)]
 				}
 			}
 		} else if (searchNode.kind === ASTNodeKind.SIGNATURE_NODE) {

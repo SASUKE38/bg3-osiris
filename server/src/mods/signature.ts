@@ -69,13 +69,13 @@ export function getReadableSignatureType(type: SignatureType) {
 			return "proc";
 			break;
 		case "SysQuery":
-			return "query";
+			return "SysQuery";
 			break;
 		case "SysCall":
-			return "call";
+			return "SysCall";
 			break;
 		case "UserQuery":
-			return "user-defined query";
+			return "query";
 			break;
 	}
 }

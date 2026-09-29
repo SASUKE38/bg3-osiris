@@ -7,6 +7,7 @@ import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { DocumentSymbol, ServerCapabilities } from "vscode-languageserver";
+import { Signature } from "../mods/signature";
 
 // Change to index signatures?
 export class DocumentationEntry {
@@ -254,11 +255,13 @@ export class DocumentationManager extends ComponentBase {
 	 * @param symbol The signature to process.
 	 * @returns An {@link Array} where each entry is a line of the signature's documentation.
 	 */
-	async getSignatureDocumentation(symbol: DocumentSymbol): Promise<string[]> {
-		const documentationSignature = await this.getDocumentationEntryForSignature(symbol.name);
+	async getSignatureDocumentation(signature: Signature): Promise<string[]> {
+		const documentationSignature = await this.getDocumentationEntryForSignature(signature.name);
+		const label = this.getSignatureLabel(signature, documentationSignature);
+		if (!label) return [];
 		return [
 			"```osiris",
-			this.getSignatureLabel(symbol, documentationSignature),
+			label,
 			"```",
 			...this.getSignatureDocumentationBody(documentationSignature)
 		];
@@ -285,15 +288,15 @@ export class DocumentationManager extends ComponentBase {
 	 * @param documentationEntry The entry to search in.
 	 * @returns The signature's label.
 	 */
-	private getSignatureLabel(symbol: DocumentSymbol, documentationEntry?: DocumentationEntry): string {
+	private getSignatureLabel(signature: Signature, documentationEntry?: DocumentationEntry): string | undefined {
 		if (documentationEntry) {
 			const definitions = this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"));
 			const res = definitions.find((definition) => {
-				return definition.split(",").length === symbol.children?.length;
+				return definition.split(",").length === signature.parameters.length;
 			});
 			return `${documentationEntry.type} ${res ? res : definitions ? definitions[0] : ""}`;
 		} else {
-			return symbol.name;
+			return undefined;
 		}
 	}
 
