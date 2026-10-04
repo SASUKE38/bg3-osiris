@@ -37,7 +37,7 @@ export class SignatureCollection {
 	getAllNamesOfType(...types: SignatureType[]): Set<string> {
 		const res = new Set<string>();
 		for (const entry of this.map.entries()) {
-			if (types.find((value) => value === entry[1].type)) res.add(entry[0].substring(0, entry[0].length - 2))
+			if (types.find((value) => value === entry[1].type)) res.add(entry[0].substring(0, entry[0].length - 2));
 		}
 		return res;
 	}

@@ -12,7 +12,7 @@ export class GoalLexer extends LexerBase {
 		},
 		{ regex: this.regexFactory(/-?[0-9]+\.[0-9]*/y), handler: this.handlerFactory(TokenType.FLOAT) },
 		{ regex: this.regexFactory(/-?[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER) },
-		{ regex: this.regexFactory(/[A-Z]+\.[A-Za-z]+/y), handler: this.handlerFactory(TokenType.ENUM_MEMBER) },
+		{ regex: this.regexFactory(/[A-Z]+\.[A-Za-z]*/y), handler: this.handlerFactory(TokenType.ENUM_MEMBER) },
 		{ regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER) },
 		{ regex: this.regexFactory(/"[^"]*"/y), handler: this.handlerFactory(TokenType.STRING) },
 		{ regex: this.regexFactory(/,/y), handler: this.handlerFactory(TokenType.COMMA) },

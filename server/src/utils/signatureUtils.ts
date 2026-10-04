@@ -23,9 +23,7 @@ export function isOutParameter(signature: Signature, index: number) {
 export function getParameterBinding(ruleNode: RuleNode, searchNode: IdentifierNode, signatures: SignatureCollection) {
 	const signatureNodes = [
 		ruleNode.call,
-		...(ruleNode.conditions.filter(
-			(value) => value.kind === ASTNodeKind.SIGNATURE_NODE
-		) as SignatureNode[])
+		...(ruleNode.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[])
 	];
 	for (let i = 0; i < signatureNodes.length; i++) {
 		const signature = signatures.get(signatureNodes[i]);

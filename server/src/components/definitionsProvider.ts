@@ -43,7 +43,7 @@ export class DefinitionsProvider extends ComponentBase {
 
 				const bindingData = getParameterBinding(node as RuleNode, searchNode as IdentifierNode, signatures);
 				if (bindingData) {
-					return [Location.create(resource.getTextDocument().uri, bindingData?.parameterNode.selectionRange)]
+					return [Location.create(resource.getTextDocument().uri, bindingData?.parameterNode.selectionRange)];
 				}
 			}
 		} else if (searchNode.kind === ASTNodeKind.SIGNATURE_NODE) {

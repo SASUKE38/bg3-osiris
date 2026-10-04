@@ -259,12 +259,7 @@ export class DocumentationManager extends ComponentBase {
 		const documentationSignature = await this.getDocumentationEntryForSignature(signature.name);
 		const label = this.getSignatureLabel(signature, documentationSignature);
 		if (!label) return [];
-		return [
-			"```osiris",
-			label,
-			"```",
-			...this.getSignatureDocumentationBody(documentationSignature)
-		];
+		return ["```osiris", label, "```", ...this.getSignatureDocumentationBody(documentationSignature)];
 	}
 
 	/**

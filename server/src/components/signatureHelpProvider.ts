@@ -28,6 +28,8 @@ export class SignatureHelpProvider extends ComponentBase {
 		};
 	}
 
+	// TODO: Make . not advance to the next parameter
+
 	/**
 	 * The handler for the Signature Help request.
 	 *
