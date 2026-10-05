@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
 	CompletionItem,
 	CompletionItemKind,
@@ -254,7 +253,7 @@ export class CompletionProvider extends ComponentBase {
 		const text = document.getText(
 			Range.create(document.positionAt(document.offsetAt(node.selectionRange.end) + 1), position)
 		);
-		if (/\([^\)]*$/.test(text)) {
+		if (/\([^)]*$/.test(text)) {
 			return this.getTypeCompletions();
 		} else {
 			return await this.getParameterCompletions(nodesAt);

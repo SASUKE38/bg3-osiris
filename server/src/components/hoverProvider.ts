@@ -50,7 +50,7 @@ export class HoverProvider extends ComponentBase {
 			case ASTNodeKind.SIGNATURE_NODE:
 				return this.handleSignatureHover(signature);
 				break;
-			case ASTNodeKind.IDENTIFIER_NODE:
+			case ASTNodeKind.IDENTIFIER_NODE: {
 				if ((hoveredNode as IdentifierNode).value === "_") return null;
 				let i = 0;
 				while (
@@ -65,6 +65,7 @@ export class HoverProvider extends ComponentBase {
 					return this.handleConstantHover(i, parameterNode, signature, hoveredNode as IdentifierNode);
 				}
 				break;
+			}
 			default:
 				break;
 		}
