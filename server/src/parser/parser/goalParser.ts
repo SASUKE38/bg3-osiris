@@ -145,9 +145,14 @@ export class GoalParser extends ParserBase<GoalNode> {
 				}
 				conditions.push(this.parseSignature(true, isDeletion));
 			} else if (
-				[TokenType.STRING, TokenType.INTEGER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.GUID].indexOf(
-					currentType
-				) != -1
+				[
+					TokenType.STRING,
+					TokenType.INTEGER,
+					TokenType.FLOAT,
+					TokenType.IDENTIFIER,
+					TokenType.GUID,
+					TokenType.ENUM_MEMBER
+				].indexOf(currentType) != -1
 			) {
 				conditions.push(this.parseComparison());
 			} else {
@@ -215,6 +220,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 				return this.parseIdentifier();
 			case TokenType.GUID:
 				return this.parseGUID();
+			case TokenType.ENUM_MEMBER:
+				return this.parseTypeEnumMember();
 			default:
 				this.diagnostics.push(
 					unexpectedTokenDiagnosticFactory({

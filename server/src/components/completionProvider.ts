@@ -10,18 +10,9 @@ import {
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
-import {
-	ASTNode,
-	ASTNodeKind,
-	ComparisonNode,
-	IdentifierNode,
-	RuleNode,
-	SignatureNode,
-	TypeEnumMemberNode
-} from "../parser/ast/nodes";
+import { ASTNode, ASTNodeKind, IdentifierNode, RuleNode, SignatureNode, TypeEnumMemberNode } from "../parser/ast/nodes";
 import { SignatureCollection } from "../mods/signature";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { rangeContainsPosition } from "../utils/positionUtils";
 
 export class CompletionProvider extends ComponentBase {
 	async initializeComponent(connection: Connection): Promise<void> {
@@ -35,19 +26,6 @@ export class CompletionProvider extends ComponentBase {
 
 	/*
 	TODO: Fix parsing for last node of kb section
-	TODO: Fix / showing up
-	TODO: Make .  and " trigger completion only in parameters
-
-	*For INIT and EXIT: Add DBs, PROCs, and calls
-	*FOR KB: Add PROC, QRY, IF
-	*For PROC call: Add PROC_
-	*For QRY call: Add QRY_
-	*For IF call: Add DB_ and builtin events and queries
-	*For conditions: Add QRY_, DB_, builtin queries, constants, and (if in KB) variables
-	*For actions: Add PROC_, DB_, and builtin calls
-	*For signatures and comparisons: Add types, constants, and (if in KB) variables
-	*For strings: Add strings
-	For type enums: Add enum members
 	*/
 
 	private handleCompletion = async (params: CompletionParams): Promise<CompletionItem[]> => {
@@ -57,9 +35,17 @@ export class CompletionProvider extends ComponentBase {
 		const signatures = await this.server.modManager.getAllDefinedSignatures();
 		const requestOffset = resource.getTextDocument().offsetAt(params.position);
 
+		if (
+			(params.context?.triggerCharacter === "." || params.context?.triggerCharacter === '"') &&
+			!this.isValidTriggerCharacter(params.context.triggerCharacter, nodesAt)
+		)
+			return [];
+
 		for (let i = nodesAt.length - 1; i >= 0; i--) {
 			const node = nodesAt[i];
-			if (node.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
+			if (node.kind === ASTNodeKind.TYPE_ENUM_MEMBER_NODE) {
+				return this.getEnumMemberCompletions(node as TypeEnumMemberNode);
+			} else if (node.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 				return await this.getSignatureSectionCompletions(signatures);
 			} else if (node.kind === ASTNodeKind.KB_SECTION_NODE) {
 				return await this.getKBSectionCompletions(signatures);
@@ -84,12 +70,7 @@ export class CompletionProvider extends ComponentBase {
 					nodesAt
 				);
 			} else if (node.kind === ASTNodeKind.COMPARISON_NODE) {
-				return await this.getParameterCompletions(
-					node as ComparisonNode,
-					resource.getTextDocument(),
-					params.position,
-					nodesAt
-				);
+				return await this.getParameterCompletions(nodesAt);
 			}
 		}
 
@@ -99,6 +80,21 @@ export class CompletionProvider extends ComponentBase {
 	private handleCompletionResolve = async (item: CompletionItem): Promise<CompletionItem> => {
 		return item;
 	};
+
+	private isValidTriggerCharacter(triggerCharacter: string, nodesAt: ASTNode[]): boolean {
+		switch (triggerCharacter) {
+			case ".":
+				return (
+					nodesAt[nodesAt.length - 1].kind === ASTNodeKind.TYPE_ENUM_MEMBER_NODE ||
+					nodesAt[nodesAt.length - 1].kind === ASTNodeKind.IDENTIFIER_NODE
+				);
+				break;
+			case '"':
+				return nodesAt[nodesAt.length - 1].kind === ASTNodeKind.STRING_NODE;
+				break;
+		}
+		return false;
+	}
 
 	private toCompletionItems(values: string[], kind: CompletionItemKind): CompletionItem[] {
 		return values.map((value) => {
@@ -212,8 +208,6 @@ export class CompletionProvider extends ComponentBase {
 		return this.toCompletionItems(await this.getVariables(nodesAt), CompletionItemKind.Variable);
 	}
 
-	// TODO: Make constants be registered by just the GUID portion, not the full name
-
 	private async getConstantCompletions(): Promise<CompletionItem[]> {
 		return this.toCompletionItems(
 			Array.from(await this.server.modManager.getAllConstants()),
@@ -235,57 +229,20 @@ export class CompletionProvider extends ComponentBase {
 		return this.toCompletionItems(Array.from(mod.inheritedEnums.keys()), CompletionItemKind.Enum);
 	}
 
-	private getEnumMemberCompletions(node: SignatureNode | ComparisonNode, position: Position): CompletionItem[] {
+	private getEnumMemberCompletions(node: TypeEnumMemberNode) {
 		const { mod } = this.server.modManager;
 		if (!mod) return [];
-		if (node.kind === ASTNodeKind.SIGNATURE_NODE) {
-			for (const parameterNode of (node as SignatureNode).parameters) {
-				if (rangeContainsPosition(parameterNode.range, position)) {
-					if (parameterNode.content.kind !== ASTNodeKind.TYPE_ENUM_MEMBER_NODE) return [];
-					const enumValues = mod.inheritedEnums.get((parameterNode.content as TypeEnumMemberNode).type);
-					if (!enumValues) return [];
-					return this.toCompletionItems(enumValues.members, CompletionItemKind.EnumMember);
-				}
-			}
-		} else {
-			let operandNode: ASTNode | undefined;
-			if (
-				(node as ComparisonNode).left.kind === ASTNodeKind.TYPE_ENUM_MEMBER_NODE &&
-				rangeContainsPosition((node as ComparisonNode).left.range, position)
-			) {
-				operandNode = (node as ComparisonNode).left;
-			} else if (
-				(node as ComparisonNode).right.kind === ASTNodeKind.TYPE_ENUM_MEMBER_NODE &&
-				rangeContainsPosition((node as ComparisonNode).right.range, position)
-			) {
-				operandNode = (node as ComparisonNode).right;
-			}
-			if (!operandNode) return [];
-			const enumValues = mod.inheritedEnums.get((operandNode as TypeEnumMemberNode).type);
-			if (!enumValues) return [];
-			return this.toCompletionItems(enumValues.members, CompletionItemKind.EnumMember);
-		}
-		return [];
+		const enumValues = mod.inheritedEnums.get(node.type);
+		if (!enumValues) return [];
+		return this.toCompletionItems(enumValues.members, CompletionItemKind.EnumMember);
 	}
 
-	private async getParameterCompletions(
-		node: SignatureNode | ComparisonNode,
-		document: TextDocument,
-		position: Position,
-		nodesAt: ASTNode[]
-	): Promise<CompletionItem[]> {
-		const text = document.getText(
-			Range.create(document.positionAt(document.offsetAt(node.selectionRange.end) + 1), position)
-		);
-		if (/[A-Z]+\.[a-zA-Z]*$/.test(text)) {
-			return this.getEnumMemberCompletions(node, position);
-		} else {
-			return [
-				...(await this.getConstantCompletions()),
-				...(await this.getVariableCompletions(nodesAt)),
-				...this.getEnumTypeNameCompletions()
-			];
-		}
+	private async getParameterCompletions(nodesAt: ASTNode[]): Promise<CompletionItem[]> {
+		return [
+			...(await this.getConstantCompletions()),
+			...(await this.getVariableCompletions(nodesAt)),
+			...this.getEnumTypeNameCompletions()
+		];
 	}
 
 	private async getSignatureCompletions(
@@ -300,7 +257,7 @@ export class CompletionProvider extends ComponentBase {
 		if (/\([^\)]*$/.test(text)) {
 			return this.getTypeCompletions();
 		} else {
-			return await this.getParameterCompletions(node, document, position, nodesAt);
+			return await this.getParameterCompletions(nodesAt);
 		}
 	}
 }
