@@ -44,8 +44,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		TokenType.VERSION,
 		TokenType.INTEGER,
 		TokenType.SUBGOAL_COMBINER,
-		TokenType.IDENTIFIER,
-		TokenType.INITSECTION
+		TokenType.IDENTIFIER
 	];
 	private operatorTypes: TokenType[] = [
 		TokenType.EQUAL,
@@ -58,35 +57,36 @@ export class GoalParser extends ParserBase<GoalNode> {
 
 	parse(): GoalNode {
 		this.consumeSequence({ expectedType: this.headerTypes });
-		const init = this.parseSignatureSection(TokenType.KBSECTION);
-		this.consume({ expectedType: [TokenType.KBSECTION] });
+		const init = this.parseSignatureSection(TokenType.INITSECTION, TokenType.KBSECTION);
 		const kb = this.parseKBSection();
-		this.consume({ expectedType: [TokenType.EXITSECTION] });
-		const exit = this.parseSignatureSection(TokenType.ENDEXITSECTION);
-		this.consume({ expectedType: [TokenType.ENDEXITSECTION] });
+		const exit = this.parseSignatureSection(TokenType.EXITSECTION, TokenType.ENDEXITSECTION);
+		const endExitToken = this.consume({ expectedType: [TokenType.ENDEXITSECTION] });
 		const footer = this.parseGoalFooter();
 		if (footer) this.consume({ expectedType: [TokenType.EOF] });
 		else this.consume({ expectedType: [TokenType.EOF], expectedMessage: expectedMessage.eofOrParentTargetEdge });
+		init.range.end = kb.range.start;
+		kb.range.end = exit.range.start;
+		exit.range.end = endExitToken.token.range.start;
 		return new GoalNode(init, kb, exit, footer, this.getTokenRange());
 	}
 
 	private parseKBSection(): KBSectionNode {
 		const body: RuleNode[] = [];
-		const sectionStart = this.peek();
+		const sectionStart = this.consume({ expectedType: [TokenType.KBSECTION] });
 		while (!this.atTokenType(TokenType.EXITSECTION)) {
 			if (this.consumeUnexpected({ expectedType: [TokenType.PROC, TokenType.QRY, TokenType.IF] }).matched) {
 				body.push(this.parseRule());
 			}
 		}
 		return new KBSectionNode(body, {
-			start: sectionStart.range.start,
-			end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
+			start: sectionStart.token.range.start,
+			end: body.length >= 1 ? body[body.length - 1].range.end : sectionStart.token.range.end
 		});
 	}
 
-	private parseSignatureSection(endType: TokenType): SignatureSectionNode {
+	private parseSignatureSection(startType: TokenType, endType: TokenType): SignatureSectionNode {
 		const body: SignatureNode[] = [];
-		const sectionStart = this.peek();
+		const sectionStart = this.consume({ expectedType: [startType] });
 		while (!this.atTokenType(endType)) {
 			let isDeletion = false;
 			if (this.consumeUnexpected({ expectedType: [TokenType.IDENTIFIER, TokenType.NOT] }).matched) {
@@ -99,8 +99,8 @@ export class GoalParser extends ParserBase<GoalNode> {
 			}
 		}
 		return new SignatureSectionNode(body, {
-			start: sectionStart.range.start,
-			end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.range.end
+			start: sectionStart.token.range.start,
+			end: body.length > 1 ? body[body.length - 1].range.end : sectionStart.token.range.end
 		});
 	}
 
@@ -130,6 +130,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		const call = this.parseSignature();
 		const conditions: (SignatureNode | ComparisonNode)[] = [];
 		const actions: SignatureNode[] = [];
+		let endPosition = call.range.end;
 		while (!this.atTokenType(TokenType.THEN)) {
 			if (!this.consume({ expectedMessage: expectedMessage.andOrThen, expectedType: [TokenType.AND] }).matched)
 				continue;
@@ -144,6 +145,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 					isDeletion = true;
 				}
 				conditions.push(this.parseSignature(true, isDeletion));
+				endPosition = conditions[conditions.length - 1].range.end;
 			} else if (
 				[
 					TokenType.STRING,
@@ -155,6 +157,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 				].indexOf(currentType) != -1
 			) {
 				conditions.push(this.parseComparison());
+				endPosition = conditions[conditions.length - 1].range.end;
 			} else {
 				const token = this.pop();
 				this.diagnostics.push(
@@ -163,6 +166,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 						expectedMessage: expectedMessage.signatureOrComparison
 					})
 				);
+				endPosition = token.range.end;
 			}
 		}
 
@@ -176,6 +180,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 			const action = this.parseSignature(true, isDeletion);
 			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
+			endPosition = action.range.end;
 		}
 		if (actions.length === 0)
 			this.diagnostics.push(ruleMissingActionsDiagnosticFactory({ range: ruleStart.range }));
@@ -187,7 +192,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 			actions,
 			{
 				start: ruleStart.range.start,
-				end: actions.length === 0 ? ruleStart.range.end : actions[actions.length - 1].range.end
+				end: endPosition
 			},
 			{
 				start: ruleStart.range.start,
