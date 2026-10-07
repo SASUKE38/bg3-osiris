@@ -1,7 +1,6 @@
 import { Diagnostic } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
 import { ASTNode, ASTNodeKind, SignatureNode } from "../../../parser/ast/nodes";
-import { Signature } from "../../../mods/signature";
 import { unusedDatabaseWarningDiagnosticFactory } from "../message";
 
 export class SignatureAnalyzer extends AnalyzerBase {

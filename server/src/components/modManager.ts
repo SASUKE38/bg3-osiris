@@ -19,7 +19,7 @@ import {
 	ModMetaScriptParameter
 } from "../mods/modMeta";
 import { copyFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
-import { Resource, ResourceKind } from "../mods/resource/resource";
+import { ResourceKind } from "../mods/resource/resource";
 import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
 import { SignatureCollection } from "../mods/signature";
 import {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TokenType, typeReadableMapping } from "../../parser/tokens";
 import { DiagnosticCode } from "./diagnosticCode";

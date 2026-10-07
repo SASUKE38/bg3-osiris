@@ -51,8 +51,7 @@ export class GoalResource extends Resource {
 	async getData(data: "semanticTokens"): Promise<uinteger[]>;
 	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
 	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
-	async getData(data: "readDatabases" | "writtenDatabases"): Promise<Set<string>>;
-	async getData(data: "constants" | "strings"): Promise<Set<string>>;
+	async getData(data: "readDatabases" | "writtenDatabases" | "constants" | "strings"): Promise<Set<string>>;
 	async getData(
 		data:
 			| "diagnostics"

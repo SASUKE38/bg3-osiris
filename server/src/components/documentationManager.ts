@@ -6,7 +6,7 @@ import { Element } from "domhandler";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { DocumentSymbol, ServerCapabilities } from "vscode-languageserver";
+import { ServerCapabilities } from "vscode-languageserver";
 import { Signature } from "../mods/signature";
 
 // Change to index signatures?

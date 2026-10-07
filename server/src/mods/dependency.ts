@@ -1,6 +1,6 @@
 import { readFileSync, rmSync } from "fs";
 import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/edge";
-import { Function, FunctionSignature, Story } from "./story";
+import { Function, Story } from "./story";
 import { DependencyMetaCollectionEntry } from "./mod";
 
 export class Dependency {
