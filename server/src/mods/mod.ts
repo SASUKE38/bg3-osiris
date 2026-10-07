@@ -9,7 +9,7 @@ import { readdir } from "fs/promises";
 import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
 import { BaseModConfiguration } from "../utils/configurationSchema";
-import { SignatureCollection } from "./signature";
+import { Signature, SignatureCollection } from "./signature";
 import { HeaderResource } from "./resource/headerResource";
 
 export interface InheritedType {
@@ -107,12 +107,7 @@ export class Mod {
 
 			for (const signature of filteredSignatures) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				this.inheritedSignatures.set({
-					name: signature.Name.Name,
-					parameters,
-					type: signature.Type,
-					definitions: []
-				});
+				this.inheritedSignatures.set(new Signature(signature.Name.Name, signature.Type, parameters, []))
 			}
 
 			this.inheritedGoals.set(goal.Name, {
@@ -127,23 +122,12 @@ export class Mod {
 		dependency.builtinSignatures.forEach((value) => {
 			for (const signature of value) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				this.inheritedSignatures.set({
-					name: signature.Name.Name,
-					parameters,
-					type: signature.Type,
-					outParamMask: signature.Name.OutParamMask,
-					definitions: []
-				});
+				this.inheritedSignatures.set(new Signature(signature.Name.Name, signature.Type, parameters, [], signature.Name.OutParamMask))
 			}
 		});
 
 		Object.values(story.databases).forEach((value) => {
-			this.inheritedDatabases.set({
-				name: value.OwnerNode.Name,
-				parameters: Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
-				type: "Database",
-				definitions: []
-			});
+			this.inheritedDatabases.set(new Signature(value.OwnerNode.Name, "Database", Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name), []))
 		});
 
 		dependency.ignoredOrphans.forEach((value) => this.inheritedIgnoredOrphans.add(value));

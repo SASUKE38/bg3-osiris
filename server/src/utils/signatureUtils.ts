@@ -1,24 +1,5 @@
-import { Signature, SignatureCollection } from "../mods/signature";
+import { SignatureCollection } from "../mods/signature";
 import { ASTNodeKind, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
-
-export function mergeSignature(signature: Signature, signatureCollection: SignatureCollection) {
-	const storedSignature = signatureCollection.get(signature)!;
-	for (let i = 0; i < signature.parameters.length; i++) {
-		if (storedSignature.parameters[i] === "" && signature.parameters[i] !== "") {
-			storedSignature.parameters[i] = signature.parameters[i];
-		}
-	}
-
-	if (signature.definitions) {
-		storedSignature.definitions = storedSignature.definitions
-			? [...storedSignature.definitions, ...signature.definitions]
-			: [...signature.definitions];
-	}
-}
-
-export function isOutParameter(signature: Signature, index: number) {
-	return signature.outParamMask ? ((signature.outParamMask[index >> 3] << (index & 7)) & 0x80) === 0x80 : false;
-}
 
 export function getParameterBinding(ruleNode: RuleNode, searchNode: IdentifierNode, signatures: SignatureCollection) {
 	const signatureNodes = [
@@ -36,7 +17,7 @@ export function getParameterBinding(ruleNode: RuleNode, searchNode: IdentifierNo
 				(parameter.content as IdentifierNode).value !== searchNode.value
 			)
 				continue;
-			const isOut = isOutParameter(signature, j);
+			const isOut = signature.isOutParameter(j);
 			const isDeletion = signatureNodes[i].isDeletion;
 
 			if (

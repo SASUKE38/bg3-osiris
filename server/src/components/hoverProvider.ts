@@ -4,7 +4,7 @@ import { decodePath } from "../utils/pathUtils";
 import { rangeContainsPosition } from "../utils/positionUtils";
 import { ASTNode, ASTNodeKind, IdentifierNode, ParameterNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
 import { getReadableSignatureType, Signature, SignatureCollection } from "../mods/signature";
-import { getParameterBinding, isOutParameter } from "../utils/signatureUtils";
+import { getParameterBinding } from "../utils/signatureUtils";
 
 /**
  * Server component that manages hover requests.
@@ -33,17 +33,18 @@ export class HoverProvider extends ComponentBase {
 		if (!nodesAt || nodesAt.length == 0) return null;
 		const hoveredNode = nodesAt[nodesAt.length - 1];
 		if (!rangeContainsPosition(hoveredNode.selectionRange, params.position)) return null;
+		const signatures = await modManager.getAllDefinedSignatures();
 
 		if (hoveredNode.kind === ASTNodeKind.SIGNATURE_NODE) {
-			const signature = (await modManager.getAllDefinedSignatures()).get(hoveredNode as SignatureNode);
+			const signature = signatures.get(hoveredNode as SignatureNode);
 			if (!signature) return null;
-			return this.handleSignatureHover(signature);
+			return this.handleSignatureHover(signature, signatures);
 		} else if (hoveredNode.kind === ASTNodeKind.IDENTIFIER_NODE) {
 			const parameterIndex = nodesAt.findIndex((value) => value.kind === ASTNodeKind.PARAMETER_NODE);
 			if ((hoveredNode as IdentifierNode).value.startsWith("_")) {
-				return this.handleVariableHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, await modManager.getAllDefinedSignatures());
+				return this.handleVariableHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, signatures);
 			} else {
-				return this.handleConstantHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, params.position, (await modManager.getAllDefinedSignatures()))
+				return this.handleConstantHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, params.position, signatures)
 			}
 		}
 
@@ -103,32 +104,25 @@ export class HoverProvider extends ComponentBase {
 		return null;
 	}
 
-	private async handleSignatureHover(signature: Signature): Promise<Hover> {
+	private async handleSignatureHover(signature: Signature, signatures: SignatureCollection): Promise<Hover> {
 		const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join(
 			"\n"
 		);
-		if (documentation !== "")
+		if (documentation !== "") {
 			return {
 				contents: {
 					kind: MarkupKind.Markdown,
 					value: documentation
 				}
 			};
-		
-		const content: string[] = [getReadableSignatureType(signature.type), " ", signature.name, "("];
-
-		for (let i = 0; i < signature.parameters.length; i++) {
-			if (isOutParameter(signature, i)) content.push("[out]");
-			content.push(`(${signature.parameters[i]})_`);
-			if (i !== signature.parameters.length - 1) content.push(", ");
+		} else {
+			const allItems = signatures.getAll(signature);
+			return {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: ["```osiris", signature.toReadableString() + (allItems.length - 1 > 0 ? ` (+${allItems.length - 1} overload${allItems.length - 1 === 1 ? "" : "s"})` : ""), "```"].join("\n")
+				}
+			};
 		}
-
-		content.push(")");
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: ["```osiris\n", ...content, "\n```"].join("")
-			}
-		};
 	}
 }

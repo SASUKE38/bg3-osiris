@@ -3,12 +3,52 @@ import { SignatureNode } from "../parser/ast/nodes";
 
 export type SignatureType = "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
 
-export interface Signature {
+export class Signature {
 	name: string;
 	type: SignatureType;
 	parameters: string[];
 	outParamMask?: Uint8Array;
 	definitions: Location[];
+
+	constructor(name: string, type: SignatureType, parameters: string[], definitions: Location[], outParamMask?: Uint8Array,) {
+		this.name = name;
+		this.type = type;
+		this.parameters = parameters;
+		this.outParamMask = outParamMask;
+		this.definitions = definitions;
+	}
+
+	mergeSignatures(signatureCollection: SignatureCollection): void {
+		const storedSignature = signatureCollection.get(this)!;
+		for (let i = 0; i < this.parameters.length; i++) {
+			if (storedSignature.parameters[i] === "" && this.parameters[i] !== "") {
+				storedSignature.parameters[i] = this.parameters[i];
+			}
+		}
+
+		if (this.definitions) {
+			storedSignature.definitions = storedSignature.definitions
+				? [...storedSignature.definitions, ...this.definitions]
+				: [...this.definitions];
+		}
+	}
+
+	isOutParameter(index: number): boolean {
+		return this.outParamMask ? ((this.outParamMask[index >> 3] << (index & 7)) & 0x80) === 0x80 : false;
+	}
+
+	toReadableString(): string {
+		const content: string[] = [getReadableSignatureType(this.type), " ", this.name, "("];
+
+		for (let i = 0; i < this.parameters.length; i++) {
+			if (this.isOutParameter(i)) content.push("[out]");
+			content.push(`(${this.parameters[i]})_`);
+			if (i !== this.parameters.length - 1) content.push(", ");
+		}
+
+		content.push(")");
+		return content.join("");
+	}
 }
 
 export class SignatureCollection {
@@ -32,6 +72,17 @@ export class SignatureCollection {
 
 	get(signature: Signature | SignatureNode): Signature | undefined {
 		return this.map.get(this.getKey(signature));
+	}
+
+	getAll(signature: Signature | SignatureNode): Signature[] {
+		const res: Signature[] = []
+		Array.from(this.map.keys()).filter((value) => {
+			return value.substring(0, value.lastIndexOf("/")) === signature.name;
+		}).forEach((value) => {
+			const candidate = this.map.get(value);
+			if (candidate) res.push(candidate);
+		})
+		return res;
 	}
 
 	getAllNamesOfType(...types: SignatureType[]): Set<string> {

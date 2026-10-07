@@ -19,7 +19,6 @@ import {
 	paramNotBoundDiagnosticFactory,
 	unresolvedSignatureDiagnosticFactory
 } from "../message";
-import { isOutParameter } from "../../../utils/signatureUtils";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -99,7 +98,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				!(parameterNode.content as IdentifierNode).value.startsWith("_")
 			)
 				continue;
-			const isOut = isOutParameter(signature, j);
+			const isOut = signature.isOutParameter(j);
 			const isDeletion = node.isDeletion;
 
 			// A parameter in an out query slot

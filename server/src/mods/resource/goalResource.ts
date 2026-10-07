@@ -24,7 +24,6 @@ import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
 import { Signature, SignatureCollection, SignatureType } from "../signature";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
-import { mergeSignature } from "../../utils/signatureUtils";
 
 export class GoalResource extends Resource {
 	private readonly readDatabases = new Set<string>();
@@ -222,7 +221,7 @@ export class GoalResource extends Resource {
 		function mergeSignatures(signature: Signature, thisArg: GoalResource) {
 			if (!thisArg.signatures.has(signature)) thisArg.signatures.set(signature);
 			else {
-				mergeSignature(signature, thisArg.signatures);
+				signature.mergeSignatures(thisArg.signatures);
 			}
 		}
 
@@ -259,17 +258,9 @@ export class GoalResource extends Resource {
 			thisArg: GoalResource,
 			parameters?: Map<string, string>
 		): Signature {
-			return {
-				name: signatureNode.name,
-				parameters: signatureNode.parameters.map((value) =>
-					value.type ? value.type.value : inferType(value, parameters)
-				),
-				type: getSignatureType(section, ruleType, signatureNode),
-				definitions:
-					section === "call" && (ruleType === "PROC" || ruleType === "QRY")
+			return new Signature(signatureNode.name, getSignatureType(section, ruleType, signatureNode), signatureNode.parameters.map((value) => value.type ? value.type.value : inferType(value, parameters)), section === "call" && (ruleType === "PROC" || ruleType === "QRY")
 						? [Location.create(thisArg.document.uri, signatureNode.selectionRange)]
-						: []
-			};
+						: [])
 		}
 
 		function registerParameters(parameters: Map<string, string>, signatureNode: SignatureNode) {

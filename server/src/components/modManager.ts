@@ -54,7 +54,6 @@ import {
 import { extractFromPak } from "../utils/edge";
 import { ASTNodeKind, GoalNode } from "../parser/ast/nodes";
 import { GoalResource } from "../mods/resource/goalResource";
-import { mergeSignature } from "../utils/signatureUtils";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -453,7 +452,7 @@ export class ModManager extends ComponentBase {
 		for (const entry of this.mod.inheritedSignatures.entries()) {
 			const signature = entry[1];
 			if (!res.has(signature)) res.set(signature);
-			else mergeSignature(entry[1], res);
+			else entry[1].mergeSignatures(res);
 		}
 		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedDatabases.entries()]);
 
