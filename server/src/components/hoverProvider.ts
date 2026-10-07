@@ -1,4 +1,4 @@
-import { Connection, Hover, HoverParams, MarkupKind, ServerCapabilities } from "vscode-languageserver";
+import { Connection, Hover, HoverParams, MarkupKind, Position, ServerCapabilities } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
 import { rangeContainsPosition } from "../utils/positionUtils";
@@ -29,67 +29,92 @@ export class HoverProvider extends ComponentBase {
 	private handleHover = async (params: HoverParams): Promise<Hover | null> => {
 		const { modManager } = this.server;
 		const resource = modManager.findGoalResource(decodePath(params.textDocument.uri));
-
 		const nodesAt = await resource?.getNodesAt(params.position);
 		if (!nodesAt || nodesAt.length == 0) return null;
 		const hoveredNode = nodesAt[nodesAt.length - 1];
 		if (!rangeContainsPosition(hoveredNode.selectionRange, params.position)) return null;
-		let signatureNode: SignatureNode | undefined = undefined;
-		for (const node of nodesAt) {
-			if (node.kind === ASTNodeKind.SIGNATURE_NODE) {
-				signatureNode = node as SignatureNode;
-				break;
+
+		if (hoveredNode.kind === ASTNodeKind.SIGNATURE_NODE) {
+			const signature = (await modManager.getAllDefinedSignatures()).get(hoveredNode as SignatureNode);
+			if (!signature) return null;
+			return this.handleSignatureHover(signature);
+		} else if (hoveredNode.kind === ASTNodeKind.IDENTIFIER_NODE) {
+			const parameterIndex = nodesAt.findIndex((value) => value.kind === ASTNodeKind.PARAMETER_NODE);
+			if ((hoveredNode as IdentifierNode).value.startsWith("_")) {
+				return this.handleVariableHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, await modManager.getAllDefinedSignatures());
+			} else {
+				return this.handleConstantHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, params.position, (await modManager.getAllDefinedSignatures()))
 			}
 		}
-		if (!signatureNode) return null;
-		const signatures = await modManager.getAllDefinedSignatures();
-		const signature = signatures.get(signatureNode);
-		if (!signature) return null;
 
-		switch (hoveredNode.kind) {
-			case ASTNodeKind.SIGNATURE_NODE:
-				return this.handleSignatureHover(signature);
-				break;
-			case ASTNodeKind.IDENTIFIER_NODE:
-				if ((hoveredNode as IdentifierNode).value === "_") return null;
-				let i = 0;
-				while (
-					i < signatureNode.parameters.length &&
-					!rangeContainsPosition(signatureNode.parameters[i].selectionRange, params.position)
-				)
-					i++;
-				const parameterNode = signatureNode.parameters[i];
-				if ((hoveredNode as IdentifierNode).value.startsWith("_")) {
-					return this.handleVariableHover(parameterNode, nodesAt, signatures, hoveredNode as IdentifierNode);
-				} else {
-					return this.handleConstantHover(i, parameterNode, signature, hoveredNode as IdentifierNode);
+		return null;
+	}
+
+	private handleVariableHover(parameterIndex: number, nodesAt: ASTNode[], hoveredNode: IdentifierNode, signatures: SignatureCollection): Hover | null {
+		const parameterNode = nodesAt[parameterIndex] as ParameterNode;
+		const ruleNode = nodesAt.find((value) => value.kind === ASTNodeKind.RULE_NODE);
+		if (!ruleNode) return null;
+		const bindingData = getParameterBinding(ruleNode as RuleNode, hoveredNode, signatures);
+		let type: string | undefined;
+
+		if (parameterIndex === -1) {
+			if (!bindingData) return null;
+			type = bindingData.signature.parameters[bindingData.bindingIndex]
+		} else {
+			type = parameterNode.type ? parameterNode.type.value : bindingData?.signature.parameters[bindingData.bindingIndex];
+		}
+		
+		if (!type) type = "UNKNOWN";
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: ["```osiris", `(${type}) ${(hoveredNode as IdentifierNode).value}`, "```"].join("\n")
+			}
+		};
+	}
+
+	private handleConstantHover(parameterIndex: number, nodesAt: ASTNode[], hoveredNode: IdentifierNode, position: Position, signatures: SignatureCollection): Hover | null {
+		let type: string | undefined = undefined;
+		
+		if (parameterIndex === -1) {
+		} else {
+			const parameterNode = nodesAt[parameterIndex] as ParameterNode;
+			const signatureNode = nodesAt.find((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode | undefined
+			const signature = signatures.get(signatureNode as SignatureNode);
+			if (!signature || !signatureNode) return null;
+	
+			let i = 0;
+			while (
+				i < signatureNode.parameters.length &&
+				!rangeContainsPosition(signatureNode.parameters[i].selectionRange, position)
+			)
+				i++;
+
+			if (parameterNode.type) type = `(${parameterNode.type.value})`;
+			else if (signature.parameters[i]) type = `(${signature.parameters[i]})`;
+			else type = "(GUIDSTRING)";
+			return {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: ["```osiris", `${type} ${hoveredNode.value}`, "```"].join("\n")
 				}
-				break;
-			default:
-				break;
+			};
 		}
 		return null;
-	};
+	}
 
 	private async handleSignatureHover(signature: Signature): Promise<Hover> {
-		if (
-			signature.type === "Call" ||
-			signature.type === "Event" ||
-			signature.type === "Query" ||
-			signature.type === "SysCall" ||
-			signature.type === "SysQuery"
-		) {
-			const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join(
-				"\n"
-			);
-			if (documentation !== "")
-				return {
-					contents: {
-						kind: MarkupKind.Markdown,
-						value: documentation
-					}
-				};
-		}
+		const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join(
+			"\n"
+		);
+		if (documentation !== "")
+			return {
+				contents: {
+					kind: MarkupKind.Markdown,
+					value: documentation
+				}
+			};
+		
 		const content: string[] = [getReadableSignatureType(signature.type), " ", signature.name, "("];
 
 		for (let i = 0; i < signature.parameters.length; i++) {
@@ -103,52 +128,6 @@ export class HoverProvider extends ComponentBase {
 			contents: {
 				kind: MarkupKind.Markdown,
 				value: ["```osiris\n", ...content, "\n```"].join("")
-			}
-		};
-	}
-
-	private async handleVariableHover(
-		parameterNode: ParameterNode,
-		nodesAt: ASTNode[],
-		signatures: SignatureCollection,
-		hoveredNode: IdentifierNode
-	): Promise<Hover | null> {
-		let type: string | undefined;
-		if (parameterNode.type) {
-			type = parameterNode.type.value;
-		}
-
-		let ruleNode: RuleNode | undefined;
-		for (const node of nodesAt) {
-			if (node.kind === ASTNodeKind.RULE_NODE) ruleNode = node as RuleNode;
-		}
-		if (!ruleNode) return null;
-		const bindingData = getParameterBinding(ruleNode, hoveredNode, signatures);
-		if (bindingData) type = bindingData.signature.parameters[bindingData.bindingIndex];
-
-		if (!type) type = "UNKNOWN";
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: ["```osiris", `(${type}) ${(hoveredNode as IdentifierNode).value}`, "```"].join("\n")
-			}
-		};
-	}
-
-	private handleConstantHover(
-		parameterIndex: number,
-		parameterNode: ParameterNode,
-		signature: Signature,
-		hoveredNode: IdentifierNode
-	): Hover {
-		let type: string | undefined = undefined;
-		if (parameterNode.type) type = `(${parameterNode.type.value})`;
-		else if (signature.parameters[parameterIndex]) type = `(${signature.parameters[parameterIndex]})`;
-		else type = "(GUIDSTRING)";
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: ["```osiris", `${type} ${hoveredNode.value}`, "```"].join("\n")
 			}
 		};
 	}

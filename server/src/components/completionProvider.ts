@@ -24,10 +24,6 @@ export class CompletionProvider extends ComponentBase {
 		return { completionProvider: { resolveProvider: true, triggerCharacters: ['"', "."] } };
 	}
 
-	/*
-	TODO: Fix parsing for last node of kb section
-	*/
-
 	private handleCompletion = async (params: CompletionParams): Promise<CompletionItem[]> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
 		const nodesAt = await resource?.getNodesAt(params.position);
