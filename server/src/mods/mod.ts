@@ -107,7 +107,7 @@ export class Mod {
 
 			for (const signature of filteredSignatures) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				this.inheritedSignatures.set(new Signature(signature.Name.Name, signature.Type, parameters, []))
+				this.inheritedSignatures.set(new Signature(signature.Name.Name, signature.Type, parameters, []));
 			}
 
 			this.inheritedGoals.set(goal.Name, {
@@ -122,12 +122,21 @@ export class Mod {
 		dependency.builtinSignatures.forEach((value) => {
 			for (const signature of value) {
 				const parameters = Array.from(signature.Name.Parameters.Types).map((value) => story.types[value].Name);
-				this.inheritedSignatures.set(new Signature(signature.Name.Name, signature.Type, parameters, [], signature.Name.OutParamMask))
+				this.inheritedSignatures.set(
+					new Signature(signature.Name.Name, signature.Type, parameters, [], signature.Name.OutParamMask)
+				);
 			}
 		});
 
 		Object.values(story.databases).forEach((value) => {
-			this.inheritedDatabases.set(new Signature(value.OwnerNode.Name, "Database", Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name), []))
+			this.inheritedDatabases.set(
+				new Signature(
+					value.OwnerNode.Name,
+					"Database",
+					Array.from(value.Parameters.Types).map((parameter) => story.types[parameter].Name),
+					[]
+				)
+			);
 		});
 
 		dependency.ignoredOrphans.forEach((value) => this.inheritedIgnoredOrphans.add(value));

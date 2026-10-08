@@ -258,9 +258,14 @@ export class GoalResource extends Resource {
 			thisArg: GoalResource,
 			parameters?: Map<string, string>
 		): Signature {
-			return new Signature(signatureNode.name, getSignatureType(section, ruleType, signatureNode), signatureNode.parameters.map((value) => value.type ? value.type.value : inferType(value, parameters)), section === "call" && (ruleType === "PROC" || ruleType === "QRY")
-						? [Location.create(thisArg.document.uri, signatureNode.selectionRange)]
-						: [])
+			return new Signature(
+				signatureNode.name,
+				getSignatureType(section, ruleType, signatureNode),
+				signatureNode.parameters.map((value) => (value.type ? value.type.value : inferType(value, parameters))),
+				section === "call" && (ruleType === "PROC" || ruleType === "QRY")
+					? [Location.create(thisArg.document.uri, signatureNode.selectionRange)]
+					: []
+			);
 		}
 
 		function registerParameters(parameters: Map<string, string>, signatureNode: SignatureNode) {

@@ -1,7 +1,6 @@
 import {
 	Connection,
 	MarkupKind,
-	ParameterInformation,
 	Position,
 	ServerCapabilities,
 	SignatureHelp,
@@ -11,8 +10,8 @@ import {
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
 import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
-import { DocumentationEntry } from "./documentationManager";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { SignatureCollection } from "../mods/signature";
 
 /**
  * Server component that manages Signature Help.
@@ -28,8 +27,6 @@ export class SignatureHelpProvider extends ComponentBase {
 		};
 	}
 
-	// TODO: Make . not advance to the next parameter
-
 	/**
 	 * The handler for the Signature Help request.
 	 *
@@ -37,28 +34,25 @@ export class SignatureHelpProvider extends ComponentBase {
 	 * @returns A {@link SignatureHelp} instance if one could be constructed from the given parameters.
 	 */
 	private handleSignatureHelp = async (params: SignatureHelpParams): Promise<SignatureHelp | null> => {
-		const { documentationManager, modManager } = this.server;
-		const resource = modManager.findGoalResource(decodePath(params.textDocument.uri));
-		const nodesAt = await resource?.getNodesAt(params.position);
-		const textDocument = resource?.getTextDocument();
-		const signature = nodesAt?.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE) as
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
+		if (!resource) return null;
+		const nodesAt = await resource.getNodesAt(params.position);
+		const textDocument = resource.getTextDocument();
+		const signatureNode = nodesAt.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE) as
 			| SignatureNode
 			| undefined;
+		const signatures = await this.server.modManager.getAllDefinedSignatures();
+		if (!signatureNode || !this.isValidSignatureHelpPosition(textDocument, signatureNode, params.position))
+			return null;
 
-		if (signature && textDocument && this.isValidSignatureHelpPosition(textDocument, signature, params.position)) {
-			const entry = await documentationManager.getDocumentationEntryForSignature(signature.name);
-			if (entry) {
-				const signatures = this.getSignatures(signature, entry);
-				const activeParameter = this.getActiveParameter(textDocument, signature, params.position);
-				return {
-					signatures,
-					activeSignature: this.getActiveSignature(signatures, signature, activeParameter),
-					activeParameter
-				};
-			}
-		}
+		const signatureInformation = await this.getSignatures(signatureNode, signatures);
+		const activeParameter = this.getActiveParameter(textDocument, signatureNode, params.position);
 
-		return null;
+		return {
+			signatures: signatureInformation,
+			activeSignature: this.getActiveSignature(signatureInformation, signatureNode, activeParameter),
+			activeParameter
+		};
 	};
 
 	/**
@@ -85,51 +79,31 @@ export class SignatureHelpProvider extends ComponentBase {
 	/**
 	 * Obtains the {@link SignatureInformation} {@link Array} for a given signature.
 	 *
-	 * @param signature The node at which the request was made.
-	 * @param entry The {@link DocumentationEntry} for this signature.
+	 * @param signatureNode The node at which the request was made.
+	 * @param signatures The {@link SignatureCollection} for this mod.
 	 * @returns An {@link Array} of {@link SignatureInformation} instances for this signature.
 	 */
-	private getSignatures(signature: SignatureNode, entry: DocumentationEntry): SignatureInformation[] {
-		const { documentationManager } = this.server;
-		return documentationManager
-			.getAllSignatureLabels(entry)
-			.map((value) => {
-				return {
-					label: value.trim(),
-					documentation: {
-						kind: MarkupKind.Markdown,
-						value: this.server.documentationManager.getSignatureDocumentationBody(entry).join("\n")
-					},
-					parameters: this.getParameterInformation(signature.name, value, entry)
-				};
-			})
-			.sort((a, b) => {
-				return a.parameters.length === b.parameters.length
-					? 0
-					: a.parameters.length < b.parameters.length
-						? -1
-						: 1;
-			});
-	}
-
-	/**
-	 * Returns an {@link Array} of {@link ParameterInformation} instances constructed from the given
-	 * signature's documentation.
-	 *
-	 * @param name The signature's name.
-	 * @param definition The full definition of this signature.
-	 * @param entry The {@link DocumentationEntry} for this signature.
-	 * @returns
-	 */
-	private getParameterInformation(
-		name: string,
-		definition: string,
-		entry: DocumentationEntry
-	): ParameterInformation[] {
-		return definition.split(",").map((value, i) => {
-			value = value.trim();
-			value = value.endsWith(")") ? value.substring(0, value.length - 1) : value;
-			return { label: i === 0 ? value.substring(entry.type.length + name.length + 2) : value };
+	private async getSignatures(
+		signatureNode: SignatureNode,
+		signatures: SignatureCollection
+	): Promise<SignatureInformation[]> {
+		const allItems = signatures.getAll(signatureNode);
+		const documentationEntry = await this.server.documentationManager.getDocumentationEntryForSignature(
+			signatureNode.name
+		);
+		const documentation = this.server.documentationManager
+			.getSignatureDocumentationBody(documentationEntry)
+			.join("\n");
+		return allItems.map((value) => {
+			return {
+				label: value.toReadableString(false, true),
+				documentation: documentation === "" ? undefined : { kind: MarkupKind.Markdown, value: documentation },
+				parameters: value.parameters.map((parameter, i) => {
+					return {
+						label: `(${parameter})_${i + 1}`
+					};
+				})
+			};
 		});
 	}
 

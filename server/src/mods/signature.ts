@@ -10,7 +10,13 @@ export class Signature {
 	outParamMask?: Uint8Array;
 	definitions: Location[];
 
-	constructor(name: string, type: SignatureType, parameters: string[], definitions: Location[], outParamMask?: Uint8Array,) {
+	constructor(
+		name: string,
+		type: SignatureType,
+		parameters: string[],
+		definitions: Location[],
+		outParamMask?: Uint8Array
+	) {
 		this.name = name;
 		this.type = type;
 		this.parameters = parameters;
@@ -37,12 +43,14 @@ export class Signature {
 		return this.outParamMask ? ((this.outParamMask[index >> 3] << (index & 7)) & 0x80) === 0x80 : false;
 	}
 
-	toReadableString(): string {
-		const content: string[] = [getReadableSignatureType(this.type), " ", this.name, "("];
+	toReadableString(includeType = true, doNumbering = false): string {
+		const content: string[] = includeType
+			? [getReadableSignatureType(this.type), " ", this.name, "("]
+			: [this.name, "("];
 
 		for (let i = 0; i < this.parameters.length; i++) {
 			if (this.isOutParameter(i)) content.push("[out]");
-			content.push(`(${this.parameters[i]})_`);
+			content.push(`(${this.parameters[i]})_${doNumbering ? i + 1 : ""}`);
 			if (i !== this.parameters.length - 1) content.push(", ");
 		}
 
@@ -75,13 +83,15 @@ export class SignatureCollection {
 	}
 
 	getAll(signature: Signature | SignatureNode): Signature[] {
-		const res: Signature[] = []
-		Array.from(this.map.keys()).filter((value) => {
-			return value.substring(0, value.lastIndexOf("/")) === signature.name;
-		}).forEach((value) => {
-			const candidate = this.map.get(value);
-			if (candidate) res.push(candidate);
-		})
+		const res: Signature[] = [];
+		Array.from(this.map.keys())
+			.filter((value) => {
+				return value.substring(0, value.lastIndexOf("/")) === signature.name;
+			})
+			.forEach((value) => {
+				const candidate = this.map.get(value);
+				if (candidate) res.push(candidate);
+			});
 		return res;
 	}
 

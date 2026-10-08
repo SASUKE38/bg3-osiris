@@ -3,7 +3,7 @@ import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
 import { rangeContainsPosition } from "../utils/positionUtils";
 import { ASTNode, ASTNodeKind, IdentifierNode, ParameterNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
-import { getReadableSignatureType, Signature, SignatureCollection } from "../mods/signature";
+import { Signature, SignatureCollection } from "../mods/signature";
 import { getParameterBinding } from "../utils/signatureUtils";
 
 /**
@@ -44,14 +44,25 @@ export class HoverProvider extends ComponentBase {
 			if ((hoveredNode as IdentifierNode).value.startsWith("_")) {
 				return this.handleVariableHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, signatures);
 			} else {
-				return this.handleConstantHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, params.position, signatures)
+				return this.handleConstantHover(
+					parameterIndex,
+					nodesAt,
+					hoveredNode as IdentifierNode,
+					params.position,
+					signatures
+				);
 			}
 		}
 
 		return null;
-	}
+	};
 
-	private handleVariableHover(parameterIndex: number, nodesAt: ASTNode[], hoveredNode: IdentifierNode, signatures: SignatureCollection): Hover | null {
+	private handleVariableHover(
+		parameterIndex: number,
+		nodesAt: ASTNode[],
+		hoveredNode: IdentifierNode,
+		signatures: SignatureCollection
+	): Hover | null {
 		const parameterNode = nodesAt[parameterIndex] as ParameterNode;
 		const ruleNode = nodesAt.find((value) => value.kind === ASTNodeKind.RULE_NODE);
 		if (!ruleNode) return null;
@@ -60,11 +71,13 @@ export class HoverProvider extends ComponentBase {
 
 		if (parameterIndex === -1) {
 			if (!bindingData) return null;
-			type = bindingData.signature.parameters[bindingData.bindingIndex]
+			type = bindingData.signature.parameters[bindingData.bindingIndex];
 		} else {
-			type = parameterNode.type ? parameterNode.type.value : bindingData?.signature.parameters[bindingData.bindingIndex];
+			type = parameterNode.type
+				? parameterNode.type.value
+				: bindingData?.signature.parameters[bindingData.bindingIndex];
 		}
-		
+
 		if (!type) type = "UNKNOWN";
 		return {
 			contents: {
@@ -74,16 +87,24 @@ export class HoverProvider extends ComponentBase {
 		};
 	}
 
-	private handleConstantHover(parameterIndex: number, nodesAt: ASTNode[], hoveredNode: IdentifierNode, position: Position, signatures: SignatureCollection): Hover | null {
+	private handleConstantHover(
+		parameterIndex: number,
+		nodesAt: ASTNode[],
+		hoveredNode: IdentifierNode,
+		position: Position,
+		signatures: SignatureCollection
+	): Hover | null {
 		let type: string | undefined = undefined;
-		
+
 		if (parameterIndex === -1) {
 		} else {
 			const parameterNode = nodesAt[parameterIndex] as ParameterNode;
-			const signatureNode = nodesAt.find((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode | undefined
+			const signatureNode = nodesAt.find((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as
+				| SignatureNode
+				| undefined;
 			const signature = signatures.get(signatureNode as SignatureNode);
 			if (!signature || !signatureNode) return null;
-	
+
 			let i = 0;
 			while (
 				i < signatureNode.parameters.length &&
@@ -105,9 +126,7 @@ export class HoverProvider extends ComponentBase {
 	}
 
 	private async handleSignatureHover(signature: Signature, signatures: SignatureCollection): Promise<Hover> {
-		const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join(
-			"\n"
-		);
+		const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join("\n");
 		if (documentation !== "") {
 			return {
 				contents: {
@@ -120,7 +139,14 @@ export class HoverProvider extends ComponentBase {
 			return {
 				contents: {
 					kind: MarkupKind.Markdown,
-					value: ["```osiris", signature.toReadableString() + (allItems.length - 1 > 0 ? ` (+${allItems.length - 1} overload${allItems.length - 1 === 1 ? "" : "s"})` : ""), "```"].join("\n")
+					value: [
+						"```osiris",
+						signature.toReadableString() +
+							(allItems.length - 1 > 0
+								? ` (+${allItems.length - 1} overload${allItems.length - 1 === 1 ? "" : "s"})`
+								: ""),
+						"```"
+					].join("\n")
 				}
 			};
 		}
