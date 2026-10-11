@@ -41,6 +41,8 @@ export class HoverProvider extends ComponentBase {
 			return this.handleSignatureHover(signature, signatures);
 		} else if (hoveredNode.kind === ASTNodeKind.IDENTIFIER_NODE) {
 			const parameterIndex = nodesAt.findIndex((value) => value.kind === ASTNodeKind.PARAMETER_NODE);
+			if ((hoveredNode as IdentifierNode).value === "_") return null;
+
 			if ((hoveredNode as IdentifierNode).value.startsWith("_")) {
 				return this.handleVariableHover(parameterIndex, nodesAt, hoveredNode as IdentifierNode, signatures);
 			} else {

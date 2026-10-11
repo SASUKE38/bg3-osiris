@@ -108,10 +108,16 @@ export class SignatureCollection {
 	getHierarchicalType(signature: Signature | SignatureNode): SignatureType {
 		const signatures = this.getAll(signature);
 		for (const version of signatures) {
-			if (version.type === "Query" || version.type === "Call" || version.type === "Event" || version.type === "SysCall" || version.type === "SysQuery")
+			if (
+				version.type === "Query" ||
+				version.type === "Call" ||
+				version.type === "Event" ||
+				version.type === "SysCall" ||
+				version.type === "SysQuery"
+			)
 				return version.type;
 		}
-		return this.has(signature) ? this.get(signature)!.type : "Call"
+		return this.has(signature) ? this.get(signature)!.type : "Call";
 	}
 
 	set(signature: Signature) {

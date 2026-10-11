@@ -275,24 +275,23 @@ export class GoalResource extends Resource {
 				previousLine === deltaLine
 					? signatureNode.range.start.character - previousStartChar
 					: signatureNode.range.start.character;
-			const length =
-				signatureNode.selectionRange.end.character - signatureNode.selectionRange.start.character;
+			const length = signatureNode.selectionRange.end.character - signatureNode.selectionRange.start.character;
 			let searchType;
 			switch (inheritedSignatures.getHierarchicalType(signature)) {
 				case "Event":
-					searchType = "event"
+					searchType = "event";
 					break;
 				case "Query":
-					searchType = "query"
+					searchType = "query";
 					break;
 				case "SysCall":
-					searchType = "call"
+					searchType = "call";
 					break;
 				case "SysQuery":
-					searchType = "query"
+					searchType = "query";
 					break;
 				case "Call":
-					searchType = "call"
+					searchType = "call";
 					break;
 				default:
 					return;
