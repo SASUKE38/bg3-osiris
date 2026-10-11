@@ -7,6 +7,7 @@ import {
 	Range,
 	ReferenceParams,
 	SemanticTokens,
+	SemanticTokensBuilder,
 	SemanticTokensParams,
 	ServerCapabilities,
 	SymbolKind,
@@ -14,6 +15,8 @@ import {
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath } from "../utils/pathUtils";
+import { ASTNode, ASTNodeKind, SignatureNode, TypeEnumMemberNode } from "../parser/ast/nodes";
+import { SignatureCollection } from "../mods/signature";
 
 export const SemanticTokenOsirisTypes = ["call", "event", "query", "function", "enum", "enumMember"];
 
@@ -76,9 +79,82 @@ export class SymbolManager extends ComponentBase {
 	 */
 	private handleSemanticTokens = async (params: SemanticTokensParams): Promise<SemanticTokens> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
-		if (!resource) return { data: [] };
-		return { data: await resource.getData("semanticTokens") };
+		const root = await resource?.getRootNode();
+		if (!root) return { data: [] };
+		const signatures = await this.server.modManager.getAllDefinedSignatures();
+		const builder = new SemanticTokensBuilder();
+
+		function getTokens(node: ASTNode, thisArg: SymbolManager) {
+			for (const child of node.getNodeChildren()) {
+				if (!child) continue;
+				if (child.kind === ASTNodeKind.SIGNATURE_NODE || child.kind === ASTNodeKind.TYPE_ENUM_MEMBER_NODE) {
+					if (child.kind === ASTNodeKind.SIGNATURE_NODE) {
+						thisArg.tryGetSemanticSignature(child as SignatureNode, signatures, builder);
+					} else if (child.kind === ASTNodeKind.TYPE_ENUM_MEMBER_NODE) {
+						const enumNode = child as TypeEnumMemberNode;
+						builder.push(
+							enumNode.range.start.line,
+							enumNode.range.start.character,
+							enumNode.type.length,
+							SemanticTokenOsirisTypes.indexOf("enum"),
+							0
+						);
+						builder.push(
+							enumNode.range.start.line,
+							enumNode.range.start.character + enumNode.type.length + 1,
+							enumNode.member.length,
+							SemanticTokenOsirisTypes.indexOf("enumMember"),
+							0
+						);
+					}
+				}
+				getTokens(child, thisArg);
+			}
+		}
+
+		getTokens(root, this);
+		return builder.build();
 	};
+
+	/**
+	 * Gets the semantic highlighting for a signature if it is a built-in.
+	 *
+	 * @param signatureNode The node containing the signature to try to get the semantic type of.
+	 * @param signatures The signature collection of the mod's inherited and custom signatures.
+	 * @param builder The builder containing the semantic token result.
+	 */
+	private tryGetSemanticSignature(
+		signatureNode: SignatureNode,
+		signatures: SignatureCollection,
+		builder: SemanticTokensBuilder
+	) {
+		const signature = signatures.get(signatureNode);
+		if (!signature) return;
+		const length = signatureNode.selectionRange.end.character - signatureNode.selectionRange.start.character;
+		let searchType;
+		switch (signatures.getHierarchicalType(signature)) {
+			case "Event":
+				searchType = "event";
+				break;
+			case "Query":
+				searchType = "query";
+				break;
+			case "SysCall":
+				searchType = "call";
+				break;
+			case "SysQuery":
+				searchType = "query";
+				break;
+			case "Call":
+				searchType = "call";
+				break;
+			default:
+				return;
+				break;
+		}
+		const type = SemanticTokenOsirisTypes.indexOf(searchType);
+		builder.push(signatureNode.range.start.line, signatureNode.range.start.character, length, type, 0);
+	}
 
 	/**
 	 * Returns all of the symbols in this mod.

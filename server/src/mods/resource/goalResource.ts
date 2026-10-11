@@ -17,10 +17,9 @@ import {
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
 import { Resource, ResourceKind } from "./resource";
-import { Diagnostic, DocumentSymbol, Location, SymbolKind, uinteger, WorkspaceSymbol } from "vscode-languageserver";
+import { Diagnostic, DocumentSymbol, Location, SymbolKind, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
-import { SemanticTokenOsirisTypes } from "../../components/symbolManager";
 import { Signature, SignatureCollection, SignatureType } from "../signature";
 import { Mod } from "../mod";
 import { readFileSync } from "fs";
@@ -29,7 +28,6 @@ export class GoalResource extends Resource {
 	private readonly readDatabases = new Set<string>();
 	private readonly writtenDatabases = new Set<string>();
 	private workspaceSymbols: WorkspaceSymbol[] = [];
-	private semanticTokens: uinteger[] = [];
 	private signatures = new SignatureCollection();
 	private definedSignatures = new Set<string>();
 	private calledSignatures = new Set<string>();
@@ -47,14 +45,12 @@ export class GoalResource extends Resource {
 
 	async getData(data: "signatures"): Promise<SignatureCollection>;
 	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
-	async getData(data: "semanticTokens"): Promise<uinteger[]>;
 	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
 	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
 	async getData(data: "readDatabases" | "writtenDatabases" | "constants" | "strings"): Promise<Set<string>>;
 	async getData(
 		data:
 			| "diagnostics"
-			| "semanticTokens"
 			| "workspaceSymbols"
 			| "symbols"
 			| "signatures"
@@ -175,9 +171,6 @@ export class GoalResource extends Resource {
 	async loadSignatures() {
 		const root = this.ast;
 		const inheritedSignatures = this.mod.inheritedSignatures;
-		const semanticTokens: number[] = [];
-		let previousLine = 0;
-		let previousStartChar = 0;
 		if (!root) return;
 
 		function getSignatures(node: ASTNode, thisArg: GoalResource) {
@@ -243,7 +236,6 @@ export class GoalResource extends Resource {
 			thisArg: GoalResource,
 			parameters?: Map<string, string>
 		): Signature {
-			tryHandleBuiltinSignatureSemantics(signatureNode);
 			return new Signature(
 				signatureNode.name,
 				getSignatureType(section, ruleType, signatureNode),
@@ -265,42 +257,6 @@ export class GoalResource extends Resource {
 					parameters.set((parameter.content as IdentifierNode).value, parameter.type.value);
 				}
 			}
-		}
-
-		function tryHandleBuiltinSignatureSemantics(signatureNode: SignatureNode) {
-			const signature = inheritedSignatures.get(signatureNode);
-			if (!signature) return;
-			const deltaLine = signatureNode.range.start.line - previousLine;
-			const deltaStartChar =
-				previousLine === deltaLine
-					? signatureNode.range.start.character - previousStartChar
-					: signatureNode.range.start.character;
-			const length = signatureNode.selectionRange.end.character - signatureNode.selectionRange.start.character;
-			let searchType;
-			switch (inheritedSignatures.getHierarchicalType(signature)) {
-				case "Event":
-					searchType = "event";
-					break;
-				case "Query":
-					searchType = "query";
-					break;
-				case "SysCall":
-					searchType = "call";
-					break;
-				case "SysQuery":
-					searchType = "query";
-					break;
-				case "Call":
-					searchType = "call";
-					break;
-				default:
-					return;
-					break;
-			}
-			const type = SemanticTokenOsirisTypes.indexOf(searchType);
-			semanticTokens.push(...[deltaLine, deltaStartChar, length, type > 0 ? type : 0, 0]);
-			previousLine = signatureNode.range.end.line;
-			previousStartChar = signatureNode.range.end.character;
 		}
 
 		function extractCallSignature(
@@ -389,7 +345,6 @@ export class GoalResource extends Resource {
 			return "Proc";
 		}
 
-		this.semanticTokens = semanticTokens;
 		this.readDatabases.clear();
 		this.writtenDatabases.clear();
 		this.signatures.clear();
