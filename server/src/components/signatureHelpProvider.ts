@@ -96,7 +96,7 @@ export class SignatureHelpProvider extends ComponentBase {
 			.join("\n");
 		return allItems.map((value) => {
 			return {
-				label: value.toReadableString(false, true),
+				label: value.toReadableString(false, true, signatures),
 				documentation: documentation === "" ? undefined : { kind: MarkupKind.Markdown, value: documentation },
 				parameters: value.parameters.map((parameter, i) => {
 					return {

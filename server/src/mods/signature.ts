@@ -43,9 +43,10 @@ export class Signature {
 		return this.outParamMask ? ((this.outParamMask[index >> 3] << (index & 7)) & 0x80) === 0x80 : false;
 	}
 
-	toReadableString(includeType = true, doNumbering = false): string {
+	toReadableString(includeType = true, doNumbering = false, signatures?: SignatureCollection): string {
+		const searchType = signatures && includeType ? signatures.getHierarchicalType(this) : this.type;
 		const content: string[] = includeType
-			? [getReadableSignatureType(this.type), " ", this.name, "("]
+			? [getReadableSignatureType(searchType), " ", this.name, "("]
 			: [this.name, "("];
 
 		for (let i = 0; i < this.parameters.length; i++) {
@@ -102,6 +103,15 @@ export class SignatureCollection {
 				res.add(entry[0].substring(0, entry[0].length - 2));
 		}
 		return res;
+	}
+
+	getHierarchicalType(signature: Signature | SignatureNode): SignatureType {
+		const signatures = this.getAll(signature);
+		for (const version of signatures) {
+			if (version.type === "Query" || version.type === "Call" || version.type === "Event" || version.type === "SysCall" || version.type === "SysQuery")
+				return version.type;
+		}
+		return this.has(signature) ? this.get(signature)!.type : "Call"
 	}
 
 	set(signature: Signature) {

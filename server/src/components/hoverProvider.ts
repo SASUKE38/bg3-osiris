@@ -141,7 +141,7 @@ export class HoverProvider extends ComponentBase {
 					kind: MarkupKind.Markdown,
 					value: [
 						"```osiris",
-						signature.toReadableString() +
+						signature.toReadableString(true, false, signatures) +
 							(allItems.length - 1 > 0
 								? ` (+${allItems.length - 1} overload${allItems.length - 1 === 1 ? "" : "s"})`
 								: ""),

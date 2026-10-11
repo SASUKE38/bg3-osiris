@@ -104,10 +104,6 @@ export class GoalResource extends Resource {
 		const root = this.ast;
 		const symbols: DocumentSymbol[] = [];
 		const workspaceSymbols: WorkspaceSymbol[] = [];
-		const semanticTokens: uinteger[] = [];
-		const documentation = await this.mod.manager.server.documentationManager.getDocumentation();
-		let previousLine = 0;
-		let previousStartChar = 0;
 		let hadInit = false;
 		if (!root) return [symbols, workspaceSymbols];
 
@@ -137,19 +133,6 @@ export class GoalResource extends Resource {
 						case ASTNodeKind.SIGNATURE_NODE:
 							symbol.name = (child as SignatureNode).name;
 							symbol.kind = SymbolKind.Function;
-							if (documentation.has(symbol.name)) {
-								const deltaLine = child.range.start.line - previousLine;
-								const deltaStartChar =
-									previousLine === deltaLine
-										? child.range.start.character - previousStartChar
-										: child.range.start.character;
-								const length =
-									child.selectionRange.end.character - child.selectionRange.start.character;
-								const type = SemanticTokenOsirisTypes.indexOf(documentation.get(symbol.name)!.type);
-								semanticTokens.push(...[deltaLine, deltaStartChar, length, type > 0 ? type : 0, 0]);
-								previousLine = child.range.end.line;
-								previousStartChar = child.range.end.character;
-							}
 							break;
 						case ASTNodeKind.COMPARISON_NODE:
 							symbol.name = (child as ComparisonNode).operator.value;
@@ -186,13 +169,15 @@ export class GoalResource extends Resource {
 		getNodeSymbols(root, symbols, this);
 		this.symbols = symbols;
 		this.workspaceSymbols = workspaceSymbols;
-		this.semanticTokens = semanticTokens;
 		return [symbols, workspaceSymbols];
 	}
 
 	async loadSignatures() {
 		const root = this.ast;
 		const inheritedSignatures = this.mod.inheritedSignatures;
+		const semanticTokens: number[] = [];
+		let previousLine = 0;
+		let previousStartChar = 0;
 		if (!root) return;
 
 		function getSignatures(node: ASTNode, thisArg: GoalResource) {
@@ -258,6 +243,7 @@ export class GoalResource extends Resource {
 			thisArg: GoalResource,
 			parameters?: Map<string, string>
 		): Signature {
+			tryHandleBuiltinSignatureSemantics(signatureNode);
 			return new Signature(
 				signatureNode.name,
 				getSignatureType(section, ruleType, signatureNode),
@@ -279,6 +265,43 @@ export class GoalResource extends Resource {
 					parameters.set((parameter.content as IdentifierNode).value, parameter.type.value);
 				}
 			}
+		}
+
+		function tryHandleBuiltinSignatureSemantics(signatureNode: SignatureNode) {
+			const signature = inheritedSignatures.get(signatureNode);
+			if (!signature) return;
+			const deltaLine = signatureNode.range.start.line - previousLine;
+			const deltaStartChar =
+				previousLine === deltaLine
+					? signatureNode.range.start.character - previousStartChar
+					: signatureNode.range.start.character;
+			const length =
+				signatureNode.selectionRange.end.character - signatureNode.selectionRange.start.character;
+			let searchType;
+			switch (inheritedSignatures.getHierarchicalType(signature)) {
+				case "Event":
+					searchType = "event"
+					break;
+				case "Query":
+					searchType = "query"
+					break;
+				case "SysCall":
+					searchType = "call"
+					break;
+				case "SysQuery":
+					searchType = "query"
+					break;
+				case "Call":
+					searchType = "call"
+					break;
+				default:
+					return;
+					break;
+			}
+			const type = SemanticTokenOsirisTypes.indexOf(searchType);
+			semanticTokens.push(...[deltaLine, deltaStartChar, length, type > 0 ? type : 0, 0]);
+			previousLine = signatureNode.range.end.line;
+			previousStartChar = signatureNode.range.end.character;
 		}
 
 		function extractCallSignature(
@@ -367,6 +390,7 @@ export class GoalResource extends Resource {
 			return "Proc";
 		}
 
+		this.semanticTokens = semanticTokens;
 		this.readDatabases.clear();
 		this.writtenDatabases.clear();
 		this.signatures.clear();
