@@ -128,5 +128,8 @@ export const enum DiagnosticCode {
 	UnexpectedToken = "E36",
 
 	// A rule has no actions
-	RuleMissingActions = "E37"
+	RuleMissingActions = "E37",
+
+	// An enum member could not be resolved
+	UnresolvedEnumMember = "E38"
 }

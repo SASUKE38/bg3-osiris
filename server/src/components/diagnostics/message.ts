@@ -404,4 +404,21 @@ export function castToUnrelatedGuidAliasDiagnostiFactory({
 	};
 }
 
+export interface UnresolvedEnumMemberDiagnosticParams extends DiagnosticParamsBase {
+	memberName: string;
+}
+
+export function unresolvedEnumMemberDiagnosticFactory({ range, memberName }: UnresolvedEnumMemberDiagnosticParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message:
+			memberName.length === 0
+				? `Enum missing member name.`
+				: `Enum member '${memberName}' could not be resolved.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnresolvedEnumMember
+	};
+}
+
 //#endregion

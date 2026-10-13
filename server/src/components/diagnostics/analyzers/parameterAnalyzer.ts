@@ -9,7 +9,8 @@ import {
 	NumberNodeKind,
 	RuleNode,
 	SignatureNode,
-	SignatureSectionNode
+	SignatureSectionNode,
+	TypeEnumMemberNode
 } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
 import {
@@ -17,6 +18,7 @@ import {
 	castToUnrelatedTypeDiagnosticFactory,
 	localTypeMismatchDiagnosticFactory,
 	paramNotBoundDiagnosticFactory,
+	unresolvedEnumMemberDiagnosticFactory,
 	unresolvedSignatureDiagnosticFactory
 } from "../message";
 
@@ -56,6 +58,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		return res;
 	}
 
+	//#region ParamNotBound
 	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const parameters = new Map<string, string>([["_", "UNKNOWN"]]);
@@ -177,6 +180,9 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		}
 	}
 
+	//#endregion
+
+	//#region LocalTypeMismatch
 	// LocalTypeMismatch 11
 	private verifyVariableTypes(
 		node: SignatureNode,
@@ -267,6 +273,20 @@ export class ParameterAnalyzer extends AnalyzerBase {
 								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real)
 									searchType = "REAL";
 								break;
+							case ASTNodeKind.TYPE_ENUM_MEMBER_NODE:
+								searchType = (parameterNode.content as TypeEnumMemberNode).member;
+								const enums = this.modManager.mod?.inheritedEnums.get(
+									(parameterNode.content as TypeEnumMemberNode).type
+								);
+								if (!enums?.members.find((value) => value === searchType)) {
+									res.push(
+										unresolvedEnumMemberDiagnosticFactory({
+											range: parameterNode.selectionRange,
+											memberName: searchType
+										})
+									);
+								}
+								break;
 						}
 					}
 
@@ -291,6 +311,9 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		}
 	}
 
+	//#endregion
+
+	//#region CastToUnrelated
 	// CastToUnrelatedType 31
 	// CastToUnrelatedGuidAlias 32
 	private verifyRelatedCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
@@ -335,4 +358,6 @@ export class ParameterAnalyzer extends AnalyzerBase {
 			}
 		}
 	}
+
+	//#endregion
 }
