@@ -8,6 +8,7 @@ import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
 import { GoalArrangementAnalyzer } from "./analyzers/goalArrangementAnalyzer";
 import { RuleAnalyzer } from "./analyzers/ruleAnalyzer";
 import { ParameterAnalyzer } from "./analyzers/parameterAnalyzer";
+import { watch } from "fs";
 
 /*
 === Header Only ===
@@ -35,6 +36,7 @@ UnresolvedTypeInSignature 6
 *DbNamingStyle 26
 
 TODO: Figure out how to handle orphans with databases
+TODO: Delete this comment
 
 -- Symbol Resolving --
 *UnresolvedSymbol 19
@@ -102,11 +104,29 @@ export class DiagnosticManager extends ComponentBase {
 	};
 
 	handleDidChangeContent = async (event: TextDocumentChangeEvent<TextDocument>) => {
-		const file = this.server.modManager.findGoalResource(decodePath(event.document.uri));
-		if (file) {
-			file.setTextDocument(event.document);
-			file.invalidate();
-			this.handleDiagnostics(event.document);
+		const path = decodePath(event.document.uri);
+		const file = this.server.modManager.findGoalResource(path);
+		if (!file) return;
+
+		file.setTextDocument(event.document);
+		file.invalidate();
+		this.handleDiagnostics(event.document);
+
+		const signatures = this.server.modManager.fileToSignatureMap.get(path);
+		if (!signatures) return;
+		const visited = new Set<string>();
+		visited.add(path);
+
+		for (const signature of signatures) {
+			const referencedFiles = this.server.modManager.signatureToFileMap.get(signature);
+			if (!referencedFiles) continue;
+			for (const referencedFile of referencedFiles) {
+				if (visited.has(referencedFile)) continue;
+				const referencedResource = this.server.modManager.findGoalResource(referencedFile);
+				if (!referencedResource) continue;
+				this.handleDiagnostics(referencedResource.getTextDocument())
+				visited.add(referencedFile);
+			}
 		}
 	};
 

@@ -61,10 +61,8 @@ import { GoalResource } from "../mods/resource/goalResource";
 export class ModManager extends ComponentBase {
 	mod?: Mod;
 
-	calledSignatureToFileMap = new Map<string, Set<string>>();
-	fileToCalledSignatureMap = new Map<string, Set<string>>();
-	definedSignatureToFileMap = new Map<string, Set<string>>();
-	fileToDefinedSignatureMap = new Map<string, Set<string>>();
+	fileToSignatureMap = new Map<string, Set<string>>();
+	signatureToFileMap = new Map<string, Set<string>>();
 
 	private readonly xmlParser = LSXMLParserFactory();
 
@@ -459,7 +457,7 @@ export class ModManager extends ComponentBase {
 		return res;
 	}
 
-	async updateSignatures(path: string, calledSignatures: Set<string>, definedSignatures: Set<string>) {
+	async updateSignatures(path: string, referencedSignatures: Set<string>) {
 		function addEntries(signatureSet: Set<string>, map: Map<string, Set<string>>) {
 			for (const entry of map) {
 				entry[1].delete(path);
@@ -473,10 +471,8 @@ export class ModManager extends ComponentBase {
 			}
 		}
 
-		this.fileToCalledSignatureMap.set(path, new Set<string>(calledSignatures));
-		this.fileToDefinedSignatureMap.set(path, new Set<string>(definedSignatures));
-		addEntries(calledSignatures, this.calledSignatureToFileMap);
-		addEntries(definedSignatures, this.definedSignatureToFileMap);
+		this.fileToSignatureMap.set(path, new Set<string>(referencedSignatures));
+		addEntries(referencedSignatures, this.signatureToFileMap);
 	}
 
 	//#endregion

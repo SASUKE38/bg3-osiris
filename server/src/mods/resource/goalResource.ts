@@ -29,8 +29,7 @@ export class GoalResource extends Resource {
 	private readonly writtenDatabases = new Set<string>();
 	private workspaceSymbols: WorkspaceSymbol[] = [];
 	private signatures = new SignatureCollection();
-	private definedSignatures = new Set<string>();
-	private calledSignatures = new Set<string>();
+	private referencedSignatures = new Set<string>();
 	private constants = new Set<string>();
 	private strings = new Set<string>();
 	readonly kind: ResourceKind = ResourceKind.Goal;
@@ -91,7 +90,7 @@ export class GoalResource extends Resource {
 			doParse(this, document);
 		}
 		await Promise.all([this.loadSymbols(), this.loadSignatures(), this.loadConstants(), this.loadStrings()]);
-		this.mod.manager.updateSignatures(this.path, this.calledSignatures, this.definedSignatures);
+		this.mod.manager.updateSignatures(this.path, this.referencedSignatures);
 		this.validate();
 		return this.ast;
 	}
@@ -270,7 +269,7 @@ export class GoalResource extends Resource {
 
 			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
 			mergeSignatures(signature, thisArg);
-			thisArg.definedSignatures.add(signature.name);
+			thisArg.referencedSignatures.add(signature.name);
 		}
 
 		function extractConditionSignatures(
@@ -287,7 +286,7 @@ export class GoalResource extends Resource {
 					thisArg.readDatabases.add(signature.name);
 					mergeSignatures(signature, thisArg);
 				}
-				thisArg.calledSignatures.add(signature.name);
+				thisArg.referencedSignatures.add(signature.name);
 			}
 		}
 
@@ -305,7 +304,7 @@ export class GoalResource extends Resource {
 					thisArg.writtenDatabases.add(signature.name);
 					mergeSignatures(signature, thisArg);
 				}
-				thisArg.calledSignatures.add(signature.name);
+				thisArg.referencedSignatures.add(signature.name);
 			}
 		}
 
@@ -315,7 +314,7 @@ export class GoalResource extends Resource {
 				if (signature.type !== "Database") return;
 				thisArg.writtenDatabases.add(signature.name);
 				mergeSignatures(signature, thisArg);
-				thisArg.definedSignatures.add(signature.name);
+				thisArg.referencedSignatures.add(signature.name);
 			}
 		}
 
@@ -348,8 +347,7 @@ export class GoalResource extends Resource {
 		this.readDatabases.clear();
 		this.writtenDatabases.clear();
 		this.signatures.clear();
-		this.calledSignatures.clear();
-		this.definedSignatures.clear();
+		this.referencedSignatures.clear();
 		getSignatures(root, this);
 	}
 

@@ -10,8 +10,6 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 		const root = await this.resource.getRootNode();
 		if (!root) return res;
 
-		const { calledSignatureToFileMap } = this.modManager;
-		const { fileToCalledSignatureMap } = this.modManager;
 		const signatures = await this.modManager.getAllDefinedSignatures();
 
 		function doAnalysis(node: ASTNode, thisArg: UnknownSymbolAnalyzer) {
