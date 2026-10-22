@@ -1,7 +1,7 @@
 import { Connection, CreateFilesParams, DeleteFilesParams, ServerCapabilities, TextEdit } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "../mods/mod";
-import { join } from "path";
+import { join, sep } from "path";
 import {
 	collectAttributes,
 	findNodeChild,
@@ -23,6 +23,7 @@ import { ResourceKind } from "../mods/resource/resource";
 import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
 import { SignatureCollection } from "../mods/signature";
 import {
+	notificationFilesChanged,
 	notificationModInitializing,
 	notificationModReady,
 	requestAddStoryTreeNode,
@@ -54,12 +55,14 @@ import {
 import { extractFromPak } from "../utils/edge";
 import { ASTNodeKind, GoalNode } from "../parser/ast/nodes";
 import { GoalResource } from "../mods/resource/goalResource";
+import { FSWatcher, watch } from "chokidar";
 
 /**
  * Server component that manages mod loading and tracking.
  */
 export class ModManager extends ComponentBase {
 	mod?: Mod;
+	watcher?: FSWatcher;
 
 	fileToSignatureMap = new Map<string, Set<string>>();
 	signatureToFileMap = new Map<string, Set<string>>();
@@ -68,8 +71,6 @@ export class ModManager extends ComponentBase {
 
 	async initializeComponent(connection: Connection): Promise<void> {
 		const { rootFolder } = this.server;
-		connection.workspace.onDidDeleteFiles(this.handleDeleteFiles);
-		connection.workspace.onDidCreateFiles(this.handleCreateFiles);
 
 		connection.onRequest(requestGetInheritedGoalContent, this.handleGetInheritedGoalContent);
 		connection.onRequest(requestGetStoryTreeNodeChildren, this.handleGetStoryTreeNodeChildren);
@@ -86,6 +87,10 @@ export class ModManager extends ComponentBase {
 			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
 
 			if (this.mod) {
+				this.watcher = watch(join(this.mod.path, this.mod.goalSubdirectory), { depth: 0, ignoreInitial: true });
+				this.watcher.on("add", this.handleCreateFile);
+				this.watcher.on("unlink", this.handleDeleteFile);
+
 				for (const resource of this.mod.getAllGoals()) {
 					await resource.load();
 					this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
@@ -99,9 +104,43 @@ export class ModManager extends ComponentBase {
 		return {};
 	}
 
-	private handleDeleteFiles = (params: DeleteFilesParams) => {};
+	private handleDeleteFile = async (path: string) => {
+		if (!/^.*\.txt$/.test(path)) return;
+		const resource = this.findGoalResource(path);
+		if (!resource) return;
 
-	private handleCreateFiles = (params: CreateFilesParams) => {};
+		const signatures = this.fileToSignatureMap.get(path);
+		this.fileToSignatureMap.delete(path);
+		if (signatures) {
+			for (const signature of signatures) {
+				this.signatureToFileMap.get(signature)?.delete(path);
+			}
+		}
+
+		if (!this.mod) return;
+		const name = path.split(sep).pop();
+		if (name) {
+			await this.mod.storyTree.deleteStoryTreeNode(name.substring(0, name.length - 4));
+		}
+		this.mod.removeGoalResource(path, "path");
+		this.server.connection.sendNotification(notificationFilesChanged);
+	};
+
+	private handleCreateFile = async (path: string) => {
+		if (!/^.*\.txt$/.test(path)) return;
+		if (!this.mod) return;
+
+		const name = path.split(sep).pop();
+		if (!name) return;
+		const resource = await this.createResource(name, path);
+		if (!resource) return;
+		this.mod.storyTree.addStoryTreeNode(
+			resource.parent,
+			name.substring(0, name.length - 4),
+			(await this.mod.storyTree.getStoryTreeNodeChildren(name)).map((value) => value.node)
+		);
+		this.server.connection.sendNotification(notificationFilesChanged);
+	};
 
 	private readonly handleGetInheritedGoalContent = async (
 		params: RequestGetInheritedGoalContentParams
@@ -131,6 +170,8 @@ export class ModManager extends ComponentBase {
 	};
 
 	//#region Story Tree
+
+	// TODO: Test this for edge cases (adding a node to a deleted file)
 
 	/**
 	 * The handler for the {@link requestGetStoryTreeNodeChildren} request.
@@ -193,8 +234,7 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * The handler for the {@link requestAddStoryTreeNode} request.
-	 * Adds a node to the story tree and writes a new file to the mod's
-	 * goal path with initial Osiris.
+	 * Writes a new file to the mod's goal path with initial Osiris.
 	 *
 	 * @param params The {@link RequestAddStoryTreeNodeParams} for the request.
 	 * @returns A {@link RequestAddStoryTreeNodeResult} instance.
@@ -202,12 +242,11 @@ export class ModManager extends ComponentBase {
 	private readonly handleAddStoryTreeNode = async (
 		params: RequestAddStoryTreeNodeParams
 	): Promise<RequestAddStoryTreeNodeResult> => {
+		// Creating the node and resource is handled by file watcher listener this.handleCreateFile
 		if (!this.mod) return {};
-		await this.mod.storyTree.addStoryTreeNode(params.parent, params.name);
 		const path = join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`);
 		const content = `Version 1\r\nSubGoalCombiner SGC_AND\r\nINITSECTION\r\n\r\nKBSECTION\r\n\r\nEXITSECTION\r\n\r\nENDEXITSECTION\r\n${params.parent === "" ? "" : `ParentTargetEdge "${params.parent}"`}`;
 		writeFileSync(path, content, { encoding: "utf-8" });
-		await this.createResource(`${params.name}.txt`, path);
 		return { path };
 	};
 
@@ -242,16 +281,13 @@ export class ModManager extends ComponentBase {
 
 	/**
 	 * The handler for the {@link requestDeleteStoryTreeNode} request.
-	 * Deletes a goal from the mod. Removes the node from the story tree and
-	 * deletes the associated file from the mod.
+	 * Deletes a goal from the mod.
 	 *
 	 * @param params The {@link RequestDeleteStoryTreeNodeParams} for the request.
 	 */
 	private readonly handleDeleteStoryTreeNode = async (params: RequestDeleteStoryTreeNodeParams) => {
 		if (!this.mod) return;
-		await this.mod.storyTree.deleteStoryTreeNode(params.name);
 		rmSync(join(this.mod.path, this.mod.goalSubdirectory, `${params.name}.txt`));
-		this.mod.removeGoalResource(`${params.name}.txt`, "name");
 	};
 
 	/**
@@ -390,7 +426,7 @@ export class ModManager extends ComponentBase {
 
 	async createResource(name: string, path: string) {
 		if (this.mod) {
-			await this.mod.createGoalResource(name, path);
+			return await this.mod.createGoalResource(name, path);
 		}
 	}
 

@@ -184,6 +184,7 @@ export class Mod {
 		await resource.load();
 		this.goals.push(resource);
 		this.manager.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
+		return resource;
 	}
 
 	getInheritedGoalOwner(goalName: string): Dependency | undefined {

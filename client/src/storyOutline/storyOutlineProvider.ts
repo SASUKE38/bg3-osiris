@@ -15,6 +15,7 @@ import {
 	workspace
 } from "vscode";
 import {
+	notificationFilesChanged,
 	requestAddStoryTreeNode,
 	RequestAddStoryTreeNodeParams,
 	RequestAddStoryTreeNodeResult,
@@ -41,6 +42,7 @@ import {
 import { ComponentBase } from "../componentBase";
 import { Client, clients } from "../extension";
 import { InheritedGoalContentProvider } from "./inheritedGoalContentProvider";
+import { LanguageClient } from "vscode-languageclient/node";
 
 export class StoryItem extends TreeItem {
 	public contextValue: "overriden" | "inherited" | "root";
@@ -102,6 +104,10 @@ export class StoryOutlineProvider
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.OverrideGoal", this.handleOverrideGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.DeleteGoal", this.handleDeleteGoal));
 		context.subscriptions.push(commands.registerCommand("bg3Osiris.RenameGoal", this.handleRenameGoal));
+	}
+
+	initializeComponent(connection: LanguageClient): void {
+		connection.onNotification(notificationFilesChanged, () => this.refresh());
 	}
 
 	public async handleDrag(source: readonly StoryItem[], dataTransfer: DataTransfer): Promise<void> {

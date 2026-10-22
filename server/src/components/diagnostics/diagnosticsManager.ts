@@ -8,7 +8,6 @@ import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
 import { GoalArrangementAnalyzer } from "./analyzers/goalArrangementAnalyzer";
 import { RuleAnalyzer } from "./analyzers/ruleAnalyzer";
 import { ParameterAnalyzer } from "./analyzers/parameterAnalyzer";
-import { watch } from "fs";
 
 /*
 === Header Only ===
@@ -37,6 +36,7 @@ UnresolvedTypeInSignature 6
 
 TODO: Figure out how to handle orphans with databases
 TODO: Delete this comment
+TODO: Clear diagnostics for deleted files
 
 -- Symbol Resolving --
 *UnresolvedSymbol 19
@@ -48,13 +48,13 @@ TODO: Delete this comment
 *RiskyComparison 34
 
 -- Parameters --
-UnresolvedVariableType 9
-UnresolvedSignature 10
-LocalTypeMismatch 11
+*UnresolvedVariableType 9
+*UnresolvedSignature 10
+*LocalTypeMismatch 11
 *ParamNotBound 24
-ProcTypeMismatch 30
-CastToUnrelatedType 31
-CastToUnrelatedGuidAlias 32
+*ProcTypeMismatch 30
+*CastToUnrelatedType 31
+*CastToUnrelatedGuidAlias 32
 
 === Unknown or Not Possible in Context ===
 SignatureAlreadyDefined 5
@@ -124,7 +124,7 @@ export class DiagnosticManager extends ComponentBase {
 				if (visited.has(referencedFile)) continue;
 				const referencedResource = this.server.modManager.findGoalResource(referencedFile);
 				if (!referencedResource) continue;
-				this.handleDiagnostics(referencedResource.getTextDocument())
+				this.handleDiagnostics(referencedResource.getTextDocument());
 				visited.add(referencedFile);
 			}
 		}
