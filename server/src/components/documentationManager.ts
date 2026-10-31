@@ -90,7 +90,7 @@ export class DocumentationManager extends ComponentBase {
 	 * @param documentationEntry The entry to search in.
 	 * @returns The signature's label.
 	 */
-	private getSignatureLabel(signature: Signature, documentationEntry?: DocumentationEntry): string | undefined {
+	getSignatureLabel(signature: Signature, documentationEntry?: DocumentationEntry): string | undefined {
 		if (documentationEntry) {
 			const definitions = this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"));
 			const res = definitions.find((definition) => {

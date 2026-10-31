@@ -1,6 +1,7 @@
 import {
 	Connection,
 	MarkupKind,
+	ParameterInformation,
 	Position,
 	ServerCapabilities,
 	SignatureHelp,
@@ -12,6 +13,7 @@ import { decodePath } from "../utils/pathUtils";
 import { ASTNodeKind, SignatureNode } from "../parser/ast/nodes";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { SignatureCollection } from "../mods/signature";
+import { DocumentationEntry } from "./documentationManager";
 
 /**
  * Server component that manages Signature Help.
@@ -95,14 +97,18 @@ export class SignatureHelpProvider extends ComponentBase {
 			.getSignatureDocumentationBody(documentationEntry)
 			.join("\n");
 		return allItems.map((value) => {
+			const label = this.server.documentationManager.getSignatureLabel(value, documentationEntry);
 			return {
-				label: value.toReadableString(false, true, signatures),
-				documentation: documentation === "" ? undefined : { kind: MarkupKind.Markdown, value: documentation },
-				parameters: value.parameters.map((parameter, i) => {
-					return {
-						label: `(${parameter})_${i + 1}`
-					};
-				})
+				label: label && documentationEntry ? label : value.toReadableString(false, true, signatures),
+				documentation: documentationEntry ? { kind: MarkupKind.Markdown, value: documentation } : undefined,
+				parameters:
+					label && documentationEntry
+						? this.getParameterInformationFromDocumentation(value.name, label, documentationEntry)
+						: value.parameters.map((parameter, i) => {
+								return {
+									label: `(${parameter})_${i + 1}`
+								};
+							})
 			};
 		});
 	}
@@ -148,5 +154,26 @@ export class SignatureHelpProvider extends ComponentBase {
 		}
 
 		return res;
+	}
+
+	/**
+	 * Returns an {@link Array} of {@link ParameterInformation} instances constructed from the given
+	 * signature's documentation.
+	 *
+	 * @param name The signature's name.
+	 * @param definition The full definition of this signature.
+	 * @param entry The {@link DocumentationEntry} for this signature.
+	 * @returns
+	 */
+	private getParameterInformationFromDocumentation(
+		name: string,
+		definition: string,
+		entry: DocumentationEntry
+	): ParameterInformation[] {
+		return definition.split(",").map((value, i) => {
+			value = value.trim();
+			value = value.endsWith(")") ? value.substring(0, value.length - 1) : value;
+			return { label: i === 0 ? value.substring(entry.type.length + name.length + 2) : value };
+		});
 	}
 }
