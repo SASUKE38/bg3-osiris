@@ -1,10 +1,10 @@
-process.env.EDGE_USE_CORECLR = "1";
+import "./edgeEnv";
 import * as edge from "electron-edge-js";
 import { join } from "path";
 import { Story } from "../mods/story";
 
 const extractFromPakCall = edge.func({
-	assemblyFile: join(__dirname, "..", "external", "BG3OsirisReader.dll"),
+	assemblyFile: join(__dirname, "external", "BG3OsirisReader.dll"),
 	typeName: "BG3OsirisReader.PackageExtractor",
 	methodName: "Extract"
 });
@@ -24,7 +24,7 @@ export async function extractFromPak(packagePath: string, fileName: string): Pro
 }
 
 const extractStoryCall = edge.func({
-	assemblyFile: join(__dirname, "..", "external", "BG3OsirisReader.dll"),
+	assemblyFile: join(__dirname, "external", "BG3OsirisReader.dll"),
 	typeName: "BG3OsirisReader.StoryExtractor",
 	methodName: "Invoke"
 });
@@ -39,7 +39,7 @@ export async function extractStory(storyPath: string): Promise<Story> {
 }
 
 const extractPathsInPackageCall = edge.func({
-	assemblyFile: join(__dirname, "..", "external", "BG3OsirisReader.dll"),
+	assemblyFile: join(__dirname, "external", "BG3OsirisReader.dll"),
 	typeName: "BG3OsirisReader.PackageExtractor",
 	methodName: "GetPaths"
 });

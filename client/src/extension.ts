@@ -76,7 +76,7 @@ function tryRegisterProviders(context: ExtensionContext, connection: LanguageCli
 export class Client {
 	readonly id: string = "bg3-osiris-language-client";
 	readonly name: string = "BG3 Osiris";
-	readonly serverPath: string = join("server", "out", "server.js");
+	readonly serverPath: string = join("dist", "server", "src", "server.js");
 	readonly folder: WorkspaceFolder;
 	private intialized = false;
 	context: ExtensionContext;

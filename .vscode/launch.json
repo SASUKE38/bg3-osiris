@@ -7,16 +7,9 @@
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-			"outFiles": [
-				"${workspaceRoot}/client/out/**/*.js",
-				"${workspaceRoot}/server/out/**/*.js",
-				"${workspaceRoot}/shared/out/**/*.js"
-			],
+			"outFiles": ["${workspaceRoot}/dist/client/**/*.js", "${workspaceRoot}/dist/server/**/*.js"],
 			"autoAttachChildProcesses": true,
-			"preLaunchTask": {
-				"type": "npm",
-				"script": "watch"
-			}
+			"preLaunchTask": "watch"
 		},
 		{
 			"name": "Language Server E2E Test",

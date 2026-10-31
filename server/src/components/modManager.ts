@@ -1,4 +1,4 @@
-import { Connection, CreateFilesParams, DeleteFilesParams, ServerCapabilities, TextEdit } from "vscode-languageserver";
+import { Connection, ServerCapabilities, TextEdit } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "../mods/mod";
 import { join, sep } from "path";
