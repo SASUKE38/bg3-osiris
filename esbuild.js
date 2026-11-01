@@ -32,6 +32,18 @@ async function main() {
 					to: ["./server/src"]
 				},
 				watch: true
+			}),
+			copy({
+				assets: {
+					from: ["./node_modules/electron-edge-js/**/*"],
+					to: ["./node_modules/electron-edge-js"]
+				}
+			}),
+			copy({
+				assets: {
+					from: ["./node_modules/edge-cs/**/*"],
+					to: ["./node_modules/edge-cs"]
+				}
 			})
 		]
 	});
