@@ -1,5 +1,5 @@
 import { readFileSync, rmSync } from "fs";
-import { extractFromPak, extractPathsInPackage, extractStory } from "../utils/edge";
+import { extractFromPak, extractStory } from "../utils/edge";
 import { Function, Story } from "./story";
 import { DependencyMetaCollectionEntry } from "./mod";
 
@@ -24,16 +24,13 @@ export class Dependency {
 			this.readOrphanFile(`${this.internalPath}/Story/story_orphanqueries_ignore_local.txt`, this.ignoredOrphans);
 			this.readOrphanFile(`${this.internalPath}/Story/story_orphanqueries_found.txt`, this.foundOrphans);
 
-			const goalNames = (await extractPathsInPackage(this.path, `${this.internalPath}/Story/RawFiles/Goals`)).map(
-				(value) => value.substring(0, value.length - 4)
-			);
-			const osiPath = (await extractFromPak(this.path, `${this.internalPath}/Story/story.div.osi`))
-				.OutputPaths[0];
-			if (osiPath) {
-				await this.initializeWithStory(goalNames, osiPath);
+			const osiExtractionResult = await extractFromPak(this.path, `${this.internalPath}/Story/story.div.osi`);
+			if (osiExtractionResult.OutputPaths) {
+				const osiPath = osiExtractionResult.OutputPaths[0];
+				await this.initializeWithStory(osiPath);
+				rmSync(osiPath);
 			} else {
 				this.goalParents = new Map<string, string>();
-				await this.initializeWithoutStory(goalNames);
 			}
 		} catch (error) {
 			console.error(`An error occurred while initializing dependency ${this.path}: ${error}`);
@@ -41,6 +38,8 @@ export class Dependency {
 	}
 
 	private async readOrphanFile(name: string, orphanCollection: string[]) {
+		const extractionResult = await extractFromPak(this.path, name);
+		if (!extractionResult.OutputPaths) return;
 		const orphanPath = (await extractFromPak(this.path, name)).OutputPaths[0];
 		if (!orphanPath) return;
 
@@ -52,31 +51,9 @@ export class Dependency {
 		rmSync(orphanPath);
 	}
 
-	private async initializeWithoutStory(goalNames: string[]) {
-		for (let i = 0; i < goalNames.length; i++) {
-			this.activeGoals.set(i, goalNames[i]);
-			const goalPath = await extractFromPak(
-				this.path,
-				`${this.internalPath}/Story/RawFiles/Goals/${goalNames[i]}.txt`
-			);
-
-			const matched = readFileSync(goalPath.OutputPaths[0], { encoding: "utf-8" }).match(
-				/ParentTargetEdge ("[a-zA-Z0-9_-]*")?/
-			);
-			if (matched) {
-				const parent = matched[0].split(" ")[1];
-				this.goalParents?.set(goalNames[i], parent.substring(1, parent.length - 1));
-			} else {
-				this.goalParents?.set(goalNames[i], "");
-			}
-
-			rmSync(goalPath.OutputPaths[0]);
-		}
-	}
-
-	private async initializeWithStory(goalNames: string[], osiPath: string) {
+	private async initializeWithStory(osiPath: string) {
 		this.story = await extractStory(osiPath);
-		rmSync(osiPath);
+		const goalNames = Object.values(this.story.goals).map((value) => value.Name);
 
 		for (const node of Object.values(this.story.nodes)) {
 			if (!node.ReferencedBy) continue;

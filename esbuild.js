@@ -28,10 +28,9 @@ async function main() {
 			}),
 			copy({
 				assets: {
-					from: ["./server/src/components/builtInDocumentation.json"],
-					to: ["./server/src"]
-				},
-				watch: true
+					from: ["./server/src/resources/**/*"],
+					to: ["./server/src/resources"]
+				}
 			}),
 			copy({
 				assets: {

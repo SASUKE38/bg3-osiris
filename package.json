@@ -177,46 +177,33 @@
 				"bg3Osiris.dependencyPaths": {
 					"scope": "machine",
 					"type": "array",
+					"markdownDescription": "Directories to search in when looking for `.pak` files for mod dependencies. For example, the `.../Baldurs Gate 3/Data`.",
 					"items": {
 						"type": "string",
 						"title": "Path"
-					},
-					"description": "Directories to search in when looking for dependencies."
+					}
 				},
-				"bg3Osiris.baseMods": {
-					"scope": "window",
+				"bg3Osiris.baseMods.game": {
+					"type": "string",
+					"markdownDescription": "Mods to always load regardless of the dependencies listed in a mod's metadata. Prebundled game-specific libraries currently only include Baldur's Gate 3.",
+					"enum": [
+						"Baldur's Gate 3",
+						"Custom Only",
+						"None"
+					],
+					"markdownEnumDescriptions": [
+						"Baldur's Gate 3 base mods. Includes Shared, SharedDev, Gustav, and GustavDev.",
+						"Only load the mods in `#bg3Osiris.baseMods.customPaths#`.",
+						"Load no base mods. Only the mods in the mod's dependency list will be loaded."
+					],
+					"default": "Baldur's Gate 3"
+				},
+				"bg3Osiris.baseMods.customPaths": {
 					"type": "array",
+					"markdownDescription": "Paths to `.pak` files to always load regardless of a mod's dependencies. Will be loaded in addition to the selection in `#bg3Osiris.baseMods.game#` unless None is chosen.",
 					"items": {
-						"type": "object",
-						"properties": {
-							"pakName": {
-								"type": "string"
-							},
-							"contents": {
-								"type": "array",
-								"items": {
-									"type": "string"
-								}
-							}
-						},
-						"additionalProperties": false
-					},
-					"default": [
-						{
-							"pakName": "Shared.pak",
-							"contents": [
-								"Shared",
-								"SharedDev"
-							]
-						},
-						{
-							"pakName": "Gustav.pak",
-							"contents": [
-								"Gustav",
-								"GustavDev"
-							]
-						}
-					]
+						"type": "string"
+					}
 				}
 			}
 		}

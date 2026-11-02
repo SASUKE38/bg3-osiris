@@ -2,13 +2,12 @@ import { ModMetaModuleInfo, ModMetaModuleShortDesc } from "./modMeta";
 import { existsSync, readdirSync, rmSync } from "fs";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
-import { join, sep } from "path";
+import { join } from "path";
 import { extractFromPak } from "../utils/edge";
 import { ModManager } from "../components/modManager";
 import { readdir } from "fs/promises";
 import { Dependency } from "./dependency";
 import { FunctionSignature } from "./story";
-import { BaseModConfiguration } from "../utils/configurationSchema";
 import { Signature, SignatureCollection } from "./signature";
 import { HeaderResource } from "./resource/headerResource";
 
@@ -65,6 +64,8 @@ export class Mod {
 			this.header = new HeaderResource(this, "story_header.div", headerPath);
 		}
 	}
+
+	//#region Loading
 
 	/**
 	 * Initializes this {@link Mod}.
@@ -158,6 +159,8 @@ export class Mod {
 		});
 	}
 
+	//#endregion
+
 	getGoalResource(searchTerm: string, query: "path" | "name" = "path"): GoalResource | undefined {
 		return this.goals.find((file) => file[query] === searchTerm);
 	}
@@ -191,6 +194,64 @@ export class Mod {
 		return this.inheritedGoals.get(goalName)?.owner;
 	}
 
+	//#region Dependency Searching
+
+	private async getMetasFromPaks(files: string[]): Promise<Map<string, DependencyMetaCollectionEntry>> {
+		const res = new Map<string, DependencyMetaCollectionEntry>();
+		for (const file of files) {
+			if (!file.endsWith(".pak")) continue;
+
+			try {
+				const pakMetas = await extractFromPak(file, "meta.lsx");
+
+				for (let i = 0; i < pakMetas.OutputPaths.length; i++) {
+					const pakMeta = pakMetas.OutputPaths[i];
+					const internalPath = pakMetas.Files[i].split("/");
+					internalPath.pop();
+
+					const moduleInfo = this.manager.readModMeta(pakMeta);
+					if (moduleInfo)
+						res.set(moduleInfo.uuid, {
+							path: file,
+							internalPath: internalPath ? internalPath.join("/") : "",
+							meta: moduleInfo
+						});
+					rmSync(pakMeta);
+				}
+			} catch (error) {
+				console.error(`An error occurred while unpacking the meta.lsx file for ${file}: ${error}`);
+			}
+		}
+		return res;
+	}
+
+	private async handleBaseMods(handledUUIDs: Set<string>): Promise<DependencyMetaCollectionEntry[]> {
+		const res: DependencyMetaCollectionEntry[] = [];
+		const { workspace } = this.manager.server.connection;
+		const library: string = await workspace.getConfiguration("bg3Osiris.baseMods.game");
+		if (library === "None") return res;
+
+		const customLibraries: string[] = await workspace.getConfiguration("bg3Osiris.baseMods.customPaths");
+		(await this.getMetasFromPaks(customLibraries)).forEach((value) => {
+			res.push(value);
+		});
+
+		if (library === "Custom Only") return res;
+		switch (library) {
+			case "Baldur's Gate 3":
+				// TODO: Add orphan files to this
+				res.push({ path: join(__dirname, "resources", "libraries", "bg3.pak"), internalPath: "Mods/bg3" });
+				handledUUIDs.add("ed539163-bb70-431b-96a7-f5b2eda5376b");
+				handledUUIDs.add("28ac9ce2-2aba-8cda-b3b5-6e922f71b6b8");
+				handledUUIDs.add("991c9c7a-fb80-40cb-8f0d-b92d4e80e9b1");
+				handledUUIDs.add("3d0c5ff8-c95d-c907-ff3e-34b204f1c630");
+				break;
+			default:
+				break;
+		}
+		return res;
+	}
+
 	/**
 	 * Gets a collection of paths to the mod's dependencies.
 	 *
@@ -209,73 +270,35 @@ export class Mod {
 				});
 			})
 			.flat(1);
-		const baseMods: BaseModConfiguration[] = await workspace.getConfiguration("bg3Osiris.baseMods");
-		const baseModMapping = new Map<string, string[]>();
-		baseMods.forEach((value) => baseModMapping.set(value.pakName, value.contents));
-		const baseModNames: string[] = [];
-		Array.from(baseModMapping.values()).forEach((value) => baseModNames.push(...value));
-		const metaCollection = new Map<string, DependencyMetaCollectionEntry>();
-
-		for (const file of files) {
-			if (!file.endsWith(".pak")) continue;
-
-			const fileName = file.split(sep).pop();
-			if (fileName && baseModMapping.has(fileName)) continue;
-
-			try {
-				const pakMetas = await extractFromPak(file, "meta.lsx");
-
-				for (let i = 0; i < pakMetas.OutputPaths.length; i++) {
-					const pakMeta = pakMetas.OutputPaths[i];
-					const internalPath = pakMetas.Files[i].split("/");
-					internalPath.pop();
-
-					const moduleInfo = this.manager.readModMeta(pakMeta);
-					if (moduleInfo)
-						metaCollection.set(moduleInfo.uuid, {
-							path: file,
-							internalPath: internalPath ? internalPath.join("/") : "",
-							meta: moduleInfo
-						});
-					rmSync(pakMeta);
-				}
-			} catch (error) {
-				console.error(`An error occurred while unpacking the meta.lsx file for ${file}: ${error}`);
-			}
-		}
+		const metaCollection = await this.getMetasFromPaks(files);
+		const handledSet = new Set<string>();
 
 		function doMetaSearch(dependencies: ModMetaModuleShortDesc[]) {
 			for (const dependency of dependencies) {
-				if (baseModNames.find((value) => value === dependency.name)) continue;
+				if (handledSet.has(dependency.uuid)) continue;
 				if (!metaCollection.has(dependency.uuid)) {
 					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
 					continue;
 				}
 				const metaEntry = metaCollection.get(dependency.uuid) as DependencyMetaCollectionEntry;
-				if (metaEntry.meta?.dependencies) doMetaSearch(metaEntry.meta.dependencies);
+				if (metaEntry.meta?.dependencies) {
+					doMetaSearch(metaEntry.meta.dependencies);
+					handledSet.add(dependency.uuid);
+				}
 
 				res.push(metaEntry);
 			}
 		}
 
-		for (const fileKey of baseModMapping.keys()) {
-			const path = files.find((value) => value.split(sep).pop() === fileKey);
-			if (!path) continue;
-
-			for (const internalName of baseModMapping.get(fileKey) as string[]) {
-				if (path) {
-					res.push({
-						path,
-						internalPath: `Mods/${internalName}`
-					});
-				}
-			}
-		}
+		const baseMods = await this.handleBaseMods(handledSet);
+		res.push(...baseMods);
 
 		doMetaSearch(meta.dependencies);
 
 		return res;
 	}
+
+	//#endregion
 
 	//#region Types
 

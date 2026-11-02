@@ -31,7 +31,7 @@ export class DocumentationEntry {
 export class DocumentationManager extends ComponentBase {
 	private readonly documentationCollection = this.readDocumentationCollection();
 
-	private static readonly collectionPath = join(__dirname, "builtInDocumentation.json");
+	private static readonly collectionPath = join(__dirname, "resources", "data", "builtInDocumentation.json");
 
 	getCapabilities(): Partial<ServerCapabilities> {
 		return {};
