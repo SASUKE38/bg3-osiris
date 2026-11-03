@@ -105,19 +105,25 @@ export class GoalParser extends ParserBase<GoalNode> {
 	}
 
 	private parseGoalFooter(): GoalFooterNode | undefined {
-		if (this.peek().type !== TokenType.PARENT_TARGET_EDGE) return undefined;
+		const token = this.peek();
+		if (token.type !== TokenType.PARENT_TARGET_EDGE) return undefined;
+		const rangeStart = token.range.start;
 
-		const parentTargetEdge = this.consume({ expectedType: [TokenType.PARENT_TARGET_EDGE] });
-		const parent = this.consume({ expectedType: [TokenType.STRING] });
-		return new GoalFooterNode(
-			parent.matched
-				? new StringNode(parent.token.value, parent.token.range)
-				: new UnknownNode(parent.token.range),
-			{
-				start: parentTargetEdge.token.range.start,
-				end: parent.token.range.end
-			}
-		);
+		const parents: ASTNode[] = [];
+		while (this.peek().type !== TokenType.EOF) {
+			const parentTargetEdge = this.consume({ expectedType: [TokenType.PARENT_TARGET_EDGE] });
+			const parent = this.consume({ expectedType: [TokenType.STRING] });
+			parents.push(
+				parent.matched && parentTargetEdge.matched
+					? new StringNode(parent.token.value, parent.token.range)
+					: new UnknownNode(parent.token.range)
+			);
+		}
+
+		return new GoalFooterNode(parents, {
+			start: rangeStart,
+			end: parents.length > 0 ? parents[parents.length - 1].range.end : rangeStart
+		});
 	}
 
 	private getRuleType(ruleStart: Token): "PROC" | "QRY" | "IF" {

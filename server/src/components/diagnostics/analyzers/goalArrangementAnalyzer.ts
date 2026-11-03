@@ -8,42 +8,47 @@ export class GoalArrangementAnalyzer extends AnalyzerBase {
 		const res: Diagnostic[] = [];
 		const root = await this.resource.getRootNode();
 		if (!root || root.kind !== ASTNodeKind.GOAL_NODE) return res;
-		const parentCheck = await this.verifyParentExists();
-		if (parentCheck) res.push(parentCheck);
-		const nameCheck = await this.verifyUniqueName();
-		if (nameCheck) res.push(nameCheck);
+		await this.verifyParentsExist(res);
+		await this.verifyUniqueName(res);
 		return res;
 	}
 
 	// UnresolvedGoal 8
-	async verifyParentExists(): Promise<Diagnostic | undefined> {
+	async verifyParentsExist(res: Diagnostic[]) {
 		const root = await this.resource.getRootNode();
 		if (!root || root.kind !== ASTNodeKind.GOAL_NODE) return;
-		const parentTargetEdge = (root as GoalNode).footer?.parentTargetEdge;
-		if (!parentTargetEdge || parentTargetEdge.kind !== ASTNodeKind.STRING_NODE) return;
-		const searchName = (parentTargetEdge as StringNode).value;
-		if (
-			searchName !== "" &&
-			!this.modManager.mod?.getGoalResource(`${searchName}.txt`, "name") &&
-			!this.modManager.mod?.getInheritedGoalOwner(searchName)
-		) {
-			return unresolvedGoalDiagnosticFactory({
-				range: (parentTargetEdge as StringNode).selectionRange,
-				name: (parentTargetEdge as StringNode).value
-			});
+		const parents = (root as GoalNode).footer?.parents;
+		if (!parents) return;
+		for (const parent of parents) {
+			if (parent.kind !== ASTNodeKind.STRING_NODE) continue;
+			const searchName = (parent as StringNode).value;
+			if (
+				searchName !== "" &&
+				!this.modManager.mod?.getGoalResource(`${searchName}.txt`, "name") &&
+				!this.modManager.mod?.getInheritedGoalOwner(searchName)
+			) {
+				res.push(
+					unresolvedGoalDiagnosticFactory({
+						range: (parent as StringNode).selectionRange,
+						name: (parent as StringNode).value
+					})
+				);
+			}
 		}
 	}
 
 	// GoalAlreadyDefined 7
-	async verifyUniqueName(): Promise<Diagnostic | undefined> {
+	async verifyUniqueName(res: Diagnostic[]) {
 		const resources = this.modManager.getAllResources();
 		for (const resource of resources) {
 			const filtered = resources.filter((value) => value.name === resource.name);
 			if (filtered.length > 1) {
-				return goalAlreadyDefinedDiagnosticFactory({
-					range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-					name: resource.name
-				});
+				res.push(
+					goalAlreadyDefinedDiagnosticFactory({
+						range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+						name: resource.name
+					})
+				);
 			}
 		}
 	}

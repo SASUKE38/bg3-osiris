@@ -35,7 +35,7 @@ export class GoalResource extends Resource {
 	readonly kind: ResourceKind = ResourceKind.Goal;
 	protected symbols: DocumentSymbol[] = [];
 	protected document: TextDocument;
-	parent = "";
+	parents: string[] = [];
 
 	constructor(mod: Mod, name: string, path: string) {
 		super(mod, name, path);
@@ -74,10 +74,16 @@ export class GoalResource extends Resource {
 			const root = parser.parse();
 			thisArg.ast = root;
 			thisArg.diagnostics = parser.diagnostics;
-			thisArg.parent =
-				root.footer?.parentTargetEdge.kind === ASTNodeKind.STRING_NODE
-					? (root.footer?.parentTargetEdge as StringNode).value
-					: "";
+
+			thisArg.parents = [];
+			if (!root.footer) {
+				thisArg.parents.push("");
+			} else {
+				for (const parent of root.footer.parents) {
+					if (parent.kind !== ASTNodeKind.STRING_NODE) continue;
+					thisArg.parents.push((parent as StringNode).value);
+				}
+			}
 		}
 
 		if (this.document) {

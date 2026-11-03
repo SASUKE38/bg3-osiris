@@ -167,15 +167,17 @@ export class GoalNode extends ASTNode {
 
 export class GoalFooterNode extends ASTNode {
 	kind = ASTNodeKind.GOAL_FOOTER_NODE;
-	parentTargetEdge: ASTNode;
+	parents: ASTNode[];
 
-	constructor(parentTargetEdge: ASTNode, range: Range) {
-		super(range, parentTargetEdge.range);
-		this.parentTargetEdge = parentTargetEdge;
+	constructor(parentTargetEdge: ASTNode[], range: Range) {
+		super(range, range);
+		this.parents = parentTargetEdge;
 	}
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
-		yield this.parentTargetEdge;
+		for (const parent of this.parents) {
+			yield parent;
+		}
 	}
 }
 

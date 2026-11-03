@@ -1,4 +1,4 @@
-import { Connection, ServerCapabilities, TextEdit } from "vscode-languageserver";
+import { Connection, Position, ServerCapabilities, TextEdit } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { Mod } from "../mods/mod";
 import { join, sep } from "path";
@@ -53,7 +53,7 @@ import {
 	RequestTestStoryTreeNameResult
 } from "bg3-osiris-shared";
 import { extractFromPak } from "../utils/edge";
-import { ASTNodeKind, GoalNode } from "../parser/ast/nodes";
+import { ASTNodeKind, GoalNode, StringNode } from "../parser/ast/nodes";
 import { GoalResource } from "../mods/resource/goalResource";
 import { FSWatcher, watch } from "chokidar";
 
@@ -135,7 +135,7 @@ export class ModManager extends ComponentBase {
 		const resource = await this.createResource(name, path);
 		if (!resource) return;
 		this.mod.storyTree.addStoryTreeNode(
-			resource.parent,
+			resource.parents,
 			name.substring(0, name.length - 4),
 			(await this.mod.storyTree.getStoryTreeNodeChildren(name)).map((value) => value.node)
 		);
@@ -327,18 +327,19 @@ export class ModManager extends ComponentBase {
 			});
 			const edits: Record<string, TextEdit[]> = {};
 			for (const resource of childResources) {
-				if (
-					!resource ||
-					resource.kind !== ResourceKind.Goal ||
-					(resource as GoalResource).parent !== params.oldName
-				)
-					continue;
-				const footer = ((await resource.getRootNode()) as GoalNode).footer;
-				if (!footer || footer.parentTargetEdge.kind != ASTNodeKind.STRING_NODE) continue;
-
-				const edit = await this.getParentTargetEdgeEdit(resource as GoalResource, params.targetName);
-				if (!edit) continue;
-				Object.assign(edits, edit);
+				const footer = ((await resource?.getRootNode()) as GoalNode).footer;
+				if (!resource || resource.kind !== ResourceKind.Goal || !footer) continue;
+				for (const parent of footer.parents) {
+					if (parent.kind !== ASTNodeKind.STRING_NODE || (parent as StringNode).value !== params.oldName)
+						continue;
+					const edit = await this.getParentTargetEdgeRenameEdit(
+						resource as GoalResource,
+						params.targetName,
+						params.oldName
+					);
+					if (!edit) continue;
+					Object.assign(edits, edit);
+				}
 			}
 			this.server.connection.workspace.applyEdit({ changes: edits });
 		}
@@ -356,46 +357,42 @@ export class ModManager extends ComponentBase {
 		await this.mod.storyTree.moveStoryTreeNode(params.targetName, params.sourceName);
 		const resource = this.mod.getGoalResource(`${params.sourceName}.txt`, "name");
 		if (!resource || resource.kind !== ResourceKind.Goal) return;
-		const edit = await this.getParentTargetEdgeEdit(resource as GoalResource, params.targetName, true);
+		const edit = await this.getParentTargetEdgeMoveEdit(resource as GoalResource, params.targetName);
 		if (!edit) return;
 		this.server.connection.workspace.applyEdit({ changes: edit });
 	};
 
-	/**
-	 * Modifies a resource so that its underlying file contains the syntactically correct ParentTargetEdge
-	 * string for a given parent.
-	 *
-	 * @param resource The {@link GoalResource} to update.
-	 * @param targetName The name of the new parent.
-	 * @param insert Whether to insert the string "ParentTargetEdge" into the file if it is not present.
-	 * @returns The edit with the modified parent. To be passed to workspace.applyEdit.
-	 */
-	private async getParentTargetEdgeEdit(
-		resource: GoalResource,
-		targetName: string,
-		insert = false
-	): Promise<Record<string, TextEdit[]> | undefined> {
+	private async getParentTargetEdgeMoveEdit(resource: GoalResource, targetName: string) {
 		const edit: Record<string, TextEdit[]> = {};
 		const root = (await resource.getRootNode()) as GoalNode;
 		const encodedPath = encodePath(resource.path);
-		if (!root.footer) {
-			if (!insert || targetName === "") return;
-			const position = root.exit.range.end;
-			position.line += 1;
-			position.character = 0;
-			edit[encodedPath] = [TextEdit.insert(position, `ParentTargetEdge "${targetName}"`)];
-		} else {
-			if (root.footer.parentTargetEdge.kind !== ASTNodeKind.STRING_NODE) return;
-			if (targetName === "") {
-				const range = root.footer.range;
-				edit[encodedPath] = [TextEdit.del(range)];
-			} else {
-				const range = root.footer.parentTargetEdge.range;
-				range.start.character += 1;
-				range.end.character -= 1;
-				edit[encodedPath] = [TextEdit.replace(range, targetName)];
-			}
+		edit[encodedPath] = [];
+		if (root.footer) {
+			edit[encodedPath].push(TextEdit.del(root.footer.range));
 		}
+		if (targetName !== "") {
+			const position = root.footer ? root.footer.range.start : Position.create(root.exit.range.end.line + 1, 0);
+			edit[encodedPath].push(TextEdit.insert(position, `ParentTargetEdge "${targetName}"`));
+		}
+		resource.invalidate();
+		return edit;
+	}
+
+	private async getParentTargetEdgeRenameEdit(resource: GoalResource, targetName: string, oldName: string) {
+		const edit: Record<string, TextEdit[]> = {};
+		const root = (await resource.getRootNode()) as GoalNode;
+		if (!root.footer) return edit;
+		const encodedPath = encodePath(resource.path);
+		edit[encodedPath] = [];
+
+		for (const parent of root.footer.parents) {
+			if (parent.kind !== ASTNodeKind.STRING_NODE || (parent as StringNode).value !== oldName) continue;
+			const range = (parent as StringNode).selectionRange;
+			range.end.character -= 1;
+			range.start.character += 1;
+			edit[encodedPath].push(TextEdit.replace(range, targetName));
+		}
+
 		resource.invalidate();
 		return edit;
 	}

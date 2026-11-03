@@ -27,7 +27,7 @@ export class StoryTree {
 
 		const handledGoals = new Set<string>();
 		this.nodeMapping.clear();
-		this.nodeMapping.set("", { children: [] });
+		this.nodeMapping.set("", { children: [], parents: [] });
 
 		function trimExtension(name: string) {
 			return name.endsWith(".txt") ? name.substring(0, name.length - 4) : name;
@@ -39,6 +39,7 @@ export class StoryTree {
 				if (goal) {
 					this.nodeMapping.set(goal.Name, {
 						children: [],
+						parents: [],
 						data: { name: goal.Name, dependency: value.path }
 					});
 				}
@@ -47,24 +48,31 @@ export class StoryTree {
 
 		resources.forEach((value) => {
 			const name = trimExtension(value.name);
-			this.nodeMapping.set(name, { children: [], data: { name } });
+			this.nodeMapping.set(name, { children: [], parents: [], data: { name } });
 		});
 
 		resources.forEach((value) => {
 			const name = trimExtension(value.name);
-			this.addToTree(name, value.parent);
+			for (const parent of value.parents) {
+				this.addToTree(name, parent);
+			}
 			handledGoals.add(name);
 		});
 
 		dependencies.reverse().forEach((value) => {
 			for (const entry of value.activeGoals.entries()) {
-				if (handledGoals.has(entry[1])) continue;
-				const parentReference = value.story?.goals[entry[0]].ParentGoals[0];
-				const parent = parentReference ? value.story?.goals[parentReference.Index].Name : "";
-				if (parent || parent === "") {
-					this.addToTree(entry[1], parent);
-					handledGoals.add(entry[1]);
+				if (handledGoals.has(entry[1]) || !value.story) continue;
+				if (value.story.goals[entry[0]].ParentGoals.length === 0) {
+					this.addToTree(entry[1], "");
+				} else {
+					for (const parentReference of value.story.goals[entry[0]].ParentGoals) {
+						const parent = parentReference ? value.story?.goals[parentReference.Index].Name : "";
+						if (parent || parent === "") {
+							this.addToTree(entry[1], parent);
+						}
+					}
 				}
+				handledGoals.add(entry[1]);
 			}
 		});
 		this.isReady = true;
@@ -88,7 +96,7 @@ export class StoryTree {
 		const childNode = this.nodeMapping.get(name);
 		if (parentNode && childNode) {
 			parentNode.children.push(childNode);
-			childNode.parent = parentNode.data?.name ? parentNode.data.name : "";
+			childNode.parents.push(parentNode.data?.name ? parentNode.data.name : "");
 		}
 	}
 
@@ -117,25 +125,27 @@ export class StoryTree {
 	/**
 	 * Adds a node to the story tree with the given parent and children.
 	 *
-	 * @param parent The parent of the new node.
+	 * @param parents The parents of the new node.
 	 * @param name The name of the node to add.
 	 * @param children Any children the node to add has.
 	 */
-	async addStoryTreeNode(parent: string, name: string, children: StoryTreeNode[] = []) {
+	async addStoryTreeNode(parents: string[], name: string, children: StoryTreeNode[] = []) {
 		await this.waitForReady();
-		const childNode: StoryTreeNode = { children, data: { name } };
-		const parentNode = this.nodeMapping.get(parent);
-		childNode.parent = parentNode?.data?.name ? parentNode.data.name : "";
-		this.nodeMapping.set(name, childNode);
-		if (!parentNode) {
-			console.error(`No goal with the name ${parent} could be found.`);
-			return;
+		const childNode: StoryTreeNode = { children, parents: [], data: { name } };
+		for (const parent of parents) {
+			const parentNode = this.nodeMapping.get(parent);
+			childNode.parents.push(parentNode?.data?.name ? parentNode.data.name : "");
+			if (!parentNode) {
+				console.error(`No goal with the name ${parent} could be found.`);
+				continue;
+			}
+			parentNode.children.push(childNode);
 		}
-		parentNode.children.push(childNode);
+		this.nodeMapping.set(name, childNode);
 	}
 
 	/**
-	 * Deletes a node from the story tree. References to this node in the parent
+	 * Deletes a node from the story tree. References to this node in the parents
 	 * and any children are removed.
 	 *
 	 * @param name The name of the node to delete.
@@ -143,19 +153,26 @@ export class StoryTree {
 	async deleteStoryTreeNode(name: string) {
 		await this.waitForReady();
 		const childNode = this.nodeMapping.get(name);
-		if (!childNode || childNode.parent === undefined) return;
+		if (!childNode || childNode.parents.length === 0) return;
 
-		const parentNode = this.nodeMapping.get(childNode.parent);
-		const childIndex = parentNode?.children.findIndex((value) => value.data?.name === name);
-		if (childIndex !== undefined) parentNode?.children.splice(childIndex, 1);
+		for (const parent of childNode.parents) {
+			const parentNode = this.nodeMapping.get(parent);
+			const childIndex = parentNode?.children.findIndex((value) => value.data?.name === name);
+			if (childIndex !== undefined) parentNode?.children.splice(childIndex, 1);
+		}
 
 		const dependency = this.mod.getInheritedGoalOwner(name);
 		if (dependency) {
 			const goal = Array.from(dependency.activeGoals.entries()).find((value) => value[1] === name);
-			if (!goal) return;
-			const parentReference = dependency.story?.goals[goal[0]].ParentGoals[0];
-			const parent = parentReference ? dependency.story?.goals[parentReference.Index].Name : "";
-			if (parent || parent === "") this.addToTree(goal[1], parent);
+			if (!goal || !dependency.story) return;
+			if (dependency.story.goals[goal[0]].ParentGoals.length === 0) {
+				this.addToTree(goal[1], "");
+			} else {
+				for (const parentReference of dependency.story.goals[goal[0]].ParentGoals) {
+					const parent = parentReference ? dependency.story?.goals[parentReference.Index].Name : "";
+					if (parent || parent === "") this.addToTree(goal[1], parent);
+				}
+			}
 		} else {
 			this.nodeMapping.delete(name);
 		}
@@ -173,7 +190,7 @@ export class StoryTree {
 		const node = this.nodeMapping.get(oldName);
 		await this.deleteStoryTreeNode(oldName);
 		if (!node) return;
-		await this.addStoryTreeNode(node.parent ? node.parent : "", targetName, node ? node.children : []);
+		await this.addStoryTreeNode(node.parents ? node.parents : [""], targetName, node ? node.children : []);
 	}
 
 	/**
@@ -187,6 +204,6 @@ export class StoryTree {
 		await this.waitForReady();
 		const node = this.nodeMapping.get(sourceName);
 		await this.deleteStoryTreeNode(sourceName);
-		await this.addStoryTreeNode(targetName, sourceName, node ? node.children : []);
+		await this.addStoryTreeNode([targetName], sourceName, node ? node.children : []);
 	}
 }
