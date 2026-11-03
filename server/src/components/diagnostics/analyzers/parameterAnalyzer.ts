@@ -274,11 +274,11 @@ export class ParameterAnalyzer extends AnalyzerBase {
 									searchType = "REAL";
 								break;
 							case ASTNodeKind.TYPE_ENUM_MEMBER_NODE:
-								searchType = (parameterNode.content as TypeEnumMemberNode).member;
+								searchType = (parameterNode.content as TypeEnumMemberNode).member.toLowerCase();
 								const enums = this.modManager.mod?.inheritedEnums.get(
 									(parameterNode.content as TypeEnumMemberNode).type
 								);
-								if (!enums?.members.find((value) => value === searchType)) {
+								if (!enums?.members.find((value) => value.toLowerCase() === searchType)) {
 									res.push(
 										unresolvedEnumMemberDiagnosticFactory({
 											range: parameterNode.selectionRange,

@@ -37,6 +37,7 @@ UnresolvedTypeInSignature 6
 TODO: Figure out how to handle orphans with databases
 TODO: Delete this comment
 TODO: Clear diagnostics for deleted files
+TODO: Allow multiple goal parents
 
 -- Symbol Resolving --
 *UnresolvedSymbol 19

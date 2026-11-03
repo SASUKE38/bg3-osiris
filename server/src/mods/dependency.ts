@@ -25,13 +25,13 @@ export class Dependency {
 			this.readOrphanFile(`${this.internalPath}/Story/story_orphanqueries_found.txt`, this.foundOrphans);
 
 			const osiExtractionResult = await extractFromPak(this.path, `${this.internalPath}/Story/story.div.osi`);
-			if (osiExtractionResult.OutputPaths) {
-				const osiPath = osiExtractionResult.OutputPaths[0];
-				await this.initializeWithStory(osiPath);
-				rmSync(osiPath);
-			} else {
-				this.goalParents = new Map<string, string>();
+			if (!osiExtractionResult.OutputPaths) {
+				console.error(`No story file found for {${this.path}.`);
+				return;
 			}
+			const osiPath = osiExtractionResult.OutputPaths[0];
+			await this.loadStory(osiPath);
+			rmSync(osiPath);
 		} catch (error) {
 			console.error(`An error occurred while initializing dependency ${this.path}: ${error}`);
 		}
@@ -40,7 +40,7 @@ export class Dependency {
 	private async readOrphanFile(name: string, orphanCollection: string[]) {
 		const extractionResult = await extractFromPak(this.path, name);
 		if (!extractionResult.OutputPaths) return;
-		const orphanPath = (await extractFromPak(this.path, name)).OutputPaths[0];
+		const orphanPath = extractionResult.OutputPaths[0];
 		if (!orphanPath) return;
 
 		for (const line of readFileSync(orphanPath, { encoding: "utf-8" }).split(/\r?\n/)) {
@@ -51,7 +51,7 @@ export class Dependency {
 		rmSync(orphanPath);
 	}
 
-	private async initializeWithStory(osiPath: string) {
+	private async loadStory(osiPath: string) {
 		this.story = await extractStory(osiPath);
 		const goalNames = Object.values(this.story.goals).map((value) => value.Name);
 
