@@ -152,13 +152,18 @@ export class StoryTree {
 	 */
 	async deleteStoryTreeNode(name: string) {
 		await this.waitForReady();
-		const childNode = this.nodeMapping.get(name);
-		if (!childNode || childNode.parents.length === 0) return;
+		const node = this.nodeMapping.get(name);
+		if (!node || node.parents.length === 0) return;
 
-		for (const parent of childNode.parents) {
+		for (const parent of node.parents) {
 			const parentNode = this.nodeMapping.get(parent);
 			const childIndex = parentNode?.children.findIndex((value) => value.data?.name === name);
 			if (childIndex !== undefined) parentNode?.children.splice(childIndex, 1);
+		}
+
+		for (const child of node.children) {
+			const parentIndex = child.parents.findIndex((value) => value === name);
+			if (parentIndex !== undefined) child.parents.splice(parentIndex, 1);
 		}
 
 		const dependency = this.mod.getInheritedGoalOwner(name);
