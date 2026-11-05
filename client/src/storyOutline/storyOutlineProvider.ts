@@ -140,7 +140,6 @@ export class StoryOutlineProvider
 			const client = clients.get(folder);
 			if (!client) return;
 
-			// TODO: Parallelize this?
 			for (const item of items) {
 				if (item.isRoot || !item.isOverriden) {
 					if (!didWarning) {

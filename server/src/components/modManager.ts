@@ -174,8 +174,6 @@ export class ModManager extends ComponentBase {
 
 	//#region Story Tree
 
-	// TODO: Test this for edge cases (adding a node to a deleted file)
-
 	/**
 	 * The handler for the {@link requestGetStoryTreeNodeChildren} request.
 	 * Fetches the children for a given story tree node.

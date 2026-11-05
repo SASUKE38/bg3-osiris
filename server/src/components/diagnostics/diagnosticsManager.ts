@@ -10,63 +10,6 @@ import { RuleAnalyzer } from "./analyzers/ruleAnalyzer";
 import { ParameterAnalyzer } from "./analyzers/parameterAnalyzer";
 import { Resource } from "../../mods/resource/resource";
 
-/*
-=== Header Only ===
-TypeIdAlreadyDefined 1
-TypeNameAlreadyDefined 2
-TypeIdInvalid 3
-IntrinsicTypeIdInvalid 4
-UnresolvedTypeInSignature 6
-
-=== Analyzers ===
--- Goal Arrangement --
-*GoalAlreadyDefined 7
-*UnresolvedGoal 8
-
--- Function Placements --
-*InvalidProcDefinition 13
-*InvalidSymbolInFact 14
-*InvalidSymbolInStatement 15
-*CanOnlyDeleteFromDatabase 16
-*InvalidSymbolInInitialCondition 17
-*InvalidFunctionTypeInCondition 18
-
--- Function Naming --
-*RuleNamingStyle 23
-*DbNamingStyle 26
-
-TODO: Figure out how to handle orphans with databases
-TODO: Delete this comment
-
--- Symbol Resolving --
-*UnresolvedSymbol 19
-*UnusedDatabaseWarning 25
-
--- Comparisons --
-*StringLtGtComparison 20
-*BinaryOperationSameRhsLhs 33
-*RiskyComparison 34
-
--- Parameters --
-*UnresolvedVariableType 9
-*UnresolvedSignature 10
-*LocalTypeMismatch 11
-*ParamNotBound 24
-*ProcTypeMismatch 30
-*CastToUnrelatedType 31
-*CastToUnrelatedGuidAlias 32
-
-=== Unknown or Not Possible in Context ===
-SignatureAlreadyDefined 5
-UnresolvedType 12
-GuidAliasMismatch 21
-GuidPrefixNotKnown 22
-UnresolvedGameObjectName 27
-GameObjectTypeMismatch 28
-GameObjectNameMismatch 29
-UnwrittenDatabase 35
-*/
-
 export class DiagnosticManager extends ComponentBase {
 	connection?: Connection;
 

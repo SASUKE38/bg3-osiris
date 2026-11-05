@@ -127,6 +127,15 @@ export class Client {
 }
 
 export function activate(context: ExtensionContext) {
+	function tryCreateClient(folder: WorkspaceFolder) {
+		const outerFolder = getOuterMostWorkspaceFolder(folder);
+		if (!clients.has(outerFolder.uri.toString())) {
+			const client = new Client(context, components, outerFolder);
+			clients.set(outerFolder.uri.toString(), client);
+			console.log(`Started Osiris server for ${outerFolder.uri}`);		
+		}
+	}
+
 	function didOpenTextDocument(document: TextDocument) {
 		if (document.languageId !== "osiris") {
 			return;
@@ -139,12 +148,7 @@ export function activate(context: ExtensionContext) {
 			return;
 		}
 
-		folder = getOuterMostWorkspaceFolder(folder);
-		if (!clients.has(folder.uri.toString())) {
-			const client = new Client(context, components, folder);
-			clients.set(folder.uri.toString(), client);
-			console.log(`Started BG3 Osiris server for ${folder.uri}`);
-		}
+		tryCreateClient(folder);
 	}
 
 	workspace.onDidOpenTextDocument(didOpenTextDocument);
@@ -158,6 +162,9 @@ export function activate(context: ExtensionContext) {
 			}
 		}
 	});
+
+	if (!workspace.workspaceFolders) return;
+	workspace.workspaceFolders.forEach(tryCreateClient);
 }
 
 export function deactivate(): Thenable<void> {

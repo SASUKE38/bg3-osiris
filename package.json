@@ -15,7 +15,9 @@
 		"Programming Languages",
 		"Snippets"
 	],
-	"activationEvents": [],
+	"activationEvents": [
+		"workspaceContains:meta.lsx"
+	],
 	"main": "./dist/client/src/extension.js",
 	"contributes": {
 		"commands": [

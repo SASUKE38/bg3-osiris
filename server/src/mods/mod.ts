@@ -73,9 +73,11 @@ export class Mod {
 	async initialize() {
 		await this.initializeDependencies();
 
-		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
-			if (this.path) {
-				await this.createGoalResource(file, join(this.path, this.goalSubdirectory, file));
+		if (existsSync(join(this.path, this.goalSubdirectory))) {
+			for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
+				if (this.path) {
+					await this.createGoalResource(file, join(this.path, this.goalSubdirectory, file));
+				}
 			}
 		}
 
@@ -83,7 +85,6 @@ export class Mod {
 	}
 
 	private async initializeDependencies() {
-		if (!this.meta) return;
 
 		const dependencies = await Promise.all(
 			(await this.findDependencies(this.meta)).map(async (dependencyData) => {
@@ -100,7 +101,6 @@ export class Mod {
 		const { story } = dependency;
 		if (!story) return;
 
-		// TODO: Delete unused signatures?
 		Object.values(Array.from(dependency.activeGoals.keys())).forEach((key) => {
 			const goal = story.goals[key];
 			const definedSignatures = dependency.definedSignatures.get(goal.Name);
@@ -239,7 +239,6 @@ export class Mod {
 		if (library === "Custom Only") return res;
 		switch (library) {
 			case "Baldur's Gate 3":
-				// TODO: Add orphan files to this
 				res.push({ path: join(__dirname, "resources", "libraries", "bg3.pak"), internalPath: "Mods/bg3" });
 				handledUUIDs.add("ed539163-bb70-431b-96a7-f5b2eda5376b");
 				handledUUIDs.add("28ac9ce2-2aba-8cda-b3b5-6e922f71b6b8");
@@ -258,9 +257,13 @@ export class Mod {
 	 * @param meta The {@link ModMetaModuleInfo} of the mod whose dependencies should be loaded.
 	 * @returns A list of {@link DependencyInitializationData} indicating the locations of the mod's dependencies.
 	 */
-	private async findDependencies(meta: ModMetaModuleInfo): Promise<DependencyMetaCollectionEntry[]> {
+	private async findDependencies(meta?: ModMetaModuleInfo): Promise<DependencyMetaCollectionEntry[]> {
 		const res: DependencyMetaCollectionEntry[] = [];
-		if (!meta.dependencies) return res;
+		const handledSet = new Set<string>();
+
+		const baseMods = await this.handleBaseMods(handledSet);
+		res.push(...baseMods);
+		if (!meta || !meta.dependencies) return res;
 
 		const { workspace } = this.manager.server.connection;
 		const files: string[] = ((await workspace.getConfiguration("bg3Osiris.dependencyPaths")) as string[])
@@ -271,13 +274,12 @@ export class Mod {
 			})
 			.flat(1);
 		const metaCollection = await this.getMetasFromPaks(files);
-		const handledSet = new Set<string>();
 
 		function doMetaSearch(dependencies: ModMetaModuleShortDesc[]) {
 			for (const dependency of dependencies) {
 				if (handledSet.has(dependency.uuid)) continue;
 				if (!metaCollection.has(dependency.uuid)) {
-					console.error(`Couldn't find dependency ${dependency.name} for ${meta.name}`);
+					console.error(`Couldn't find dependency ${dependency.name} for ${meta!.name}`);
 					continue;
 				}
 				const metaEntry = metaCollection.get(dependency.uuid) as DependencyMetaCollectionEntry;
@@ -289,9 +291,6 @@ export class Mod {
 				res.push(metaEntry);
 			}
 		}
-
-		const baseMods = await this.handleBaseMods(handledSet);
-		res.push(...baseMods);
 
 		doMetaSearch(meta.dependencies);
 
