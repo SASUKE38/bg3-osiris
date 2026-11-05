@@ -8,6 +8,7 @@ import { SignatureAnalyzer } from "./analyzers/signatureAnalyzer";
 import { GoalArrangementAnalyzer } from "./analyzers/goalArrangementAnalyzer";
 import { RuleAnalyzer } from "./analyzers/ruleAnalyzer";
 import { ParameterAnalyzer } from "./analyzers/parameterAnalyzer";
+import { Resource } from "../../mods/resource/resource";
 
 /*
 === Header Only ===
@@ -36,8 +37,6 @@ UnresolvedTypeInSignature 6
 
 TODO: Figure out how to handle orphans with databases
 TODO: Delete this comment
-TODO: Clear diagnostics for deleted files
-TODO: Allow multiple goal parents
 
 -- Symbol Resolving --
 *UnresolvedSymbol 19
@@ -133,7 +132,14 @@ export class DiagnosticManager extends ComponentBase {
 
 	async handleDiagnostics(document: TextDocument): Promise<void> {
 		const resource = this.server.modManager.findGoalResource(decodePath(document.uri));
-		if (!resource) return;
+		if (!resource) {
+			this.connection?.sendDiagnostics({
+				uri: document.uri,
+				diagnostics: []
+			})
+			return;
+		}
+
 		const semanticDiagnostics = (
 			await Promise.all(
 				this.analyzers.map(async (analyzer) => new analyzer(resource, this.server.modManager).analyze())
@@ -143,5 +149,12 @@ export class DiagnosticManager extends ComponentBase {
 			uri: document.uri,
 			diagnostics: [...semanticDiagnostics, ...(await resource.getData("diagnostics"))]
 		});
+	}
+
+	clearResourceDiagnostics(resource: Resource) {
+		this.connection?.sendDiagnostics({
+			uri: resource.getTextDocument().uri,
+			diagnostics: []
+		})
 	}
 }

@@ -123,6 +123,7 @@ export class ModManager extends ComponentBase {
 			await this.mod.storyTree.deleteStoryTreeNode(name.substring(0, name.length - 4));
 		}
 		this.mod.removeGoalResource(path, "path");
+		this.server.diagnosticManager.clearResourceDiagnostics(resource);
 		this.server.connection.sendNotification(notificationFilesChanged);
 	};
 
@@ -140,6 +141,7 @@ export class ModManager extends ComponentBase {
 			name.substring(0, name.length - 4),
 			(await this.mod.storyTree.getStoryTreeNodeChildren(name)).map((value) => value.node)
 		);
+		this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 		this.server.connection.sendNotification(notificationFilesChanged);
 	};
 
