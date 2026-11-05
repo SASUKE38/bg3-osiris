@@ -132,6 +132,7 @@ export class ModManager extends ComponentBase {
 
 		const name = path.split(sep).pop();
 		if (!name) return;
+		if (this.findGoalResource(path)) return;
 		const resource = await this.createResource(name, path);
 		if (!resource) return;
 		this.mod.storyTree.addStoryTreeNode(

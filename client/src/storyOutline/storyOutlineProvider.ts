@@ -150,6 +150,11 @@ export class StoryOutlineProvider
 					continue;
 				}
 
+				if (item.label === target.label) {
+					window.showErrorMessage("Goals cannot be dropped on themselves.");
+					continue;
+				}
+
 				const params: RequestMoveStoryTreeNodeParams = {
 					targetName: target.isRoot ? "" : target.label,
 					sourceName: item.label
