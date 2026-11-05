@@ -52,3 +52,18 @@ export async function extractPathsInPackage(packagePath: string, filter: string)
 		});
 	});
 }
+
+const getGoalContentCall = edge.func({
+	assemblyFile: join(__dirname, "external", "BG3OsirisReader.dll"),
+	typeName: "BG3OsirisReader.PackageExtractor",
+	methodName: "ExtractGoalText"
+});
+
+export async function getGoalContent(osiPath: string, goalId: number): Promise<any[]> {
+	return new Promise((resolve, reject) => {
+		getGoalContentCall({ osiPath, goalId }, function (error, result) {
+			if (error) reject(error);
+			else resolve(result as any[]);
+		});
+	});
+}
