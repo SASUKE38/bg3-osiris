@@ -120,8 +120,8 @@ export function ruleNamingStyleDiagnosticFactory({ range, ruleType, prefix }: Ru
 	return {
 		source: diagnosticSource,
 		range,
-		message: `${ruleType} rules must be named with a ${prefix} prefix.`,
-		severity: DiagnosticSeverity.Error,
+		message: `${ruleType} rules should be named with a ${prefix} prefix.`,
+		severity: DiagnosticSeverity.Warning,
 		code: DiagnosticCode.RuleNamingStyle
 	};
 }
@@ -132,8 +132,8 @@ export function DbNamingStyleDiagnosticFactory({ range }: DbNamingStyleParams) {
 	return {
 		source: diagnosticSource,
 		range,
-		message: `Databases must be named with a DB_ prefix.`,
-		severity: DiagnosticSeverity.Error,
+		message: `Databases should be named with a DB_ prefix.`,
+		severity: DiagnosticSeverity.Warning,
 		code: DiagnosticCode.DbNamingStyle
 	};
 }
