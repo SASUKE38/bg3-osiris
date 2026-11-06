@@ -98,33 +98,31 @@ export class HoverProvider extends ComponentBase {
 	): Hover | null {
 		let type: string | undefined = undefined;
 
-		if (parameterIndex === -1) {
-		} else {
-			const parameterNode = nodesAt[parameterIndex] as ParameterNode;
-			const signatureNode = nodesAt.find((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as
-				| SignatureNode
-				| undefined;
-			const signature = signatures.get(signatureNode as SignatureNode);
-			if (!signature || !signatureNode) return null;
+		if (parameterIndex === -1) return null;
+		const parameterNode = nodesAt[parameterIndex] as ParameterNode;
+		const signatureNode = nodesAt.find((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as
+			| SignatureNode
+			| undefined;
+		const signature = signatures.get(signatureNode as SignatureNode);
+		if (!signature || !signatureNode) return null;
 
-			let i = 0;
-			while (
-				i < signatureNode.parameters.length &&
-				!rangeContainsPosition(signatureNode.parameters[i].selectionRange, position)
-			)
-				i++;
+		let i = 0;
+		while (
+			i < signatureNode.parameters.length &&
+			!rangeContainsPosition(signatureNode.parameters[i].selectionRange, position)
+		)
+			i++;
 
-			if (parameterNode.type) type = `(${parameterNode.type.value})`;
-			else if (signature.parameters[i]) type = `(${signature.parameters[i]})`;
-			else type = "(GUIDSTRING)";
-			return {
-				contents: {
-					kind: MarkupKind.Markdown,
-					value: ["```osiris", `${type} ${hoveredNode.value}`, "```"].join("\n")
-				}
-			};
-		}
-		return null;
+		if (parameterNode.type) type = `(${parameterNode.type.value})`;
+		else if (signature.parameters[i]) type = `(${signature.parameters[i]})`;
+		else type = "(GUIDSTRING)";
+
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: ["```osiris", `${type} ${hoveredNode.value}`, "```"].join("\n")
+			}
+		};
 	}
 
 	private async handleSignatureHover(signature: Signature, signatures: SignatureCollection): Promise<Hover> {

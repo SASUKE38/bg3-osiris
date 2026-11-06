@@ -59,11 +59,11 @@ const getGoalContentCall = edge.func({
 	methodName: "ExtractGoalText"
 });
 
-export async function getGoalContent(osiPath: string, goalId: number): Promise<any[]> {
+export async function getGoalContent(osiPath: string, goalId: number): Promise<Uint8Array> {
 	return new Promise((resolve, reject) => {
 		getGoalContentCall({ osiPath, goalId }, function (error, result) {
 			if (error) reject(error);
-			else resolve(result as any[]);
+			else resolve(result as Uint8Array);
 		});
 	});
 }

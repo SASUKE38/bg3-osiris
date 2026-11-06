@@ -79,7 +79,7 @@ export class DiagnosticManager extends ComponentBase {
 			this.connection?.sendDiagnostics({
 				uri: document.uri,
 				diagnostics: []
-			})
+			});
 			return;
 		}
 
@@ -98,6 +98,6 @@ export class DiagnosticManager extends ComponentBase {
 		this.connection?.sendDiagnostics({
 			uri: resource.getTextDocument().uri,
 			diagnostics: []
-		})
+		});
 	}
 }

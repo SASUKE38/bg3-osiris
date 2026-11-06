@@ -25,7 +25,8 @@ export class Signature {
 	}
 
 	mergeSignatures(signatureCollection: SignatureCollection): void {
-		const storedSignature = signatureCollection.get(this)!;
+		const storedSignature = signatureCollection.get(this);
+		if (!storedSignature) return;
 		for (let i = 0; i < this.parameters.length; i++) {
 			if (storedSignature.parameters[i] === "" && this.parameters[i] !== "") {
 				storedSignature.parameters[i] = this.parameters[i];
@@ -64,8 +65,6 @@ export class SignatureCollection {
 	private readonly map: Map<string, Signature>;
 
 	constructor();
-	constructor(iterable?: Iterable<readonly [string, Signature]> | null | undefined);
-	constructor(entries?: readonly (readonly [string, Signature])[] | null);
 	constructor(
 		iterable?: Iterable<readonly [string, Signature]> | null | undefined,
 		entries?: readonly (readonly [string, Signature])[] | null
@@ -117,6 +116,7 @@ export class SignatureCollection {
 			)
 				return version.type;
 		}
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		return this.has(signature) ? this.get(signature)!.type : "Call";
 	}
 

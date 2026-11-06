@@ -43,10 +43,10 @@ export class SignatureHelpProvider extends ComponentBase {
 		const signatureNode = nodesAt.find((node) => node.kind === ASTNodeKind.SIGNATURE_NODE) as
 			| SignatureNode
 			| undefined;
-		const signatures = await this.server.modManager.getAllDefinedSignatures();
 		if (!signatureNode || !this.isValidSignatureHelpPosition(textDocument, signatureNode, params.position))
 			return null;
 
+		const signatures = await this.server.modManager.getAllDefinedSignatures();
 		const signatureInformation = await this.getSignatures(signatureNode, signatures);
 		const activeParameter = this.getActiveParameter(textDocument, signatureNode, params.position);
 

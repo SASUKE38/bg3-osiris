@@ -132,7 +132,7 @@ export function activate(context: ExtensionContext) {
 		if (!clients.has(outerFolder.uri.toString())) {
 			const client = new Client(context, components, outerFolder);
 			clients.set(outerFolder.uri.toString(), client);
-			console.log(`Started Osiris server for ${outerFolder.uri}`);		
+			console.log(`Started Osiris server for ${outerFolder.uri}`);
 		}
 	}
 
@@ -142,7 +142,7 @@ export function activate(context: ExtensionContext) {
 		}
 
 		const uri = document.uri;
-		let folder = workspace.getWorkspaceFolder(uri);
+		const folder = workspace.getWorkspaceFolder(uri);
 
 		if (!folder) {
 			return;

@@ -3,6 +3,7 @@ import * as assert from "assert";
 import { getDocUri, activate } from "../helper";
 
 suite("Diagnostics Provider", () => {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const docUri = getDocUri("Act3c_END_Emperor.txt");
 
 	test(
@@ -19,6 +20,7 @@ suite("Diagnostics Provider", () => {
 	);
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
 	await activate(docUri);
 

@@ -85,7 +85,6 @@ export class Mod {
 	}
 
 	private async initializeDependencies() {
-
 		const dependencies = await Promise.all(
 			(await this.findDependencies(this.meta)).map(async (dependencyData) => {
 				const dependency = new Dependency(dependencyData);
@@ -279,7 +278,7 @@ export class Mod {
 			for (const dependency of dependencies) {
 				if (handledSet.has(dependency.uuid)) continue;
 				if (!metaCollection.has(dependency.uuid)) {
-					console.error(`Couldn't find dependency ${dependency.name} for ${meta!.name}`);
+					console.error(`Couldn't find dependency ${dependency.name} for ${meta?.name}`);
 					continue;
 				}
 				const metaEntry = metaCollection.get(dependency.uuid) as DependencyMetaCollectionEntry;

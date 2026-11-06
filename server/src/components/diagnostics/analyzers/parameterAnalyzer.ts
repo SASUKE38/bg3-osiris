@@ -240,73 +240,72 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 	private verifyConstantTypes(signatureNodes: SignatureNode[], signatures: SignatureCollection, res: Diagnostic[]) {
 		for (const node of signatureNodes) {
-			if (node.kind === ASTNodeKind.SIGNATURE_NODE) {
-				const signature = signatures.get(node as SignatureNode);
-				if (!signature || signature.parameters.length !== (node as SignatureNode).parameters.length) return;
+			if (node.kind !== ASTNodeKind.SIGNATURE_NODE) continue;
+			const signature = signatures.get(node as SignatureNode);
+			if (!signature || signature.parameters.length !== (node as SignatureNode).parameters.length) return;
 
-				for (let i = 0; i < (node as SignatureNode).parameters.length; i++) {
-					const parameterNode = (node as SignatureNode).parameters[i];
+			for (let i = 0; i < (node as SignatureNode).parameters.length; i++) {
+				const parameterNode = (node as SignatureNode).parameters[i];
 
-					if (signature.parameters[i] === "") {
-						res.push(unresolvedSignatureDiagnosticFactory({ range: node.selectionRange, name: node.name }));
-						return;
-					}
+				if (signature.parameters[i] === "") {
+					res.push(unresolvedSignatureDiagnosticFactory({ range: node.selectionRange, name: node.name }));
+					return;
+				}
 
-					let searchType = "UNKNOWN";
+				let searchType = "UNKNOWN";
 
-					if (parameterNode.type) {
-						searchType = parameterNode.type.value;
-					} else {
-						switch (parameterNode.content.kind) {
-							case ASTNodeKind.IDENTIFIER_NODE:
-								if ((parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
-								searchType = "GUIDSTRING";
-								break;
-							case ASTNodeKind.STRING_NODE:
-								searchType = "STRING";
-								break;
-							case ASTNodeKind.NUMBER_NODE:
-								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer)
-									searchType = "INTEGER";
-								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer64)
-									searchType = "INTEGER64";
-								if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real)
-									searchType = "REAL";
-								break;
-							case ASTNodeKind.TYPE_ENUM_MEMBER_NODE:
-								searchType = (parameterNode.content as TypeEnumMemberNode).member.toLowerCase();
-								const enums = this.modManager.mod?.inheritedEnums.get(
-									(parameterNode.content as TypeEnumMemberNode).type
+				if (parameterNode.type) {
+					searchType = parameterNode.type.value;
+				} else {
+					switch (parameterNode.content.kind) {
+						case ASTNodeKind.IDENTIFIER_NODE:
+							if ((parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
+							searchType = "GUIDSTRING";
+							break;
+						case ASTNodeKind.STRING_NODE:
+							searchType = "STRING";
+							break;
+						case ASTNodeKind.NUMBER_NODE:
+							if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer)
+								searchType = "INTEGER";
+							if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer64)
+								searchType = "INTEGER64";
+							if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real)
+								searchType = "REAL";
+							break;
+						case ASTNodeKind.TYPE_ENUM_MEMBER_NODE: {
+							searchType = (parameterNode.content as TypeEnumMemberNode).member.toLowerCase();
+							const enums = this.modManager.mod?.inheritedEnums.get(
+								(parameterNode.content as TypeEnumMemberNode).type
+							);
+							if (!enums?.members.find((value) => value.toLowerCase() === searchType)) {
+								res.push(
+									unresolvedEnumMemberDiagnosticFactory({
+										range: parameterNode.selectionRange,
+										memberName: searchType
+									})
 								);
-								if (!enums?.members.find((value) => value.toLowerCase() === searchType)) {
-									res.push(
-										unresolvedEnumMemberDiagnosticFactory({
-											range: parameterNode.selectionRange,
-											memberName: searchType
-										})
-									);
-								}
-								break;
+							}
+							break;
 						}
 					}
-
-					const { mod } = this.modManager;
-					const typeA = mod?.inheritedTypes.get(searchType);
-					const typeB = mod?.inheritedTypes.get(signature.parameters[i]);
-					if (!mod || !typeA || !typeB) continue;
-					if (!mod.areAliasTypes(typeA, typeB)) {
-						res.push(
-							localTypeMismatchDiagnosticFactory({
-								range: parameterNode.type
-									? parameterNode.type.selectionRange
-									: parameterNode.selectionRange,
-								actualName: searchType,
-								expectedName: signature.parameters[i]
-							})
-						);
-					}
 				}
-			} else {
+
+				const { mod } = this.modManager;
+				const typeA = mod?.inheritedTypes.get(searchType);
+				const typeB = mod?.inheritedTypes.get(signature.parameters[i]);
+				if (!mod || !typeA || !typeB) continue;
+				if (!mod.areAliasTypes(typeA, typeB)) {
+					res.push(
+						localTypeMismatchDiagnosticFactory({
+							range: parameterNode.type
+								? parameterNode.type.selectionRange
+								: parameterNode.selectionRange,
+							actualName: searchType,
+							expectedName: signature.parameters[i]
+						})
+					);
+				}
 			}
 		}
 	}
