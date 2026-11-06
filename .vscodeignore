@@ -7,3 +7,6 @@ esbuild.js
 client
 server
 shared
+.gitignore
+.prettierignore
+eslint.config.mts
