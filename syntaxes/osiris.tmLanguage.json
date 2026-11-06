@@ -42,15 +42,15 @@
 		"entities": {
 			"patterns": [
 				{
-					"name": "entity.name.db.osiris",
+					"name": "entity.name.function.db.osiris",
 					"match": "\\bDB_([A-Za-z_][A-Za-z0-9_]*)"
 				},
 				{
-					"name": "entity.name.proc.osiris",
+					"name": "entity.name.function.proc.osiris",
 					"match": "\\bPROC_([A-Za-z_][A-Za-z0-9_]*)"
 				},
 				{
-					"name": "entity.name.qry.osiris",
+					"name": "entity.name.function.qry.osiris",
 					"match": "\\bQRY_([A-Za-z_][A-Za-z0-9_]*)"
 				},
 				{

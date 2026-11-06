@@ -1,32 +1,32 @@
 {
-    "Region": {
-        "prefix": ["REGION", "region"],
-        "body": ["//REGION ${1:Name}", "\n$0\n", "//END_REGION"],
-        "description": "An Osiris region."
-    },
-    "PROC": {
-        "prefix": ["PROC", "proc"],
-        "body": ["PROC","PROC_${1:Name}(${2:Parameters})", "THEN", "${3:Result};"],
-        "description": "An Osiris PROC."
-    },
-    "QRY": {
-        "prefix": ["QRY", "qry"],
-        "body": ["QRY","QRY_${1:Name}(${2:Parameters})", "THEN", "DB_NOOP(1);"],
-        "description": "An Osiris QRY."
-    },
-    "IF": {
-        "prefix": ["IF", "if"],
-        "body": ["IF","${1:Event}", "THEN", "${2:Result};"],
-        "description": "An Osiris IF statement."
-    },
-    "AND": {
-        "prefix": ["AND", "and"],
-        "body": ["AND","${1:Condition}"],
-        "description": "An Osiris AND."
-    },
-    "NULL": {
-        "prefix": ["NULL", "null"],
-        "body": ["NULL_00000000-0000-0000-0000-000000000000"],
-        "description": "A null GUID."
-    }
+	"Region": {
+		"prefix": ["REGION", "region"],
+		"body": ["//REGION ${1:Name}", "\n$0\n", "//END_REGION"],
+		"description": "An Osiris region."
+	},
+	"PROC": {
+		"prefix": ["PROC", "proc"],
+		"body": ["PROC", "PROC_${1:Name}(${2:Parameters})", "THEN", "${3:Result};"],
+		"description": "An Osiris PROC."
+	},
+	"QRY": {
+		"prefix": ["QRY", "qry"],
+		"body": ["QRY", "QRY_${1:Name}(${2:Parameters})", "THEN", "DB_NOOP(1);"],
+		"description": "An Osiris QRY."
+	},
+	"IF": {
+		"prefix": ["IF", "if"],
+		"body": ["IF", "${1:Event}", "THEN", "${2:Result};"],
+		"description": "An Osiris IF statement."
+	},
+	"AND": {
+		"prefix": ["AND", "and"],
+		"body": ["AND", "${1:Condition}"],
+		"description": "An Osiris AND."
+	},
+	"NULL": {
+		"prefix": ["NULL", "null"],
+		"body": ["NULL_00000000-0000-0000-0000-000000000000"],
+		"description": "A null GUID."
+	}
 }

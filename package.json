@@ -120,10 +120,16 @@
 		],
 		"themes": [
 			{
-				"id": "osiris.theme",
-				"label": "Osiris",
-				"path": "./syntaxes/osiris.tmTheme.json",
+				"id": "osirisDark.theme",
+				"label": "Osiris Dark",
+				"path": "./syntaxes/osirisDark.tmTheme.json",
 				"uiTheme": "vs-dark"
+			},
+			{
+				"id": "osirisLight.theme",
+				"label": "Osiris Light",
+				"path": "./syntaxes/osirisLight.tmTheme.json",
+				"uiTheme": "vs"
 			}
 		],
 		"semanticTokenTypes": [

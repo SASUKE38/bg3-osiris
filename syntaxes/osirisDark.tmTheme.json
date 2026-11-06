@@ -1,5 +1,6 @@
 {
 	"$schema": "vscode://schemas/color-theme",
+	"name": "Osiris Dark",
 	"type": "dark",
 	"colors": {
 		"actionBar.toggledBackground": "#383a49",
@@ -140,7 +141,7 @@
 		"titleBar.inactiveForeground": "#9d9d9d",
 		"welcomePage.progress.foreground": "#0078d4",
 		"welcomePage.tileBackground": "#2b2b2b",
-		"widget.border": "#313131",
+		"widget.border": "#313131"
 		//"activityBar.dropBorder": "#d7d7d7",
 		//"activityBarTop.activeBorder": "#e7e7e7",
 		//"activityBarTop.dropBorder": "#e7e7e7",
@@ -949,10 +950,7 @@
 			}
 		},
 		{
-			"scope": [
-				"entity.name.tag.css",
-				"entity.name.tag.less"
-			],
+			"scope": ["entity.name.tag.css", "entity.name.tag.less"],
 			"settings": {
 				"foreground": "#D7BA7D"
 			}
@@ -974,7 +972,7 @@
 				"entity.other.attribute-name.pseudo-element.css",
 				"source.css.less entity.other.attribute-name.id",
 				"entity.other.attribute-name.scss",
-                "entity.other.structure"
+				"entity.other.structure"
 			],
 			"settings": {
 				"foreground": "#D7BA7D"
@@ -1061,10 +1059,7 @@
 			}
 		},
 		{
-			"scope": [
-				"meta.preprocessor",
-				"entity.name.function.preprocessor"
-			],
+			"scope": ["meta.preprocessor", "entity.name.function.preprocessor"],
 			"settings": {
 				"foreground": "#569CD6"
 			}
@@ -1106,19 +1101,13 @@
 			}
 		},
 		{
-			"scope": [
-				"storage.modifier",
-				"keyword.operator.noexcept"
-			],
+			"scope": ["storage.modifier", "keyword.operator.noexcept"],
 			"settings": {
 				"foreground": "#569CD6"
 			}
 		},
 		{
-			"scope": [
-				"string",
-				"meta.embedded.assembly"
-			],
+			"scope": ["string", "meta.embedded.assembly"],
 			"settings": {
 				"foreground": "#CE9178"
 			}
@@ -1152,9 +1141,7 @@
 			}
 		},
 		{
-			"scope": [
-				"meta.template.expression"
-			],
+			"scope": ["meta.template.expression"],
 			"settings": {
 				"foreground": "#D4D4D4"
 			}
@@ -1212,10 +1199,7 @@
 			}
 		},
 		{
-			"scope": [
-				"punctuation.section.embedded.begin.php",
-				"punctuation.section.embedded.end.php"
-			],
+			"scope": ["punctuation.section.embedded.begin.php", "punctuation.section.embedded.end.php"],
 			"settings": {
 				"foreground": "#569CD6"
 			}
@@ -1260,24 +1244,24 @@
 				"foreground": "#DCDCAA"
 			}
 		},
-        {
-            "scope": "entity.name.db",
-            "settings": {
-                "foreground": "#ffc36a"
-            }
-        },
-        {
-            "scope": "entity.name.proc",
-            "settings": {
-                "foreground": "#6dcc5a"
-            }
-        },
-        {
-            "scope": "entity.name.qry",
-            "settings": {
-                "foreground": "#ff7b7b"
-            }
-        },
+		{
+			"scope": "entity.name.function.db",
+			"settings": {
+				"foreground": "#ffc36a"
+			}
+		},
+		{
+			"scope": "entity.name.function.proc",
+			"settings": {
+				"foreground": "#6dcc5a"
+			}
+		},
+		{
+			"scope": "entity.name.function.qry",
+			"settings": {
+				"foreground": "#ff7b7b"
+			}
+		},
 		{
 			"scope": [
 				"support.class",
@@ -1287,7 +1271,7 @@
 				"entity.other.attribute",
 				"entity.name.scope-resolution",
 				"entity.name.class",
-                "entity.name.section",
+				"entity.name.section",
 				"storage.type.numeric.go",
 				"storage.type.byte.go",
 				"storage.type.boolean.go",
@@ -1359,18 +1343,13 @@
 			}
 		},
 		{
-			"scope": [
-				"variable.other.constant",
-				"variable.other.enummember"
-			],
+			"scope": ["variable.other.constant", "variable.other.enummember"],
 			"settings": {
 				"foreground": "#4FC1FF"
 			}
 		},
 		{
-			"scope": [
-				"meta.object-literal.key"
-			],
+			"scope": ["meta.object-literal.key"],
 			"settings": {
 				"foreground": "#9CDCFE"
 			}
@@ -1415,10 +1394,7 @@
 			}
 		},
 		{
-			"scope": [
-				"keyword.operator.or.regexp",
-				"keyword.control.anchor.regexp"
-			],
+			"scope": ["keyword.operator.or.regexp", "keyword.control.anchor.regexp"],
 			"settings": {
 				"foreground": "#DCDCAA"
 			}
@@ -1430,10 +1406,7 @@
 			}
 		},
 		{
-			"scope": [
-				"constant.character",
-				"constant.other.option"
-			],
+			"scope": ["constant.character", "constant.other.option"],
 			"settings": {
 				"foreground": "#569CD6"
 			}
