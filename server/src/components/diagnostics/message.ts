@@ -421,4 +421,18 @@ export function unresolvedEnumMemberDiagnosticFactory({ range, memberName }: Unr
 	};
 }
 
+export interface UnresolvedTypeDiagnosticParmas extends DiagnosticParamsBase {
+	typeName: string;
+}
+
+export function unresolvedTypeDiagnosticFactory({ range, typeName }: UnresolvedTypeDiagnosticParmas) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: `Type ${typeName} could not be resolved.`,
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnresolvedType
+	};
+}
+
 //#endregion

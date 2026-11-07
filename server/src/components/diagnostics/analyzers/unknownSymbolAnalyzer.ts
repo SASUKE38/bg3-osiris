@@ -2,7 +2,7 @@ import { Diagnostic } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
 import { ASTNode, ASTNodeKind, SignatureNode } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
-import { unresolvedSymbolDiagnosticFactory } from "../message";
+import { unresolvedSymbolDiagnosticFactory, unresolvedTypeDiagnosticFactory } from "../message";
 
 export class UnknownSymbolAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -16,7 +16,10 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 			for (const child of node.getNodeChildren()) {
 				if (!child) continue;
 				if (child.kind !== ASTNodeKind.SIGNATURE_NODE) doAnalysis(child, thisArg);
-				else thisArg.verifyResolvedSymbol(child as SignatureNode, signatures, res);
+				else {
+					thisArg.verifyResolvedSymbol(child as SignatureNode, signatures, res);
+					thisArg.verifyResolvedType(child as SignatureNode, res);
+				}
 			}
 		}
 
@@ -25,9 +28,21 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 	}
 
 	// UnresolvedSymbol 19
-	verifyResolvedSymbol(signature: SignatureNode, signatures: SignatureCollection, res: Diagnostic[]) {
+	private verifyResolvedSymbol(signature: SignatureNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		if (!signatures.has(signature)) {
 			res.push(unresolvedSymbolDiagnosticFactory({ range: signature.range, signature }));
+		}
+	}
+
+	// UnresolvedType 12
+	private verifyResolvedType(signature: SignatureNode, res: Diagnostic[]) {
+		const { mod } = this.modManager;
+		if (!mod) return;
+		for (const parameterNode of signature.parameters) {
+			if (!parameterNode.type || mod.inheritedTypes.has(parameterNode.type.value)) continue;
+			res.push(
+				unresolvedTypeDiagnosticFactory({ range: parameterNode.type.range, typeName: parameterNode.type.value })
+			);
 		}
 	}
 }
