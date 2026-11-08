@@ -8,11 +8,20 @@ export class HeaderLexer extends LexerBase {
 		{ regex: this.regexFactory(/\/\*([^*]|(\*[^/]))*\*+\//sy), handler: this.handlerFactory(TokenType.SKIP) },
 		{ regex: this.regexFactory(/-?[0-9]+\.[0-9]*/y), handler: this.handlerFactory(TokenType.FLOAT) },
 		{ regex: this.regexFactory(/-?[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER) },
-		{ regex: this.regexFactory(/INIT\s*\{[^}]*\}/sy), handler: this.handlerFactory(TokenType.INIT) },
-		{ regex: this.regexFactory(/KB\s*\{[^}]*\}/sy), handler: this.handlerFactory(TokenType.KB) },
-		{ regex: this.regexFactory(/EXIT\s*\{[^}]*\}/sy), handler: this.handlerFactory(TokenType.EXIT) },
+		{
+			regex: this.regexFactory(/INIT\s*\{[^}]*\}/sy),
+			handler: this.handlerFactory(TokenType.INIT, this.signatureSectionTrimmer)
+		},
+		{
+			regex: this.regexFactory(/KB\s*\{[^}]*\}/sy),
+			handler: this.handlerFactory(TokenType.KB, this.kbSectionTrimmer)
+		},
+		{
+			regex: this.regexFactory(/EXIT\s*\{[^}]*\}/sy),
+			handler: this.handlerFactory(TokenType.EXIT, this.signatureSectionTrimmer)
+		},
 		{ regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER) },
-		{ regex: this.regexFactory(/"[^"]*"/y), handler: this.handlerFactory(TokenType.STRING) },
+		{ regex: this.regexFactory(/"[^"]*"/y), handler: this.handlerFactory(TokenType.STRING, this.stringTrimmer) },
 		{ regex: this.regexFactory(/,/y), handler: this.handlerFactory(TokenType.COMMA) },
 		{ regex: this.regexFactory(/;/y), handler: this.handlerFactory(TokenType.SEMICOLON) },
 		{ regex: this.regexFactory(/\./y), handler: this.handlerFactory(TokenType.PERIOD) },
@@ -26,10 +35,11 @@ export class HeaderLexer extends LexerBase {
 		{ regex: this.regexFactory(/./y), handler: this.handlerFactory(TokenType.UNKNOWN) }
 	];
 
-	protected trimmedTokens: Map<TokenType, [number, number]> = new Map<TokenType, [number, number]>([
-		[TokenType.STRING, [1, 1]],
-		[TokenType.INIT, [5, 1]],
-		[TokenType.KB, [3, 1]],
-		[TokenType.EXIT, [5, 1]]
-	]);
+	protected signatureSectionTrimmer(regexMatch: RegExpMatchArray): string {
+		return regexMatch[0].substring(5, regexMatch[0].length - 1);
+	}
+
+	protected kbSectionTrimmer(regexMatch: RegExpMatchArray): string {
+		return regexMatch[0].substring(3, regexMatch[0].length - 1);
+	}
 }

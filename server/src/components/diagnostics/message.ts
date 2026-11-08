@@ -293,6 +293,18 @@ export function unexpectedTokenDiagnosticFactory({
 		code: DiagnosticCode.UnexpectedToken
 	};
 }
+
+export interface UnexpectedNewlineInStringDiagnosticParams extends DiagnosticParamsBase {}
+
+export function unexpectedNewlineInStringDiagnosticFactory({ range }: UnexpectedNewlineInStringDiagnosticParams) {
+	return {
+		source: diagnosticSource,
+		range,
+		message: "Unexpected newline in string",
+		severity: DiagnosticSeverity.Error,
+		code: DiagnosticCode.UnexpectedNewlineInString
+	};
+}
 //#endregion
 
 //#region Symbol Resolving

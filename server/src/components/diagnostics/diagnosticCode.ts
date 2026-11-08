@@ -131,5 +131,8 @@ export const enum DiagnosticCode {
 	RuleMissingActions = "E37",
 
 	// An enum member could not be resolved
-	UnresolvedEnumMember = "E38"
+	UnresolvedEnumMember = "E38",
+
+	// Newline in string
+	UnexpectedNewlineInString = "E39"
 }

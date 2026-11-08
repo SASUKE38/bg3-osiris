@@ -2,9 +2,10 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { reservedSymbolsMapping, Token, TokenType } from "../tokens";
 
 type RegexHandler = (regexMatch: RegExpMatchArray) => void;
-type RegexHandlerFactory = (token: TokenType) => RegexHandler;
+type RegexHandlerFactory = (token: TokenType, trimmer?: TokenTrimmer) => RegexHandler;
 type PositionRegex = () => RegExp;
 type RegexFactory = (regex: RegExp) => PositionRegex;
+type TokenTrimmer = (regexMatch: RegExpMatchArray) => string;
 
 export interface RegexPattern {
 	regex: PositionRegex;
@@ -16,7 +17,6 @@ export abstract class LexerBase {
 	private source: string;
 	private document: TextDocument;
 	protected abstract patterns: RegexPattern[];
-	protected abstract trimmedTokens: Map<TokenType, [number, number]>;
 	readonly tokens: Token[] = [];
 
 	constructor(document: TextDocument) {
@@ -24,9 +24,9 @@ export abstract class LexerBase {
 		this.source = document.getText();
 	}
 
-	protected handlerFactory: RegexHandlerFactory = (tokenType) => {
+	protected handlerFactory: RegexHandlerFactory = (tokenType, trimmer) => {
 		return (regexMatch: RegExpMatchArray) => {
-			const content = this.trimmedTokens.has(tokenType) ? this.stripToken(tokenType, regexMatch) : regexMatch[0];
+			const content = trimmer ? trimmer(regexMatch) : regexMatch[0];
 			if (tokenType != TokenType.SKIP) {
 				this.push({
 					type:
@@ -64,9 +64,8 @@ export abstract class LexerBase {
 		return this.pos >= this.source.length;
 	}
 
-	private stripToken(tokenType: TokenType, regexMatch: RegExpMatchArray): string {
-		const indices = this.trimmedTokens.get(tokenType) as [number, number];
-		return regexMatch[0].substring(indices[0], regexMatch[0].length - indices[1]);
+	protected stringTrimmer(regexMatch: RegExpMatchArray): string {
+		return regexMatch[0].substring(1, regexMatch[0].length - (regexMatch[0].endsWith("\n") ? 0 : 1));
 	}
 
 	tokenize(): Token[] {

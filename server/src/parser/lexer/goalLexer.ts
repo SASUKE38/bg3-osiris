@@ -14,7 +14,10 @@ export class GoalLexer extends LexerBase {
 		{ regex: this.regexFactory(/-?[0-9]+/y), handler: this.handlerFactory(TokenType.INTEGER) },
 		{ regex: this.regexFactory(/[A-Z]+\.[A-Za-z]*/y), handler: this.handlerFactory(TokenType.ENUM_MEMBER) },
 		{ regex: this.regexFactory(/[A-Za-z0-9_-]+/y), handler: this.handlerFactory(TokenType.IDENTIFIER) },
-		{ regex: this.regexFactory(/"[^"]*"/y), handler: this.handlerFactory(TokenType.STRING) },
+		{
+			regex: this.regexFactory(/"[^"\n]*("|\n)/y),
+			handler: this.handlerFactory(TokenType.STRING, this.stringTrimmer)
+		},
 		{ regex: this.regexFactory(/,/y), handler: this.handlerFactory(TokenType.COMMA) },
 		{ regex: this.regexFactory(/;/y), handler: this.handlerFactory(TokenType.SEMICOLON) },
 		{ regex: this.regexFactory(/\(/y), handler: this.handlerFactory(TokenType.OPEN_PARENTHESIS) },
@@ -27,8 +30,4 @@ export class GoalLexer extends LexerBase {
 		{ regex: this.regexFactory(/>/y), handler: this.handlerFactory(TokenType.GREATER_THAN) },
 		{ regex: this.regexFactory(/./y), handler: this.handlerFactory(TokenType.UNKNOWN) }
 	];
-
-	protected trimmedTokens: Map<TokenType, [number, number]> = new Map<TokenType, [number, number]>([
-		[TokenType.STRING, [1, 1]]
-	]);
 }

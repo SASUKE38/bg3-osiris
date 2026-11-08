@@ -1,8 +1,12 @@
-import { Diagnostic } from "vscode-languageserver";
+import { Diagnostic, Position, Range } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
-import { ASTNode, ASTNodeKind, SignatureNode } from "../../../parser/ast/nodes";
+import { ASTNode, ASTNodeKind, SignatureNode, StringNode } from "../../../parser/ast/nodes";
 import { SignatureCollection } from "../../../mods/signature";
-import { unresolvedSymbolDiagnosticFactory, unresolvedTypeDiagnosticFactory } from "../message";
+import {
+	unexpectedNewlineInStringDiagnosticFactory,
+	unresolvedSymbolDiagnosticFactory,
+	unresolvedTypeDiagnosticFactory
+} from "../message";
 
 export class UnknownSymbolAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -19,6 +23,7 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 				else {
 					thisArg.verifyResolvedSymbol(child as SignatureNode, signatures, res);
 					thisArg.verifyResolvedType(child as SignatureNode, res);
+					thisArg.verifyNoNewlineInString(child as SignatureNode, res);
 				}
 			}
 		}
@@ -43,6 +48,23 @@ export class UnknownSymbolAnalyzer extends AnalyzerBase {
 			res.push(
 				unresolvedTypeDiagnosticFactory({ range: parameterNode.type.range, typeName: parameterNode.type.value })
 			);
+		}
+	}
+
+	// UnexpectedNewlineInString 39
+	private verifyNoNewlineInString(signature: SignatureNode, res: Diagnostic[]) {
+		for (const parameterNode of signature.parameters) {
+			if (parameterNode.content.kind !== ASTNodeKind.STRING_NODE) continue;
+			const content = parameterNode.content as StringNode;
+			if (content.value.endsWith("\n")) {
+				const endLine = content.range.end.line - 1;
+				const endCharacter = content.range.start.character + content.value.length;
+				const range = Range.create(
+					Position.create(endLine, endCharacter - 2),
+					Position.create(endLine, endCharacter - 1)
+				);
+				res.push(unexpectedNewlineInStringDiagnosticFactory({ range }));
+			}
 		}
 	}
 }

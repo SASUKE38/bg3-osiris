@@ -102,7 +102,20 @@
 		"strings": {
 			"name": "string.quoted.double.osiris",
 			"begin": "\"",
-			"end": "\"",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.definition.string.begin.osiris"
+				}
+			},
+			"end": "(\")|((?:[^\\\\\\n])$)",
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.string.end.osiris"
+				},
+				"2": {
+					"name": "invalid.illegal.newline.osiris"
+				}
+			},
 			"patterns": [
 				{
 					"name": "constant.character.escape.osiris",

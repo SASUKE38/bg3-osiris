@@ -83,6 +83,7 @@ export class DiagnosticManager extends ComponentBase {
 			return;
 		}
 
+		if (!resource.isValid()) await resource.load();
 		const semanticDiagnostics = (
 			await Promise.all(
 				this.analyzers.map(async (analyzer) => new analyzer(resource, this.server.modManager).analyze())
