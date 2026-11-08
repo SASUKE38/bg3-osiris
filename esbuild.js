@@ -30,7 +30,22 @@ async function main() {
 				assets: {
 					from: ["./server/src/resources/**/*"],
 					to: ["./server/src/resources"]
-				}
+				},
+				watch: true
+			}),
+			copy({
+				assets: {
+					from: ["./client/src/media/**/*"],
+					to: ["./client/src/media"]
+				},
+				watch: true
+			}),
+			copy({
+				assets: {
+					from: ["./media/**/*"],
+					to: ["./media"]
+				},
+				watch: true
 			}),
 			copy({
 				assets: {

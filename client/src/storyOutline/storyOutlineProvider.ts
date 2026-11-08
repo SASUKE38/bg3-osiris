@@ -48,6 +48,7 @@ export class StoryItem extends TreeItem {
 	public contextValue: "overriden" | "inherited" | "root";
 
 	constructor(
+		extensionRoot: Uri,
 		public label: string,
 		public folder: string,
 		public collapsibleState: TreeItemCollapsibleState,
@@ -64,10 +65,10 @@ export class StoryItem extends TreeItem {
 			title: "Open",
 			arguments: [this]
 		};
-		// this.iconPath = {
-		// 	light: vscode.Uri.joinPath(extensionRoot, 'resources', 'light', 'dependency.svg'),
-		// 	dark: vscode.Uri.joinPath(extensionRoot, 'resources', 'dark', 'dependency.svg')
-		// };
+		this.iconPath = {
+			light: Uri.joinPath(extensionRoot, "dist", "client", "src", "media", "light", "document.svg"),
+			dark: Uri.joinPath(extensionRoot, "dist", "client", "src", "media", "dark", "document.svg")
+		};
 	}
 }
 
@@ -178,7 +179,14 @@ export class StoryOutlineProvider
 				const label = client.folder.uri.path.split("/").pop();
 				if (!label) continue;
 				res.push(
-					new StoryItem(label, client.folder.uri.toString(), TreeItemCollapsibleState.Expanded, false, true)
+					new StoryItem(
+						this.context.extensionUri,
+						label,
+						client.folder.uri.toString(),
+						TreeItemCollapsibleState.Expanded,
+						false,
+						true
+					)
 				);
 			}
 		} else {
@@ -195,6 +203,7 @@ export class StoryOutlineProvider
 				if (!child.node.data) continue;
 				res.push(
 					new StoryItem(
+						this.context.extensionUri,
 						child.node.data.name,
 						element.folder,
 						child.hasChildren ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None,
