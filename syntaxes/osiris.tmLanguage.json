@@ -43,31 +43,31 @@
 			"patterns": [
 				{
 					"name": "entity.name.function.db.osiris",
-					"match": "\\bDB_([A-Za-z_][A-Za-z0-9_]*)"
+					"match": "\\b(DB_[A-Za-z_][A-Za-z0-9_]*)(?=\\()"
 				},
 				{
 					"name": "entity.name.function.proc.osiris",
-					"match": "\\bPROC_([A-Za-z_][A-Za-z0-9_]*)"
+					"match": "\\b(PROC_[A-Za-z_][A-Za-z0-9_]*)(?=\\()"
 				},
 				{
 					"name": "entity.name.function.qry.osiris",
-					"match": "\\bQRY_([A-Za-z_][A-Za-z0-9_]*)"
+					"match": "\\b(QRY_[A-Za-z_][A-Za-z0-9_]*)(?=\\()"
 				},
 				{
 					"name": "entity.name.function.osiris",
-					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\("
+					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)(?=\\()"
 				},
 				{
 					"name": "entity.name.section",
-					"match": "^(INITSECTION|KBSECTION|EXITSECTION|ENDEXITSECTION)$"
+					"match": "\\bINITSECTION|KBSECTION|EXITSECTION|ENDEXITSECTION\\b"
 				},
 				{
 					"name": "entity.other.structure.osiris",
-					"match": "^(SubGoalCombiner|Version|ParentTargetEdge).*$"
+					"match": "\\bSubGoalCombiner|Version|ParentTargetEdge\\b"
 				},
 				{
 					"name": "entity.name.type.osiris",
-					"match": "\\([A-Z]+[0-9]*\\)"
+					"match": "(?<=\\()[A-Z]+[A-Z0-9]*(?=\\))"
 				}
 			]
 		},
@@ -75,7 +75,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.osiris",
-					"match": "\\b(IF|AND|THEN|PROC|QRY|NOT)\\b"
+					"match": "\\bIF|AND|THEN|PROC|QRY|NOT\\b"
 				}
 			]
 		},
