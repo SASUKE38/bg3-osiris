@@ -122,7 +122,9 @@ export class ModManager extends ComponentBase {
 		if (name) {
 			await this.mod.storyTree.deleteStoryTreeNode(name.substring(0, name.length - 4));
 		}
+
 		this.mod.removeGoalResource(path, "path");
+
 		this.server.diagnosticManager.clearResourceDiagnostics(resource);
 		this.server.connection.sendNotification(notificationFilesChanged);
 	};
@@ -136,11 +138,16 @@ export class ModManager extends ComponentBase {
 		if (this.findGoalResource(path)) return;
 		const resource = await this.createResource(name, path);
 		if (!resource) return;
-		this.mod.storyTree.addStoryTreeNode(
-			resource.parents,
-			name.substring(0, name.length - 4),
-			(await this.mod.storyTree.getStoryTreeNodeChildren(name)).map((value) => value.node)
-		);
+
+		const trimmedName = name.substring(0, name.length - 4);
+		if (!this.mod.storyTree.nodeMapping.has(trimmedName)) {
+			this.mod.storyTree.addStoryTreeNode(
+				resource.parents,
+				trimmedName,
+				(await this.mod.storyTree.getStoryTreeNodeChildren(name)).map((value) => value.node)
+			);
+		}
+
 		this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
 		this.server.connection.sendNotification(notificationFilesChanged);
 	};

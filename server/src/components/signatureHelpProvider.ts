@@ -98,11 +98,14 @@ export class SignatureHelpProvider extends ComponentBase {
 			.join("\n");
 		return allItems.map((value) => {
 			const label = this.server.documentationManager.getSignatureLabel(value, documentationEntry);
+			const isBuiltin = value.isBuiltin();
 			return {
-				label: label && documentationEntry ? label : value.toReadableString(false, true, signatures),
-				documentation: documentationEntry ? { kind: MarkupKind.Markdown, value: documentation } : undefined,
+				label:
+					isBuiltin && label && documentationEntry ? label : value.toReadableString(false, true, signatures),
+				documentation:
+					isBuiltin && documentationEntry ? { kind: MarkupKind.Markdown, value: documentation } : undefined,
 				parameters:
-					label && documentationEntry
+					isBuiltin && label && documentationEntry
 						? this.getParameterInformationFromDocumentation(value.name, label, documentationEntry)
 						: value.parameters.map((parameter, i) => {
 								return {

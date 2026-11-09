@@ -45,9 +45,8 @@ export class Signature {
 	}
 
 	toReadableString(includeType = true, doNumbering = false, signatures?: SignatureCollection): string {
-		const searchType = signatures && includeType ? signatures.getHierarchicalType(this) : this.type;
 		const content: string[] = includeType
-			? [getReadableSignatureType(searchType), " ", this.name, "("]
+			? [getReadableSignatureType(this.type), " ", this.name, "("]
 			: [this.name, "("];
 
 		for (let i = 0; i < this.parameters.length; i++) {
@@ -58,6 +57,16 @@ export class Signature {
 
 		content.push(")");
 		return content.join("");
+	}
+
+	isBuiltin() {
+		return (
+			this.type === "SysCall" ||
+			this.type === "Query" ||
+			this.type === "Event" ||
+			this.type === "Call" ||
+			this.type === "SysQuery"
+		);
 	}
 }
 
@@ -107,14 +116,7 @@ export class SignatureCollection {
 	getHierarchicalType(signature: Signature | SignatureNode): SignatureType {
 		const signatures = this.getAll(signature);
 		for (const version of signatures) {
-			if (
-				version.type === "Query" ||
-				version.type === "Call" ||
-				version.type === "Event" ||
-				version.type === "SysCall" ||
-				version.type === "SysQuery"
-			)
-				return version.type;
+			if (version.isBuiltin()) return version.type;
 		}
 		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		return this.has(signature) ? this.get(signature)!.type : "Call";

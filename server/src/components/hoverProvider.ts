@@ -126,29 +126,33 @@ export class HoverProvider extends ComponentBase {
 	}
 
 	private async handleSignatureHover(signature: Signature, signatures: SignatureCollection): Promise<Hover> {
-		const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join("\n");
-		if (documentation !== "") {
-			return {
-				contents: {
-					kind: MarkupKind.Markdown,
-					value: documentation
-				}
-			};
-		} else {
-			const allItems = signatures.getAll(signature);
-			return {
-				contents: {
-					kind: MarkupKind.Markdown,
-					value: [
-						"```osiris",
-						signature.toReadableString(true, false, signatures) +
-							(allItems.length - 1 > 0
-								? ` (+${allItems.length - 1} overload${allItems.length - 1 === 1 ? "" : "s"})`
-								: ""),
-						"```"
-					].join("\n")
-				}
-			};
+		if (signature.isBuiltin()) {
+			const documentation = (await this.server.documentationManager.getSignatureDocumentation(signature)).join(
+				"\n"
+			);
+			if (documentation !== "") {
+				return {
+					contents: {
+						kind: MarkupKind.Markdown,
+						value: documentation
+					}
+				};
+			}
 		}
+
+		const allItems = signatures.getAll(signature);
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: [
+					"```osiris",
+					signature.toReadableString(true, false, signatures) +
+						(allItems.length - 1 > 0
+							? ` (+${allItems.length - 1} overload${allItems.length - 1 === 1 ? "" : "s"})`
+							: ""),
+					"```"
+				].join("\n")
+			}
+		};
 	}
 }

@@ -331,14 +331,7 @@ export class GoalResource extends Resource {
 		): SignatureType {
 			if (inheritedSignatures.has(signature)) {
 				const inheritedSignature = inheritedSignatures.get(signature);
-				if (
-					inheritedSignature?.type === "Event" ||
-					inheritedSignature?.type === "Call" ||
-					inheritedSignature?.type === "Query" ||
-					inheritedSignature?.type === "SysCall" ||
-					inheritedSignature?.type === "SysQuery"
-				)
-					return inheritedSignature.type;
+				if (inheritedSignature?.isBuiltin()) return inheritedSignature.type;
 			}
 			if (section === "call") {
 				if (ruleType === "PROC") return "Proc";
