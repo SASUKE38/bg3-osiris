@@ -132,8 +132,8 @@ export class StoryOutlineProvider
 			if (!items) return;
 			const folder = items[0].folder;
 
-			if (!items.every((value) => value.folder === folder)) {
-				window.showErrorMessage("A move operation cannot contain goals from multiple workspaces.");
+			if (!items.every((value) => value.folder === target.folder)) {
+				window.showErrorMessage("A move operation cannot contain goals from different projects.");
 				return;
 			}
 

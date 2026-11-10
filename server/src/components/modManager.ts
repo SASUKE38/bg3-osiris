@@ -34,12 +34,14 @@ import {
 	requestGetInheritedGoalContent,
 	RequestGetInheritedGoalContentParams,
 	RequestGetInheritedGoalContentResult,
+	requestGetRootFolder,
 	requestGetStoryTreeNodeChildren,
 	RequestGetStoryTreeNodeChildrenParams,
 	RequestGetStoryTreeNodeChildrenResult,
 	requestGetStoryTreeNodePath,
 	RequestGetStoryTreeNodePathParams,
 	RequestGetStoryTreeNodePathResult,
+	RequestGetRootFolderResult,
 	requestMoveStoryTreeNode,
 	RequestMoveStoryTreeNodeParams,
 	requestOverrideStoryTreeNode,
@@ -70,8 +72,6 @@ export class ModManager extends ComponentBase {
 	private readonly xmlParser = LSXMLParserFactory();
 
 	async initializeComponent(connection: Connection): Promise<void> {
-		const { rootFolder } = this.server;
-
 		connection.onRequest(requestGetInheritedGoalContent, this.handleGetInheritedGoalContent);
 		connection.onRequest(requestGetStoryTreeNodeChildren, this.handleGetStoryTreeNodeChildren);
 		connection.onRequest(requestGetStoryTreeNodePath, this.handleGetStoryTreeNodePath);
@@ -83,8 +83,12 @@ export class ModManager extends ComponentBase {
 		connection.onRequest(requestRenameStoryTreeNode, this.handleRenameStoryTreeNode);
 		connection.onRequest(requestMoveStoryTreeNode, this.handleMoveStoryTreeNode);
 
+		const rootFolder = (
+			(await this.server.connection.sendRequest(requestGetRootFolder)) as RequestGetRootFolderResult
+		).folder;
+
 		if (rootFolder) {
-			this.mod = (await this.createModFromPath(decodePath(rootFolder.uri))) as Mod;
+			this.mod = (await this.createModFromPath(decodePath(rootFolder))) as Mod;
 
 			if (this.mod) {
 				this.watcher = watch(join(this.mod.path, this.mod.goalSubdirectory), { depth: 0, ignoreInitial: true });

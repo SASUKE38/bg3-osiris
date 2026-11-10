@@ -1,5 +1,10 @@
 import { StoryTreeChildData } from "./types";
 
+export const requestGetRootFolder = "bg3Osiris/getRootFolder";
+export interface RequestGetRootFolderResult {
+	folder: string | undefined;
+}
+
 export const requestGetInheritedGoalContent = "bg3Osiris/getInheritedGoalContent";
 export interface RequestGetInheritedGoalContentParams {
 	goalName: string;
