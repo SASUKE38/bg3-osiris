@@ -225,7 +225,7 @@ export class StoryOutlineProvider
 	/**
 	 * Fires the onDidChangeTreeData event.
 	 */
-	private refresh(): void {
+	refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
 

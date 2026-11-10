@@ -14,6 +14,8 @@ type ComponentContainer = new (context: ExtensionContext) => ComponentBase;
 
 const components: ComponentContainer[] = [ProgressProvider];
 
+let storyOutlineProvider: StoryOutlineProvider | undefined;
+
 let _sortedWorkspaceFolders: string[] | undefined;
 function sortedWorkspaceFolders(): string[] {
 	if (_sortedWorkspaceFolders === void 0) {
@@ -54,7 +56,7 @@ let registeredProviders = false;
 function tryRegisterProviders(context: ExtensionContext, connection: LanguageClient) {
 	if (registeredProviders) return;
 
-	const storyOutlineProvider = new StoryOutlineProvider(context);
+	storyOutlineProvider = new StoryOutlineProvider(context);
 	storyOutlineProvider.initializeComponent(connection);
 	window.createTreeView("story-outline", {
 		showCollapseAll: true,
@@ -157,6 +159,8 @@ export function activate(context: ExtensionContext) {
 	workspace.onDidOpenTextDocument(didOpenTextDocument);
 	workspace.textDocuments.forEach(didOpenTextDocument);
 	workspace.onDidChangeWorkspaceFolders((event) => {
+		event.added.forEach(tryCreateClient);
+
 		for (const folder of event.removed) {
 			const client = clients.get(folder.uri.toString());
 			if (client) {
@@ -164,6 +168,8 @@ export function activate(context: ExtensionContext) {
 				client.stop();
 			}
 		}
+
+		storyOutlineProvider?.refresh();
 	});
 
 	if (!workspace.workspaceFolders) return;
