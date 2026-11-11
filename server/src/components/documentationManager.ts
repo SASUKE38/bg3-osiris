@@ -92,7 +92,7 @@ export class DocumentationManager extends ComponentBase {
 	 */
 	getSignatureLabel(signature: Signature, documentationEntry?: DocumentationEntry): string | undefined {
 		if (documentationEntry) {
-			const definitions = this.trimSignatureType(documentationEntry.fullDefinitions.split("\n"));
+			const definitions = this.trimSignatureType(documentationEntry.fullDefinitions.split(/ ?\n/));
 			const res = definitions.find((definition) => {
 				return definition.split(",").length === signature.parameters.length;
 			});

@@ -26,7 +26,7 @@ THEN
 ClearFlag(_Flag, _Player);
 
 PROC
-PROC_END_GameFinale_EndRelationship((CHARACTER)_Player, _)
+PROC_END_GameFinale_EndRelationship((CHARACTER)_Player, )
 AND
 DB_END_EmperorPartnershipFlags(_Flag)
 AND

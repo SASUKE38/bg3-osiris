@@ -48,7 +48,6 @@ export function toDocumentationMarkdownString(
 	return res;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }

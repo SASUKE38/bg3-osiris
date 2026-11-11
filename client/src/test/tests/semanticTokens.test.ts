@@ -18,7 +18,7 @@ suite("Semantic Tokens", () => {
 		builder.push(127, 0, 16, 0);
 		builder.push(142, 0, 7, 2);
 		builder.push(157, 0, 7, 0);
-		builder.push(164, 0, 7, 2);
+		builder.push(164, 0, 7, 1);
 		builder.push(172, 0, 7, 2);
 		builder.push(174, 0, 14, 2);
 		builder.push(177, 0, 14, 0);
@@ -27,10 +27,10 @@ suite("Semantic Tokens", () => {
 		builder.push(199, 0, 11, 0);
 		builder.push(202, 0, 8, 1);
 		builder.push(232, 0, 13, 0);
-		builder.push(235, 0, 7, 2);
+		builder.push(235, 0, 7, 1);
 		builder.push(243, 0, 15, 2);
 		builder.push(245, 0, 11, 0);
-		builder.push(249, 0, 7, 2);
+		builder.push(249, 0, 7, 1);
 		builder.push(255, 0, 15, 2);
 		builder.push(257, 0, 11, 0);
 		builder.push(264, 0, 7, 2);
@@ -38,6 +38,7 @@ suite("Semantic Tokens", () => {
 		builder.push(283, 0, 15, 2);
 		builder.push(296, 0, 7, 2);
 		builder.push(298, 0, 15, 2);
+		builder.push(309, 0, 11, 1);
 		builder.push(313, 0, 7, 2);
 		builder.push(315, 0, 7, 2);
 		builder.push(326, 0, 12, 0);
@@ -47,6 +48,7 @@ suite("Semantic Tokens", () => {
 		builder.push(337, 0, 11, 1);
 		builder.push(344, 0, 17, 0);
 		builder.push(347, 0, 19, 1);
+		builder.push(351, 0, 15, 0);
 		builder.push(363, 0, 8, 2);
 		builder.push(365, 0, 8, 2);
 		builder.push(367, 0, 8, 2);
@@ -58,6 +60,7 @@ suite("Semantic Tokens", () => {
 		builder.push(404, 0, 7, 2);
 		builder.push(406, 0, 17, 0);
 		builder.push(409, 0, 19, 1);
+		builder.push(414, 0, 11, 1);
 		builder.push(422, 0, 7, 2);
 		builder.push(429, 0, 13, 1);
 		builder.push(435, 0, 7, 2);
