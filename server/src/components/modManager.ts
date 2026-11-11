@@ -543,7 +543,7 @@ export class ModManager extends ComponentBase {
 	 */
 	private async createMod(path: string, meta?: ModMetaModuleInfo): Promise<Mod> {
 		const mod = new Mod(path, this, meta);
-		this.server.connection.sendNotification(notificationModInitializing);
+		this.server.connection.sendNotification(notificationModInitializing, { title: path.split(sep).pop() });
 		mod.initialize().then(() => {
 			for (const resource of mod.getAllGoals()) {
 				this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());

@@ -44,7 +44,7 @@ export class Signature {
 		return this.outParamMask ? ((this.outParamMask[index >> 3] << (index & 7)) & 0x80) === 0x80 : false;
 	}
 
-	toReadableString(includeType = true, doNumbering = false, signatures?: SignatureCollection): string {
+	toReadableString(includeType = true, doNumbering = false): string {
 		const content: string[] = includeType
 			? [getReadableSignatureType(this.type), " ", this.name, "("]
 			: [this.name, "("];

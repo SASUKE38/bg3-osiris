@@ -2,7 +2,11 @@ import { LanguageClient } from "vscode-languageclient/node";
 import { ComponentBase } from "../componentBase";
 import { ProgressLocation, window } from "vscode";
 import { EventEmitter } from "events";
-import { notificationModInitializing, notificationModReady } from "bg3-osiris-shared";
+import {
+	notificationModInitializing,
+	NotificationModInitializingParams,
+	notificationModReady
+} from "bg3-osiris-shared";
 
 export class ProgressProvider extends ComponentBase {
 	private readonly emitter = new EventEmitter();
@@ -16,7 +20,7 @@ export class ProgressProvider extends ComponentBase {
 		);
 	}
 
-	private handleMakeProgress = async () => {
+	private handleMakeProgress = async (title: NotificationModInitializingParams) => {
 		const createProgress = () => {
 			const { emitter } = this;
 			return new Promise<void>((resolve) => {
@@ -32,7 +36,7 @@ export class ProgressProvider extends ComponentBase {
 		window.withProgress(
 			{
 				location: ProgressLocation.Notification,
-				title: "Mod Initializing",
+				title: `Initializing project ${title.title ? title.title : ""}`,
 				cancellable: false
 			},
 			createProgress

@@ -53,22 +53,30 @@ export class Dependency {
 
 	private async loadStory(osiPath: string) {
 		this.story = await extractStory(osiPath);
-		const goalNames = Object.values(this.story.goals).map((value) => value.Name);
+		const goalNames = new Map(Object.values(this.story.goals).map((value) => [value.Name, value.Name]));
+		const definitionMap = new Map<string, Function[]>();
+		for (const definition of this.story.functions) {
+			if (!definitionMap.has(definition.Name.Name)) {
+				definitionMap.set(definition.Name.Name, []);
+			}
+			definitionMap.get(definition.Name.Name)?.push(definition);
+		}
 
 		for (const node of Object.values(this.story.nodes)) {
 			if (!node.ReferencedBy) continue;
 			for (const reference of node.ReferencedBy) {
-				const goalName = goalNames.find((value) => value === this.story?.goals[reference.GoalRef.Index]?.Name);
+				const goalName = goalNames.get(this.story?.goals[reference.GoalRef.Index]?.Name);
 				if (!goalName || this.definedSignatures.has(node.Name)) continue;
 
 				this.activeGoals.set(reference.GoalRef.Index, goalName);
 
-				const definitions = this.story.functions.filter((value) => value.Name.Name === node.Name);
 				if (!this.definedSignatures.has(goalName)) {
 					this.definedSignatures.set(goalName, new Map<string, Function[]>());
 				}
 				const signatureMap = this.definedSignatures.get(goalName) as Map<string, Function[]>;
 
+				const definitions = definitionMap.get(node.Name);
+				if (!definitions) continue;
 				signatureMap.set(node.Name, definitions);
 			}
 		}
