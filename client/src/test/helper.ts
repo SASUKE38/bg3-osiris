@@ -6,6 +6,8 @@ export let editor: vscode.TextEditor;
 export let documentEol: string;
 export let platformEol: string;
 
+let didSleep = false;
+
 export async function activate(docUri: vscode.Uri) {
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	const ext = vscode.extensions.getExtension("SASUKE38.bg3-osiris")!;
@@ -13,7 +15,10 @@ export async function activate(docUri: vscode.Uri) {
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
-		// await sleep(1000);
+		if (!didSleep) {
+			await sleep(5000);
+		}
+		didSleep = true;
 	} catch (e) {
 		console.error(e);
 	}

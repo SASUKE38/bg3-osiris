@@ -72,8 +72,13 @@ suite("Hover Provider", () => {
 		]);
 	});
 
-	test("Hover over builtin parameter should display nothing", async () => {
-		await testHover(docUri, new vscode.Position(199, 37), 0, [{ contents: [] }]);
+	test("Hover over builtin GUIDSTRING should display guid information", async () => {
+		const expectedString = new vscode.MarkdownString(
+			"```osiris\n(GUIDSTRING) NULL_00000000-0000-0000-0000-000000000000\n```"
+		);
+		await testHover(docUri, new vscode.Position(199, 37), 1, [
+			{ contents: [expectedString], range: toRange(199, 35, 199, 76) }
+		]);
 	});
 
 	test("Hover over builtin type should display nothing", async () => {
