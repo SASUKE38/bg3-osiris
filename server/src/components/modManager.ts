@@ -21,7 +21,7 @@ import {
 import { copyFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
 import { ResourceKind } from "../mods/resource/resource";
 import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
-import { SignatureCollection } from "../mods/signature";
+import { Signature, SignatureCollection } from "../mods/signature";
 import {
 	notificationFilesChanged,
 	notificationModInitializing,
@@ -488,8 +488,18 @@ export class ModManager extends ComponentBase {
 		let res = new SignatureCollection();
 		if (!this.mod) return res;
 
+		function mergeSignatures(entries: MapIterator<[string, Signature]>) {
+			for (const entry of entries) {
+				if (!res.has(entry[1])) {
+					res.set(entry[1]);
+				} else {
+					entry[1].mergeSignatures(res);
+				}
+			}
+		}
+
 		for (const resource of this.mod.getAllGoals()) {
-			res = new SignatureCollection([...res.entries(), ...(await resource.getData("signatures")).entries()]);
+			mergeSignatures((await resource.getData("signatures")).entries())
 		}
 
 		for (const entry of this.mod.inheritedSignatures.entries()) {
@@ -497,7 +507,7 @@ export class ModManager extends ComponentBase {
 			if (!res.has(signature)) res.set(signature);
 			else entry[1].mergeSignatures(res);
 		}
-		res = new SignatureCollection([...res.entries(), ...this.mod.inheritedDatabases.entries()]);
+		mergeSignatures(this.mod.inheritedDatabases.entries())
 
 		return res;
 	}

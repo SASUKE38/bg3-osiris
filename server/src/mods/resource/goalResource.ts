@@ -86,18 +86,23 @@ export class GoalResource extends Resource {
 			}
 		}
 
+		async function parseAndLoad(thisArg: GoalResource, document: TextDocument) {
+			doParse(thisArg, document);
+			await Promise.all([thisArg.loadSymbols(), thisArg.loadSignatures(), thisArg.loadConstants(), thisArg.loadStrings()]);
+			thisArg.mod.manager.updateSignatures(thisArg.path, thisArg.referencedSignatures);
+			thisArg.validate();
+		}
+
 		if (this.document) {
 			if (!this.isValid()) {
-				doParse(this, this.document);
+				await parseAndLoad(this, this.document);
 			}
 		} else {
 			const content = await readFile(this.path, { encoding: "utf-8" });
 			const document = TextDocument.create(this.path, "osiris", 1, content);
 			doParse(this, document);
+			await parseAndLoad(this, document);
 		}
-		await Promise.all([this.loadSymbols(), this.loadSignatures(), this.loadConstants(), this.loadStrings()]);
-		this.mod.manager.updateSignatures(this.path, this.referencedSignatures);
-		this.validate();
 		return this.ast;
 	}
 
