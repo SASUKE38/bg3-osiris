@@ -16,7 +16,7 @@ export async function activate(docUri: vscode.Uri) {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
 		if (!didSleep) {
-			await sleep(5000);
+			await sleep(6000);
 		}
 		didSleep = true;
 	} catch (e) {

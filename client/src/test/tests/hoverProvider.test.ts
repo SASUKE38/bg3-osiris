@@ -3,7 +3,8 @@ import * as assert from "assert";
 import { getDocUri, activate, toRange } from "../helper";
 
 suite("Hover Provider", () => {
-	const docUri = getDocUri("Act3c_EPI_Emperor.txt");
+	const epiDocUri = getDocUri("Act3c_EPI_Emperor.txt");
+	const endDocUri = getDocUri("Act3c_END_Emperor.txt");
 	const languageId = "osiris";
 	const descriptionHeader = "### Description";
 	const examplesHeader = "### Examples";
@@ -25,7 +26,7 @@ suite("Hover Provider", () => {
 		expectedString.appendMarkdown(
 			seeAlsoHeader + "\n- ObjectGetTitle\n- ObjectSetTitleHidden\n- SetStoryDisplayName"
 		);
-		await testHover(docUri, new vscode.Position(91, 8), 1, [
+		await testHover(epiDocUri, new vscode.Position(91, 8), 1, [
 			{ contents: [expectedString], range: toRange(91, 0, 91, 14) }
 		]);
 	});
@@ -46,7 +47,7 @@ suite("Hover Provider", () => {
 			languageId
 		);
 		expectedString.appendMarkdown(seeAlsoHeader + "\n- FlagSet\n- FlagCleared");
-		await testHover(docUri, new vscode.Position(114, 0), 1, [
+		await testHover(epiDocUri, new vscode.Position(114, 0), 1, [
 			{ contents: [expectedString], range: toRange(114, 0, 114, 7) }
 		]);
 	});
@@ -67,7 +68,7 @@ suite("Hover Provider", () => {
 			languageId
 		);
 		expectedString.appendMarkdown(seeAlsoHeader + "\n- AttackedBy\n- MissedBy\n- CriticalHitBy");
-		await testHover(docUri, new vscode.Position(202, 8), 1, [
+		await testHover(epiDocUri, new vscode.Position(202, 8), 1, [
 			{ contents: [expectedString], range: toRange(202, 0, 202, 8) }
 		]);
 	});
@@ -76,17 +77,62 @@ suite("Hover Provider", () => {
 		const expectedString = new vscode.MarkdownString(
 			"```osiris\n(GUIDSTRING) NULL_00000000-0000-0000-0000-000000000000\n```"
 		);
-		await testHover(docUri, new vscode.Position(199, 37), 1, [
+		await testHover(epiDocUri, new vscode.Position(199, 37), 1, [
 			{ contents: [expectedString], range: toRange(199, 35, 199, 76) }
 		]);
 	});
 
+	test("Hover over constant with explicit type should display type and name", async () => {
+		const expectedString = new vscode.MarkdownString(
+			"```osiris\n(FLAG) EPI_Epilogue_State_PartyGameplayStarted_1ff87c8c-a363-45fb-aeb8-762abc69b99e\n```"
+		);
+		await testHover(epiDocUri, new vscode.Position(235, 44), 1, [
+			{ contents: [expectedString], range: toRange(235, 14, 235, 90) }
+		]);
+	});
+
+	test("Hover over variable with inferred type should display type and name", async () => {
+		const expectedString = new vscode.MarkdownString("```osiris\n(CHARACTER) _Player\n```");
+		await testHover(endDocUri, new vscode.Position(79, 93), 1, [
+			{ contents: [expectedString], range: toRange(79, 90, 79, 97) }
+		]);
+	});
+
+	test("Hover over variable with explicit type should display type and name", async () => {
+		const expectedString = new vscode.MarkdownString("```osiris\n(CHARACTER) _SpawnedUs\n```");
+		await testHover(epiDocUri, new vscode.Position(176, 42), 1, [
+			{ contents: [expectedString], range: toRange(176, 32, 176, 42) }
+		]);
+	});
+
+	test("Hover over user-defined signature should display signature with type information", async () => {
+		const expectedString = new vscode.MarkdownString(
+			"```osiris\nproc PROC_FOR_CourierDog_ReturnFetchItemToPlayer((ITEM)_, (CHARACTER)_)\n```"
+		);
+		await testHover(epiDocUri, new vscode.Position(382, 40), 1, [
+			{ contents: [expectedString], range: toRange(382, 0, 382, 43) }
+		]);
+	});
+
+	test("Hover over overloaded user-defined signature with overloads should display types and number of overloads", async () => {
+		const expectedString = new vscode.MarkdownString(
+			"```osiris\nproc PROC_TryStartAD((DIALOGRESOURCE)_, (GUIDSTRING)_) (+3 overloads)\n```"
+		);
+		await testHover(epiDocUri, new vscode.Position(461, 9), 1, [
+			{ contents: [expectedString], range: toRange(461, 0, 461, 15) }
+		]);
+	});
+
+	test("Hover over number should display nothing", async () => {
+		await testHover(epiDocUri, new vscode.Position(455, 16), 0, [{ contents: [] }]);
+	});
+
 	test("Hover over builtin type should display nothing", async () => {
-		await testHover(docUri, new vscode.Position(178, 27), 0, [{ contents: [] }]);
+		await testHover(epiDocUri, new vscode.Position(178, 27), 0, [{ contents: [] }]);
 	});
 
 	test("Hover over empty line should display nothing", async () => {
-		await testHover(docUri, new vscode.Position(182, 0), 0, [{ contents: [] }]);
+		await testHover(epiDocUri, new vscode.Position(182, 0), 0, [{ contents: [] }]);
 	});
 });
 

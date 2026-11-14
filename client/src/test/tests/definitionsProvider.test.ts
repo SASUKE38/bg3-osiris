@@ -12,9 +12,9 @@ suite("Definitions Provider", async () => {
 		]);
 	});
 
-	test("Finding definitions of a user-defined, non-database signature should get all implementations of the signature in the workspace", async () => {
-		await testDefinitions(endDocUri, new vscode.Position(157, 25), [
-			{ uri: endDocUri, range: toRange(157, 0, 157, 41) },
+	test("Finding definitions of a user-defined, non-database signature should get all implementations of the signature in the project", async () => {
+		await testDefinitions(endDocUri, new vscode.Position(162, 25), [
+			{ uri: endDocUri, range: toRange(162, 0, 162, 41) },
 			{ uri: epiDocUri, range: toRange(260, 0, 260, 41) },
 			{ uri: epiDocUri, range: toRange(275, 0, 275, 41) },
 			{ uri: epiDocUri, range: toRange(290, 0, 290, 41) }

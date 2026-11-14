@@ -440,18 +440,21 @@ export class ModManager extends ComponentBase {
 	}
 
 	async getAllConstants() {
-		return await this.getAllConstantLikes("constants");
-	}
-
-	async getAllStrings() {
-		return await this.getAllConstantLikes("strings");
-	}
-
-	private async getAllConstantLikes(type: "strings" | "constants") {
 		const res = new Set<string>();
 		if (!this.mod) return res;
 		for (const resource of this.mod.getAllGoals()) {
-			(await resource.getData(type)).forEach((value) => res.add(value));
+			for (const key of (await resource.getData("constants")).keys()) {
+				res.add(key);
+			}
+		}
+		return res;
+	}
+
+	async getAllStrings() {
+		const res = new Set<string>();
+		if (!this.mod) return res;
+		for (const resource of this.mod.getAllGoals()) {
+			(await resource.getData("strings")).forEach((value) => res.add(value));
 		}
 		return res;
 	}
@@ -488,26 +491,12 @@ export class ModManager extends ComponentBase {
 		let res = new SignatureCollection();
 		if (!this.mod) return res;
 
-		function mergeSignatures(entries: MapIterator<[string, Signature]>) {
-			for (const entry of entries) {
-				if (!res.has(entry[1])) {
-					res.set(entry[1]);
-				} else {
-					entry[1].mergeSignatures(res);
-				}
-			}
-		}
-
 		for (const resource of this.mod.getAllGoals()) {
-			mergeSignatures((await resource.getData("signatures")).entries())
+			res.merge(await resource.getData("signatures"));
 		}
 
-		for (const entry of this.mod.inheritedSignatures.entries()) {
-			const signature = entry[1];
-			if (!res.has(signature)) res.set(signature);
-			else entry[1].mergeSignatures(res);
-		}
-		mergeSignatures(this.mod.inheritedDatabases.entries())
+		res.merge(this.mod.inheritedSignatures);
+		res.merge(this.mod.inheritedDatabases);
 
 		return res;
 	}

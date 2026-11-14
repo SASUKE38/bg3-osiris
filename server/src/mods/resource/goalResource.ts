@@ -17,7 +17,7 @@ import {
 import { GoalLexer } from "../../parser/lexer/goalLexer";
 import { GoalParser } from "../../parser/parser/goalParser";
 import { Resource, ResourceKind } from "./resource";
-import { Diagnostic, DocumentSymbol, Location, SymbolKind, WorkspaceSymbol } from "vscode-languageserver";
+import { Diagnostic, DocumentSymbol, Location, Range, SymbolKind, WorkspaceSymbol } from "vscode-languageserver";
 import { readFile } from "fs/promises";
 import { encodePath } from "../../utils/pathUtils";
 import { Signature, SignatureCollection, SignatureType } from "../signature";
@@ -30,7 +30,7 @@ export class GoalResource extends Resource {
 	private workspaceSymbols: WorkspaceSymbol[] = [];
 	private signatures = new SignatureCollection();
 	private referencedSignatures = new Set<string>();
-	private constants = new Set<string>();
+	private constants = new Map<string, Range[]>();
 	private strings = new Set<string>();
 	readonly kind: ResourceKind = ResourceKind.Goal;
 	protected symbols: DocumentSymbol[] = [];
@@ -46,7 +46,8 @@ export class GoalResource extends Resource {
 	async getData(data: "diagnostics"): Promise<Diagnostic[]>;
 	async getData(data: "workspaceSymbols"): Promise<WorkspaceSymbol[]>;
 	async getData(data: "symbols"): Promise<DocumentSymbol[]>;
-	async getData(data: "readDatabases" | "writtenDatabases" | "constants" | "strings"): Promise<Set<string>>;
+	async getData(data: "constants"): Promise<Map<string, Range[]>>;
+	async getData(data: "readDatabases" | "writtenDatabases" | "strings"): Promise<Set<string>>;
 	async getData(
 		data:
 			| "diagnostics"
@@ -57,7 +58,15 @@ export class GoalResource extends Resource {
 			| "writtenDatabases"
 			| "constants"
 			| "strings"
-	): Promise<DocumentSymbol[] | WorkspaceSymbol[] | number[] | SignatureCollection | Diagnostic[] | Set<string>> {
+	): Promise<
+		| DocumentSymbol[]
+		| WorkspaceSymbol[]
+		| number[]
+		| SignatureCollection
+		| Diagnostic[]
+		| Set<string>
+		| Map<string, Range[]>
+	> {
 		if (!this.isValid()) await this.load();
 		return this[data];
 	}
@@ -88,7 +97,12 @@ export class GoalResource extends Resource {
 
 		async function parseAndLoad(thisArg: GoalResource, document: TextDocument) {
 			doParse(thisArg, document);
-			await Promise.all([thisArg.loadSymbols(), thisArg.loadSignatures(), thisArg.loadConstants(), thisArg.loadStrings()]);
+			await Promise.all([
+				thisArg.loadSymbols(),
+				thisArg.loadSignatures(),
+				thisArg.loadConstants(),
+				thisArg.loadStrings()
+			]);
 			thisArg.mod.manager.updateSignatures(thisArg.path, thisArg.referencedSignatures);
 			thisArg.validate();
 		}
@@ -209,7 +223,7 @@ export class GoalResource extends Resource {
 		function mergeSignatures(signature: Signature, thisArg: GoalResource) {
 			if (!thisArg.signatures.has(signature)) thisArg.signatures.set(signature);
 			else {
-				signature.mergeSignatures(thisArg.signatures);
+				thisArg.signatures.mergeSignature(signature);
 			}
 		}
 
@@ -365,7 +379,10 @@ export class GoalResource extends Resource {
 				if (child.kind !== ASTNodeKind.IDENTIFIER_NODE) getConstants(child, thisArg);
 				else {
 					if ((child as IdentifierNode).value.startsWith("_")) continue;
-					thisArg.constants.add((child as IdentifierNode).value);
+					if (!thisArg.constants.has((child as IdentifierNode).value)) {
+						thisArg.constants.set((child as IdentifierNode).value, []);
+					}
+					thisArg.constants.get((child as IdentifierNode).value)?.push(child.range);
 				}
 			}
 		}

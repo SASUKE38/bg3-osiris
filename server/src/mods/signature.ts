@@ -1,5 +1,6 @@
 import { Location } from "vscode-languageserver";
 import { SignatureNode } from "../parser/ast/nodes";
+import { rangeEquals } from "../utils/positionUtils";
 
 export type SignatureType = "Event" | "Call" | "Query" | "Database" | "Proc" | "SysQuery" | "SysCall" | "UserQuery";
 
@@ -24,20 +25,44 @@ export class Signature {
 		this.definitions = definitions;
 	}
 
-	mergeSignatures(signatureCollection: SignatureCollection): void {
-		const storedSignature = signatureCollection.get(this);
-		if (!storedSignature) return;
+	merge(otherSignature: Signature) {
 		for (let i = 0; i < this.parameters.length; i++) {
-			if (storedSignature.parameters[i] === "" && this.parameters[i] !== "") {
-				storedSignature.parameters[i] = this.parameters[i];
+			if (otherSignature.parameters[i] === "" && this.parameters[i] !== "") {
+				otherSignature.parameters[i] = this.parameters[i];
 			}
 		}
 
 		if (this.definitions) {
-			storedSignature.definitions = storedSignature.definitions
-				? [...storedSignature.definitions, ...this.definitions]
-				: [...this.definitions];
+			for (const definition of this.definitions) {
+				if (
+					!otherSignature.definitions.find((value) => {
+						return value.uri === definition.uri && rangeEquals(value.range, definition.range);
+					})
+				) {
+					otherSignature.definitions.push(definition);
+				}
+			}
 		}
+	}
+
+	combine(otherSignature: Signature): Signature {
+		const parameters: string[] = [...this.parameters];
+
+		for (let i = 0; i < this.parameters.length; i++) {
+			if (this.parameters[i] !== "" && parameters[i] === "") {
+				parameters[i] = this.parameters[i];
+				continue;
+			}
+			if (otherSignature.parameters[i] !== "" && parameters[i] === "") {
+				parameters[i] = otherSignature.parameters[i];
+				continue;
+			}
+		}
+
+		const res = new Signature(this.name, this.type, parameters, [], this.outParamMask);
+		res.definitions = [...res.definitions, ...otherSignature.definitions, ...this.definitions];
+
+		return res;
 	}
 
 	isOutParameter(index: number): boolean {
@@ -68,20 +93,15 @@ export class Signature {
 			this.type === "SysQuery"
 		);
 	}
+
+	doesOverloadBuiltin(signatures: SignatureCollection) {
+		const allItems = signatures.getAll(this);
+		return allItems.find((value) => value.isBuiltin());
+	}
 }
 
 export class SignatureCollection {
-	private readonly map: Map<string, Signature>;
-
-	constructor();
-	constructor(
-		iterable?: Iterable<readonly [string, Signature]> | null | undefined,
-		entries?: readonly (readonly [string, Signature])[] | null
-	) {
-		if (entries) this.map = new Map<string, Signature>(entries);
-		else if (iterable) this.map = new Map<string, Signature>(iterable);
-		else this.map = new Map<string, Signature>();
-	}
+	private readonly map = new Map<string, Signature>();
 
 	private getKey(signature: Signature | SignatureNode): string {
 		return `${signature.name}/${signature.parameters.length}`;
@@ -136,6 +156,22 @@ export class SignatureCollection {
 
 	clear() {
 		this.map.clear();
+	}
+
+	merge(collection: SignatureCollection) {
+		for (const signature of collection.entries()) {
+			this.mergeSignature(signature[1], signature[0]);
+		}
+	}
+
+	mergeSignature(signature: Signature, signatureKey?: string) {
+		const key = signatureKey ? signatureKey : this.getKey(signature);
+		if (!this.map.has(key)) {
+			this.map.set(key, signature);
+		} else {
+			const oldSignature = this.map.get(key);
+			this.map.set(key, oldSignature!.combine(signature));
+		}
 	}
 }
 

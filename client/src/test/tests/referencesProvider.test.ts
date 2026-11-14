@@ -7,7 +7,7 @@ suite("References Provider", () => {
 	const endDocUri = getDocUri("Act3c_END_Emperor.txt");
 
 	suite("References", () => {
-		test("Finding references of constant should get all instances of the constant in the workspace", async () => {
+		test("Finding references of a constant should get all instances of the constant in the project", async () => {
 			await testReferences(epiDocUri, new vscode.Position(262, 59), [
 				{ uri: endDocUri, range: toRange(14, 60, 14, 113) },
 				{ uri: endDocUri, range: toRange(92, 108, 92, 161) },
@@ -17,7 +17,7 @@ suite("References Provider", () => {
 				{ uri: endDocUri, range: toRange(112, 131, 112, 184) },
 				{ uri: endDocUri, range: toRange(122, 22, 122, 75) },
 				{ uri: endDocUri, range: toRange(152, 39, 152, 92) },
-				{ uri: endDocUri, range: toRange(163, 64, 163, 117) },
+				{ uri: endDocUri, range: toRange(168, 64, 168, 117) },
 				{ uri: epiDocUri, range: toRange(64, 46, 64, 99) },
 				{ uri: epiDocUri, range: toRange(262, 11, 262, 64) },
 				{ uri: epiDocUri, range: toRange(264, 86, 264, 139) },
@@ -25,10 +25,10 @@ suite("References Provider", () => {
 			]);
 		});
 
-		test("Finding references of signature should get all instances of the signature in the workspace", async () => {
+		test("Finding references of a signature should get all instances of the signature in the project", async () => {
 			await testReferences(epiDocUri, new vscode.Position(155, 34), [
 				{ uri: endDocUri, range: toRange(14, 0, 14, 48) },
-				{ uri: endDocUri, range: toRange(163, 4, 163, 52) },
+				{ uri: endDocUri, range: toRange(168, 4, 168, 52) },
 				{ uri: epiDocUri, range: toRange(70, 0, 70, 48) },
 				{ uri: epiDocUri, range: toRange(71, 0, 71, 48) },
 				{ uri: epiDocUri, range: toRange(72, 0, 72, 48) },

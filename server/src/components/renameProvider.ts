@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
 	Connection,
-	DocumentSymbol,
 	PrepareRenameParams,
 	Range,
 	RenameParams,
 	ServerCapabilities,
-	SymbolKind,
 	WorkspaceEdit
 } from "vscode-languageserver";
 import { ComponentBase } from "../componentBase";
 import { decodePath, encodePath } from "../utils/pathUtils";
+import { findNestedUses, findVariableUses, validateRenameOrReferences } from "../utils/signatureUtils";
+import { ASTNode, ASTNodeKind, IdentifierNode, SignatureNode } from "../parser/ast/nodes";
 
 /**
  * Server component that handles rename requests.
@@ -36,7 +36,13 @@ export class RenameProvider extends ComponentBase {
 	 * @returns A {@link Range} instance if this is a valid request, null otherwise.
 	 */
 	private handlePrepareRename = async (params: PrepareRenameParams): Promise<Range | null> => {
-		return await this.server.symbolManager.validateRenameOrReferences(params);
+		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
+		if (!resource) return null;
+		return await validateRenameOrReferences(
+			params,
+			resource,
+			await this.server.modManager.getAllDefinedSignatures()
+		);
 	};
 
 	/**
@@ -47,40 +53,37 @@ export class RenameProvider extends ComponentBase {
 	 */
 	private handleRenameRequest = async (params: RenameParams): Promise<WorkspaceEdit | null> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
-		if (resource) {
-			const symbolsAt = await resource.getSymbolsAt(params.position);
-			const oldSymbol = symbolsAt[symbolsAt.length - 1];
+		if (!resource) return null;
 
-			if (oldSymbol.kind === SymbolKind.Variable) {
-				return Promise.resolve(this.renameVariableOrKBConstant(params, symbolsAt, oldSymbol));
-			} else if (oldSymbol.kind === SymbolKind.Constant) {
-				return Promise.resolve(this.renameDeclarationConstant(params, symbolsAt, oldSymbol));
-			} else if (oldSymbol.kind === SymbolKind.Function) {
-				return await this.renameSignature(params, oldSymbol);
-			}
+		const nodesAt = await resource.getNodesAt(params.position);
+		const oldNode = nodesAt[nodesAt.length - 1];
+
+		if (oldNode.kind === ASTNodeKind.IDENTIFIER_NODE && (oldNode as IdentifierNode).value.startsWith("_")) {
+			return this.renameVariable(params, nodesAt, oldNode as IdentifierNode);
+		} else if (oldNode.kind === ASTNodeKind.IDENTIFIER_NODE) {
+			return await this.renameConstant(params, oldNode as IdentifierNode);
+		} else if (oldNode.kind === ASTNodeKind.SIGNATURE_NODE) {
+			return await this.renameSignature(params, oldNode as SignatureNode);
 		}
-
 		return null;
 	};
 
 	/**
-	 * Renames a symbol in the mod.
+	 * Renames a node in the mod.
 	 *
 	 * @param params The {@link RenameParams} for this request.
-	 * @param oldSymbol The symbol to be renamed.
+	 * @param oldNode The node to be renamed.
 	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation.
 	 */
-	private async renameSignature(params: RenameParams, oldSymbol: DocumentSymbol): Promise<WorkspaceEdit> {
-		const allSymbols = await this.server.symbolManager.getAllSymbols();
+	private async renameSignature(params: RenameParams, oldNode: SignatureNode): Promise<WorkspaceEdit> {
 		const res: WorkspaceEdit = { changes: {} };
 
-		for (const entry of allSymbols.entries()) {
-			const encodedPath = encodePath(entry[0]);
-			res.changes![`${encodedPath}`] = [];
-			for (const section of entry[1]) {
-				for (const range of this.server.symbolManager.findNestedUses(section, oldSymbol)) {
-					res.changes![`${encodedPath}`].push({ range: range, newText: params.newName });
-				}
+		for (const resource of this.server.modManager.getAllResources()) {
+			res.changes![`${encodePath(resource.path)}`] = [];
+			const root = await resource.getRootNode();
+			if (!root) continue;
+			for (const range of findNestedUses(root, oldNode)) {
+				res.changes![`${encodePath(resource.path)}`].push({ range: range, newText: params.newName });
 			}
 		}
 
@@ -91,18 +94,14 @@ export class RenameProvider extends ComponentBase {
 	 * Renames a variable or constant.
 	 *
 	 * @param params The {@link RenameParams} for this request.
-	 * @param symbolsAt The symbols at the request's position.
-	 * @param oldSymbol The symbol to be renamed.
+	 * @param nodesAt The nodes at the request's position.
+	 * @param oldNode The node to be renamed.
 	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation.
 	 */
-	private renameVariableOrKBConstant(
-		params: RenameParams,
-		symbolsAt: DocumentSymbol[],
-		oldSymbol: DocumentSymbol
-	): WorkspaceEdit {
+	private renameVariable(params: RenameParams, nodesAt: ASTNode[], oldNode: IdentifierNode): WorkspaceEdit {
 		const res: WorkspaceEdit = { changes: { [`${params.textDocument.uri}`]: [] } };
 
-		for (const range of this.server.symbolManager.findVariableUses(symbolsAt, oldSymbol)) {
+		for (const range of findVariableUses(nodesAt, oldNode)) {
 			res.changes![params.textDocument.uri].push({ range: range, newText: params.newName });
 		}
 
@@ -113,32 +112,21 @@ export class RenameProvider extends ComponentBase {
 	 * Renames a declaration constant.
 	 *
 	 * @param params The {@link RenameParams} for this request.
-	 * @param symbolsAt The symbols at the request's position.
-	 * @param oldSymbol The symbol to be renamed.
-	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation if it is successful, null otherwise.
+	 * @param oldNode The node to be renamed.
+	 * @returns A {@link WorkspaceEdit} containing the result of the rename operation.
 	 */
-	private renameDeclarationConstant(
-		params: RenameParams,
-		symbolsAt: DocumentSymbol[],
-		oldSymbol: DocumentSymbol
-	): WorkspaceEdit | null {
-		if (
-			symbolsAt.length > 0 &&
-			(symbolsAt[0].name === "INIT" || symbolsAt[0].name === "EXIT") &&
-			symbolsAt[0].kind === SymbolKind.Module
-		) {
-			const root = symbolsAt.find((symbol) => symbol.kind === SymbolKind.Function);
-			if (root) {
-				const res: WorkspaceEdit = { changes: { [`${params.textDocument.uri}`]: [] } };
-				for (const range of this.server.symbolManager.findNestedUses(root, oldSymbol)) {
-					res.changes![params.textDocument.uri].push({ range: range, newText: params.newName });
-				}
-				return res;
+	private async renameConstant(params: RenameParams, oldNode: IdentifierNode): Promise<WorkspaceEdit> {
+		const res: WorkspaceEdit = { changes: {} };
+		for (const resource of this.server.modManager.getAllResources()) {
+			const path = encodePath(resource.path);
+			res.changes![`${path}`] = [];
+			const constants = await resource.getData("constants");
+			for (const constant of constants) {
+				if (constant[0] !== oldNode.value) continue;
+				constant[1].forEach((value) => res.changes![`${path}`].push({ range: value, newText: params.newName }));
 			}
-		} else {
-			return this.renameVariableOrKBConstant(params, symbolsAt, oldSymbol);
 		}
 
-		return null;
+		return res;
 	}
 }
