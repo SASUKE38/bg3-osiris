@@ -247,10 +247,10 @@ export class ParameterAnalyzer extends AnalyzerBase {
 			for (let i = 0; i < (node as SignatureNode).parameters.length; i++) {
 				const parameterNode = (node as SignatureNode).parameters[i];
 
-				if (signature.parameters[i] === "") {
-					res.push(unresolvedSignatureDiagnosticFactory({ range: node.selectionRange, name: node.name }));
-					return;
-				}
+				// if (signature.parameters[i] === "") {
+				// 	res.push(unresolvedSignatureDiagnosticFactory({ range: node.selectionRange, name: node.name }));
+				// 	return;
+				// }
 
 				let searchType = "UNKNOWN";
 

@@ -1,0 +1,20 @@
+Version 1
+SubGoalCombiner SGC_AND
+INITSECTION
+
+KBSECTION
+
+PROC
+PROC_SomeMismatchedProc((CHARACTER)_Var)
+THEN
+DB_NOOP(1);
+
+PROC
+PROC_SomeCallerOfMismatchedProc((INTEGER)_Var)
+THEN
+PROC_SomeMismatchedProc(_Var);
+
+
+EXITSECTION
+
+ENDEXITSECTION

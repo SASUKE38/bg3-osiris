@@ -4,26 +4,26 @@
  */
 export const enum DiagnosticCode {
 	// Miscellaenous internal error - should not happen.
-	InternalError = "E00",
+	// InternalError = "E00",
 
 	// A type ID was declared multiple times in the story definition file.
-	TypeIdAlreadyDefined = "E01",
+	// TypeIdAlreadyDefined = "E01",
 
 	// A type name (alias)  was declared multiple times in the story definition file.
-	TypeNameAlreadyDefined = "E02",
+	// TypeNameAlreadyDefined = "E02",
 
 	// The type ID is either an intrinsic ID or is outside the allowed range.
-	TypeIdInvalid = "E03",
+	// TypeIdInvalid = "E03",
 
 	// The alias type ID doesn't point to a valid intrinsic type ID
-	IntrinsicTypeIdInvalid = "E04",
+	// IntrinsicTypeIdInvalid = "E04",
 
 	// A function with the same signature already exists.
-	SignatureAlreadyDefined = "E05",
+	// SignatureAlreadyDefined = "E05",
 
 	// The type of an argument could not be resolved in a builtin function.
 	// (This only occurs when parsing story headers, not in goal code)
-	UnresolvedTypeInSignature = "E06",
+	// UnresolvedTypeInSignature = "E06",
 
 	// A goal with the same name was seen earlier.
 	GoalAlreadyDefined = "E07",
@@ -32,7 +32,7 @@ export const enum DiagnosticCode {
 	UnresolvedGoal = "E08",
 
 	// Failed to infer the type of a rule-local variable.
-	UnresolvedVariableType = "E09",
+	// UnresolvedVariableType = "E09",
 
 	// The function signature (full typed parameter list) of a function
 	// could not be determined. This is likely the result of a failed type inference.
@@ -49,7 +49,7 @@ export const enum DiagnosticCode {
 
 	// Fact contains a function that is not callable
 	// (the function is not a call, database or proc).
-	InvalidSymbolInFact = "E14",
+	// InvalidSymbolInFact = "E14",
 
 	// Rule action contains a function that is not callable
 	// (the function is not a call, database or proc).
@@ -71,10 +71,10 @@ export const enum DiagnosticCode {
 	StringLtGtComparison = "W20",
 
 	// The alias type of a function parameter does not match the expected type.
-	GuidAliasMismatch = "E21",
+	// GuidAliasMismatch = "E21",
 
 	// Object name GUID is prefixed with a type that is not known.
-	GuidPrefixNotKnown = "W22",
+	// GuidPrefixNotKnown = "W22",
 
 	// PROC_/QRY_ naming style violation.
 	RuleNamingStyle = "W23",
@@ -88,22 +88,22 @@ export const enum DiagnosticCode {
 
 	// The database is likely unused or unpopulated.
 	// (Written but not read, or vice versa)
-	UnusedDatabaseError = "E25",
+	// UnusedDatabaseError = "E25",
 
 	// Database "DB_" naming convention violation.
 	DbNamingStyle = "W26",
 
 	// Object name GUID could not be resolved to a game object.
-	UnresolvedGameObjectName = "W27",
+	// UnresolvedGameObjectName = "W27",
 
 	// Type of name GUID differs from type of game object.
-	GameObjectTypeMismatch = "W28",
+	// GameObjectTypeMismatch = "W28",
 
 	// Name part of name GUID differs from name of game object.
-	GameObjectNameMismatch = "W29",
+	// GameObjectNameMismatch = "W29",
 
 	// Multiple definitions seen for the same function with different signatures.
-	ProcTypeMismatch = "E30",
+	// ProcTypeMismatch = "E30",
 
 	// Attempted to cast a type to an unrelated/incompatible type (i.e. STRING to INTEGER)
 	CastToUnrelatedType = "E31",
@@ -121,7 +121,7 @@ export const enum DiagnosticCode {
 
 	// The database is possibly used in an incorrect way.
 	// (Deleted and read, but not written)
-	UnwrittenDatabase = "W35",
+	// UnwrittenDatabase = "W35",
 
 	/* Custom */
 	// Encountered unexpected token during parsing
