@@ -50,6 +50,7 @@ export class SignatureHelpProvider extends ComponentBase {
 		const signatureInformation = await this.getSignatures(signatureNode, signatures);
 		const activeParameter = this.getActiveParameter(textDocument, signatureNode, params.position);
 
+		if (signatureInformation.length === 0) return null;
 		return {
 			signatures: signatureInformation,
 			activeSignature: this.getActiveSignature(signatureInformation, signatureNode, activeParameter),
@@ -128,7 +129,10 @@ export class SignatureHelpProvider extends ComponentBase {
 		signature: SignatureNode,
 		activeParameter: number
 	): number {
-		if (signatures[0].parameters?.length && signature.parameters.length < signatures[0].parameters?.length)
+		if (
+			signatures.length === 0 ||
+			(signatures[0].parameters?.length && signature.parameters.length < signatures[0].parameters?.length)
+		)
 			return 0;
 		const index = signatures.findIndex((value) => {
 			return value.parameters?.length === Math.max(signature.parameters.length, activeParameter + 1);

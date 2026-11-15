@@ -1,0 +1,23 @@
+Version 1
+SubGoalCombiner SGC_AND
+INITSECTION
+
+DB_SomeUnreadDatabase((CHARACTER)NULL_00000000-0000-0000-0000-000000000000);
+
+KBSECTION
+
+PROC
+PROC_SomeBadDatabases()
+AND
+DB_SomeUnwrittenDatabase((INTEGER)_Int)
+THEN
+DB_NOOP(1);
+
+IF
+SomeBadlyNamedDatabase((CHARACTER)_Var)
+THEN
+DB_NOOP(1);
+
+EXITSECTION
+
+ENDEXITSECTION

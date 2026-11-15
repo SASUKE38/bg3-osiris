@@ -9,7 +9,6 @@ import {
 
 export class ComparisonAnalyzer extends AnalyzerBase {
 	private readonly nonEqualityOperators = ["<", ">", "<=", ">="];
-	private readonly sameTypeKinds = [ASTNodeKind.STRING_NODE, ASTNodeKind.NUMBER_NODE, ASTNodeKind.IDENTIFIER_NODE];
 
 	async analyze(): Promise<Diagnostic[]> {
 		const res: Diagnostic[] = [];
@@ -56,9 +55,11 @@ export class ComparisonAnalyzer extends AnalyzerBase {
 		const right = child.right;
 
 		if (
-			this.sameTypeKinds.find((value) => value === left.kind && value === right.kind) &&
-			((left as SingletonNode<string>).value === (right as SingletonNode<string>).value ||
-				(left as SingletonNode<number>).value === (right as SingletonNode<number>).value)
+			left.kind === ASTNodeKind.IDENTIFIER_NODE &&
+			(left as IdentifierNode).value.startsWith("_") &&
+			right.kind === ASTNodeKind.IDENTIFIER_NODE &&
+			(right as IdentifierNode).value.startsWith("_") &&
+			(left as IdentifierNode).value === (right as IdentifierNode).value
 		) {
 			res.push(binaryOperationSameRhsLhsDiagnosticFactory({ range: child.selectionRange }));
 		}

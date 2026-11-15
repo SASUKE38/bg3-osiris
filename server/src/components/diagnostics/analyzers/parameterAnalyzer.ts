@@ -21,6 +21,7 @@ import {
 	unresolvedEnumMemberDiagnosticFactory,
 	unresolvedSignatureDiagnosticFactory
 } from "../message";
+import { getParameterBinding } from "../../../utils/signatureUtils";
 
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
@@ -45,7 +46,8 @@ export class ParameterAnalyzer extends AnalyzerBase {
 						signatures,
 						res
 					);
-					thisArg.verifyRelatedCasts(child as RuleNode, signatures, res);
+					thisArg.verifyRelatedGuidAliasCasts(child as RuleNode, signatures, res);
+					thisArg.verifyRelatedTypeCasts(child as RuleNode, signatures, res);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 					thisArg.verifyConstantTypes((child as SignatureSectionNode).content, signatures, res);
 				} else {
@@ -314,8 +316,43 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 	//#region CastToUnrelated
 	// CastToUnrelatedType 31
+	private verifyRelatedTypeCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+		const signatureNodes = [
+			rule.call,
+			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
+			...rule.actions
+		];
+		const { mod } = this.modManager;
+		if (!mod) return;
+		
+		for (const signatureNode of signatureNodes) {
+			for (let i = 0; i < signatureNode.parameters.length; i++) {
+				const parameterNode = signatureNode.parameters[i]
+				if (parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE || !parameterNode.type || !(parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
+				
+				const bindingInformation = getParameterBinding(rule, parameterNode.content as IdentifierNode, signatures)
+				if (!bindingInformation) continue;
+				
+				const typeKey = bindingInformation.signature.parameters[bindingInformation.bindingIndex];
+				const type = mod.inheritedTypes.get(typeKey);
+				const castType = mod.inheritedTypes.get(parameterNode.type.value);
+				if (!type || !castType) continue;
+
+				if (!mod.areIntrinsicTypesCompatible(type, castType)) {
+					res.push(
+						castToUnrelatedTypeDiagnosticFactory({
+							range: parameterNode.type.selectionRange,
+							parameterName: (parameterNode.content as IdentifierNode).value,
+							typeName: parameterNode.type.value
+						})
+					);
+				}
+			}
+		}
+	}
+
 	// CastToUnrelatedGuidAlias 32
-	private verifyRelatedCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
+	private verifyRelatedGuidAliasCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		const signatureNodes = [
 			rule.call,
 			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
@@ -330,7 +367,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 			for (let i = 0; i < signature.parameters.length; i++) {
 				const parameterNode = signatureNode.parameters[i];
 				const parameterType = signature.parameters[i];
-				if (!parameterNode.type || parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE) continue;
+				if (!parameterNode.type || parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE || (parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
 				const typeA = mod.inheritedTypes.get(parameterNode.type.value);
 				const typeB = mod.inheritedTypes.get(parameterType);
 				if (!typeA || !typeB) continue;
@@ -338,16 +375,6 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (mod.isGuidToGuidCastUnrelated(typeA, typeB)) {
 					res.push(
 						castToUnrelatedGuidAliasDiagnostiFactory({
-							range: parameterNode.type.selectionRange,
-							parameterName: (parameterNode.content as IdentifierNode).value,
-							typeName: parameterNode.type.value
-						})
-					);
-				}
-
-				if (!mod.areIntrinsicTypesCompatible(typeA, typeB)) {
-					res.push(
-						castToUnrelatedTypeDiagnosticFactory({
 							range: parameterNode.type.selectionRange,
 							parameterName: (parameterNode.content as IdentifierNode).value,
 							typeName: parameterNode.type.value

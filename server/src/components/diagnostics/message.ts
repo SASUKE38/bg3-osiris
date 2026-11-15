@@ -215,7 +215,7 @@ export function binaryOperationSameRhsLhsDiagnosticFactory({ range }: BinaryOper
 	return {
 		source: diagnosticSource,
 		range,
-		message: "Binary operation has the same value on both sides",
+		message: "Binary operation has the same variable on both sides",
 		severity: DiagnosticSeverity.Error,
 		code: DiagnosticCode.BinaryOperationSameRhsLhs
 	};

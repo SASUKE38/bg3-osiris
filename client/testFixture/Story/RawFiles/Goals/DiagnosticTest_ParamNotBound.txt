@@ -1,0 +1,19 @@
+Version 1
+SubGoalCombiner SGC_AND
+INITSECTION
+
+KBSECTION
+
+PROC
+PROC_SomeUnboundCallee((INTEGER)_Var, (CHARACTER)_Var2)
+THEN
+DB_NOOP(1);
+
+PROC
+PROC_UnboundParams()
+THEN
+PROC_SomeUnboundCallee(_Var, _);
+
+EXITSECTION
+
+ENDEXITSECTION

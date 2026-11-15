@@ -1,0 +1,26 @@
+Version 1
+SubGoalCombiner SGC_AND
+INITSECTION
+
+KBSECTION
+
+PROC
+PROC_SomeProc()
+THEN
+DB_NOOP(1);
+
+PROC
+PROC_BadDeletions()
+AND
+PROC_SomeProc()
+AND
+NOT QRY_SomeQuery()
+AND
+NOT PROC_SomeProc()
+THEN
+NOT PROC_SomeProc();
+DB_NOOP(1);
+
+EXITSECTION
+
+ENDEXITSECTION
