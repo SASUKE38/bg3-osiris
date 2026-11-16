@@ -91,7 +91,7 @@ export class RenameProvider extends ComponentBase {
 	}
 
 	/**
-	 * Renames a variable or constant.
+	 * Renames a variable.
 	 *
 	 * @param params The {@link RenameParams} for this request.
 	 * @param nodesAt The nodes at the request's position.
@@ -109,7 +109,7 @@ export class RenameProvider extends ComponentBase {
 	}
 
 	/**
-	 * Renames a declaration constant.
+	 * Renames a constant.
 	 *
 	 * @param params The {@link RenameParams} for this request.
 	 * @param oldNode The node to be renamed.

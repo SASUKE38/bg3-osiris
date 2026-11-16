@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Location } from "vscode-languageserver";
 import { SignatureNode } from "../parser/ast/nodes";
 import { rangeEquals } from "../utils/positionUtils";

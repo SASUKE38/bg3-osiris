@@ -1,6 +1,6 @@
 import { Diagnostic } from "vscode-languageserver";
 import { AnalyzerBase } from "./analyzerBase";
-import { ASTNode, ASTNodeKind, ComparisonNode, IdentifierNode, SingletonNode } from "../../../parser/ast/nodes";
+import { ASTNode, ASTNodeKind, ComparisonNode, IdentifierNode } from "../../../parser/ast/nodes";
 import {
 	binaryOperationSameRhsLhsDiagnosticFactory,
 	riskyComparisonDiagnosticFactory,

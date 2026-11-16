@@ -44,7 +44,6 @@ suite("Rename Provider", () => {
 		edit.replace(epiDocUri, toRange(290, 0, 290, 41), newName);
 		await testRename(endDocUri, new vscode.Position(162, 37), newName, edit);
 	});
-	epiDocUri;
 
 	test("Attempt to rename builtin signature should return a rejected promise", async () => {
 		await testRename(endDocUri, new vscode.Position(32, 5), "somenewname");

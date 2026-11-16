@@ -21,7 +21,7 @@ import {
 import { copyFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
 import { ResourceKind } from "../mods/resource/resource";
 import { decodePath, encodePath, replaceFinalPathPart } from "../utils/pathUtils";
-import { Signature, SignatureCollection } from "../mods/signature";
+import { SignatureCollection } from "../mods/signature";
 import {
 	notificationFilesChanged,
 	notificationModInitializing,
@@ -488,7 +488,7 @@ export class ModManager extends ComponentBase {
 	}
 
 	async getAllDefinedSignatures(): Promise<SignatureCollection> {
-		let res = new SignatureCollection();
+		const res = new SignatureCollection();
 		if (!this.mod) return res;
 
 		for (const resource of this.mod.getAllGoals()) {

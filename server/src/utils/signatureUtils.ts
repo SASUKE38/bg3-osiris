@@ -1,4 +1,4 @@
-import { PrepareRenameParams, Range, ReferenceParams } from "vscode-languageserver";
+import { DocumentHighlightParams, PrepareRenameParams, Range, ReferenceParams } from "vscode-languageserver";
 import { SignatureCollection } from "../mods/signature";
 import { ASTNode, ASTNodeKind, IdentifierNode, RuleNode, SignatureNode } from "../parser/ast/nodes";
 import { GoalResource } from "../mods/resource/goalResource";
@@ -119,7 +119,7 @@ export function findVariableUses(nodesAt: ASTNode[], searchNode: IdentifierNode)
  * @returns A {@link Range} instance if the given parameters contain a valid position or null otherwise.
  */
 export async function validateRenameOrReferences(
-	params: PrepareRenameParams | ReferenceParams,
+	params: PrepareRenameParams | ReferenceParams | DocumentHighlightParams,
 	resource: GoalResource,
 	signatures?: SignatureCollection
 ): Promise<Range | null> {

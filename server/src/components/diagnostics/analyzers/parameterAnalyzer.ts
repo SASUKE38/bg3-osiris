@@ -327,8 +327,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		if (!mod) return;
 
 		for (const signatureNode of signatureNodes) {
-			for (let i = 0; i < signatureNode.parameters.length; i++) {
-				const parameterNode = signatureNode.parameters[i];
+			for (const parameterNode of signatureNode.parameters) {
 				if (
 					parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
 					!parameterNode.type ||
