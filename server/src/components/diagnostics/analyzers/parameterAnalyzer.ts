@@ -257,6 +257,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				let searchType = "UNKNOWN";
 
 				if (parameterNode.type) {
+					if (parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE && (parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
 					searchType = parameterNode.type.value;
 				} else {
 					switch (parameterNode.content.kind) {
@@ -324,15 +325,24 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		];
 		const { mod } = this.modManager;
 		if (!mod) return;
-		
+
 		for (const signatureNode of signatureNodes) {
 			for (let i = 0; i < signatureNode.parameters.length; i++) {
-				const parameterNode = signatureNode.parameters[i]
-				if (parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE || !parameterNode.type || !(parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
-				
-				const bindingInformation = getParameterBinding(rule, parameterNode.content as IdentifierNode, signatures)
+				const parameterNode = signatureNode.parameters[i];
+				if (
+					parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
+					!parameterNode.type ||
+					!(parameterNode.content as IdentifierNode).value.startsWith("_")
+				)
+					continue;
+
+				const bindingInformation = getParameterBinding(
+					rule,
+					parameterNode.content as IdentifierNode,
+					signatures
+				);
 				if (!bindingInformation) continue;
-				
+
 				const typeKey = bindingInformation.signature.parameters[bindingInformation.bindingIndex];
 				const type = mod.inheritedTypes.get(typeKey);
 				const castType = mod.inheritedTypes.get(parameterNode.type.value);
@@ -367,7 +377,12 @@ export class ParameterAnalyzer extends AnalyzerBase {
 			for (let i = 0; i < signature.parameters.length; i++) {
 				const parameterNode = signatureNode.parameters[i];
 				const parameterType = signature.parameters[i];
-				if (!parameterNode.type || parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE || (parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
+				if (
+					!parameterNode.type ||
+					parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
+					(parameterNode.content as IdentifierNode).value.startsWith("_")
+				)
+					continue;
 				const typeA = mod.inheritedTypes.get(parameterNode.type.value);
 				const typeB = mod.inheritedTypes.get(parameterType);
 				if (!typeA || !typeB) continue;

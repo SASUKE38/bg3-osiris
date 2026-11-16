@@ -19,7 +19,6 @@ suite("Diagnostics Provider", () => {
 	const diagnosticSource = "Osiris";
 
 	// TODO: Make sure queries can/can't be used with not
-	// TODO: Get rid of duplicates for diagnostic 11
 
 	test("Diagnostics for script with multiple diagnostics should get array for all of them", async () => {
 		await testDiagnostics(endDocUri, [
