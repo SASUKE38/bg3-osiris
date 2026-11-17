@@ -59,11 +59,11 @@
 				},
 				{
 					"name": "entity.name.section",
-					"match": "\\bINITSECTION|KBSECTION|EXITSECTION|ENDEXITSECTION\\b"
+					"match": "\\b(INITSECTION|KBSECTION|EXITSECTION|ENDEXITSECTION)\\b"
 				},
 				{
 					"name": "entity.other.structure.osiris",
-					"match": "\\bSubGoalCombiner|Version|ParentTargetEdge\\b"
+					"match": "\\b(SubGoalCombiner|Version|ParentTargetEdge)\\b"
 				},
 				{
 					"name": "entity.name.type.osiris",
@@ -75,7 +75,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.osiris",
-					"match": "\\bIF|AND|THEN|PROC|QRY|NOT\\b"
+					"match": "\\b(IF|AND|THEN|PROC|QRY|NOT)\\b"
 				}
 			]
 		},

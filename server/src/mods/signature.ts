@@ -77,7 +77,7 @@ export class Signature {
 
 		for (let i = 0; i < this.parameters.length; i++) {
 			if (this.isOutParameter(i)) content.push("[out]");
-			content.push(`(${this.parameters[i]})_${doNumbering ? i + 1 : ""}`);
+			content.push(`(${this.parameters[i] ? this.parameters[i] : "UNKNOWN"})_${doNumbering ? i + 1 : ""}`);
 			if (i !== this.parameters.length - 1) content.push(", ");
 		}
 

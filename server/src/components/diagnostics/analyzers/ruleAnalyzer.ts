@@ -128,7 +128,8 @@ export class RuleAnalyzer extends AnalyzerBase {
 	) {
 		for (const node of nodes) {
 			if (node.kind !== ASTNodeKind.SIGNATURE_NODE || !node.isDeletion) continue;
-			if (signatures.has(node) && signatures.get(node)?.type !== "Database") {
+			const signature = signatures.get(node);
+			if (signature && signature.type !== "Database" && signature.type !== "UserQuery" && signature.type !== "SysQuery" && signature.type !== "Query") {
 				res.push(invalidDeletionFromNonDatabaseDiagnosticFactory({ range: node.selectionRange }));
 			}
 		}

@@ -133,7 +133,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 							isPlaceholder: false
 						})
 					);
-				} else if ((parameterNode.content as IdentifierNode).value === "_") {
+				} else if (signature.type !== "Database" && (parameterNode.content as IdentifierNode).value === "_") {
 					res.push(
 						paramNotBoundDiagnosticFactory({
 							range: parameterNode.selectionRange,

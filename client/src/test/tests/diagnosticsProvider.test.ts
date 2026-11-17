@@ -18,7 +18,8 @@ suite("Diagnostics Provider", () => {
 	const diagnostic31DocUri = getDocUri("DiagnosticTest_Casts.txt");
 	const diagnosticSource = "Osiris";
 
-	// TODO: Make sure queries can/can't be used with not
+	// TODO: Allow procs and calls in INIT and EXIT -- if a signature is recognized as a proc or call, don't make it a db
+	// TODO: Fix signature collection being so slow -- only change it when a resource is changed?
 
 	test("Diagnostics for script with multiple diagnostics should get array for all of them", async () => {
 		await testDiagnostics(endDocUri, [
