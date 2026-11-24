@@ -54,23 +54,6 @@ export class DiagnosticManager extends ComponentBase {
 		file.setTextDocument(event.document);
 		file.invalidate();
 		this.handleDiagnostics(event.document);
-
-		const signatures = this.server.modManager.fileToSignatureMap.get(path);
-		if (!signatures) return;
-		const visited = new Set<string>();
-		visited.add(path);
-
-		for (const signature of signatures) {
-			const referencedFiles = this.server.modManager.signatureToFileMap.get(signature);
-			if (!referencedFiles) continue;
-			for (const referencedFile of referencedFiles) {
-				if (visited.has(referencedFile)) continue;
-				const referencedResource = this.server.modManager.findGoalResource(referencedFile);
-				if (!referencedResource) continue;
-				this.handleDiagnostics(referencedResource.getTextDocument());
-				visited.add(referencedFile);
-			}
-		}
 	};
 
 	async handleDiagnostics(document: TextDocument): Promise<void> {

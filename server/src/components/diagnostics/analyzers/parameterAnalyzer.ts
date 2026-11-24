@@ -35,17 +35,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (!child) continue;
 				if (child.kind === ASTNodeKind.RULE_NODE) {
 					thisArg.verifyParameterBinding(child as RuleNode, signatures, res);
-					thisArg.verifyConstantTypes(
-						[
-							(child as RuleNode).call,
-							...((child as RuleNode).conditions.filter(
-								(value) => value.kind === ASTNodeKind.SIGNATURE_NODE
-							) as SignatureNode[]),
-							...(child as RuleNode).actions
-						],
-						signatures,
-						res
-					);
+					thisArg.verifyConstantTypes((child as RuleNode).getRuleSignatures(), signatures, res);
 					thisArg.verifyRelatedGuidAliasCasts(child as RuleNode, signatures, res);
 					thisArg.verifyRelatedTypeCasts(child as RuleNode, signatures, res);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
@@ -257,7 +247,11 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				let searchType = "UNKNOWN";
 
 				if (parameterNode.type) {
-					if (parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE && (parameterNode.content as IdentifierNode).value.startsWith("_")) continue;
+					if (
+						parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
+						(parameterNode.content as IdentifierNode).value.startsWith("_")
+					)
+						continue;
 					searchType = parameterNode.type.value;
 				} else {
 					switch (parameterNode.content.kind) {
@@ -318,11 +312,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 	//#region CastToUnrelated
 	// CastToUnrelatedType 31
 	private verifyRelatedTypeCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const signatureNodes = [
-			rule.call,
-			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
-			...rule.actions
-		];
+		const signatureNodes = rule.getRuleSignatures();
 		const { mod } = this.modManager;
 		if (!mod) return;
 
@@ -362,11 +352,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 	// CastToUnrelatedGuidAlias 32
 	private verifyRelatedGuidAliasCasts(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const signatureNodes = [
-			rule.call,
-			...(rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
-			...rule.actions
-		];
+		const signatureNodes = rule.getRuleSignatures();
 		const { mod } = this.modManager;
 		if (!mod) return;
 		for (const signatureNode of signatureNodes) {

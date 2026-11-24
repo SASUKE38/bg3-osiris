@@ -13,7 +13,8 @@ import {
 	NumberNode,
 	UnknownNode,
 	ASTNode,
-	GoalFooterNode
+	GoalFooterNode,
+	GoalCompletedNode
 } from "../ast/nodes";
 import { Token, TokenType } from "../tokens";
 import {
@@ -135,7 +136,7 @@ export class GoalParser extends ParserBase<GoalNode> {
 		const ruleStart = this.pop();
 		const call = this.parseSignature();
 		const conditions: (SignatureNode | ComparisonNode)[] = [];
-		const actions: SignatureNode[] = [];
+		const actions: (SignatureNode | GoalCompletedNode)[] = [];
 		let endPosition = call.range.end;
 		while (!this.atTokenType(TokenType.THEN)) {
 			if (!this.consume({ expectedMessage: expectedMessage.andOrThen, expectedType: [TokenType.AND] }).matched)
@@ -177,13 +178,20 @@ export class GoalParser extends ParserBase<GoalNode> {
 		}
 
 		this.consume({ expectedType: [TokenType.THEN] });
-		while (this.peek().type === TokenType.IDENTIFIER || this.peek().type === TokenType.NOT) {
+		while (
+			this.peek().type === TokenType.IDENTIFIER ||
+			this.peek().type === TokenType.NOT ||
+			this.peek().type === TokenType.GOAL_COMPLETED
+		) {
 			let isDeletion = false;
 			if (this.peek().type === TokenType.NOT) {
 				this.pop();
 				isDeletion = true;
 			}
-			const action = this.parseSignature(true, isDeletion);
+			const action =
+				this.peek().type === TokenType.GOAL_COMPLETED
+					? this.parseGoalCompleted()
+					: this.parseSignature(true, isDeletion);
 			actions.push(action);
 			this.consumeIf({ expectedType: [TokenType.SEMICOLON] });
 			endPosition = action.range.end;
@@ -352,5 +360,10 @@ export class GoalParser extends ParserBase<GoalNode> {
 				})
 			);
 		}
+	}
+
+	private parseGoalCompleted() {
+		const token = this.pop();
+		return new GoalCompletedNode(token.range);
 	}
 }

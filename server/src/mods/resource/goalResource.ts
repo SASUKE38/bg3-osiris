@@ -36,6 +36,7 @@ export class GoalResource extends Resource {
 	protected symbols: DocumentSymbol[] = [];
 	protected document: TextDocument;
 	parents: string[] = [];
+	loadingPromise: Promise<void> | undefined;
 
 	constructor(mod: Mod, name: string, path: string) {
 		super(mod, name, path);
@@ -107,15 +108,20 @@ export class GoalResource extends Resource {
 			thisArg.validate();
 		}
 
-		if (this.document) {
-			if (!this.isValid()) {
-				await parseAndLoad(this, this.document);
+		if (!this.isValid()) {
+			if (!this.document) {
+				const content = await readFile(this.path, { encoding: "utf-8" });
+				this.document = TextDocument.create(this.path, "osiris", 1, content);
 			}
-		} else {
-			const content = await readFile(this.path, { encoding: "utf-8" });
-			const document = TextDocument.create(this.path, "osiris", 1, content);
-			doParse(this, document);
-			await parseAndLoad(this, document);
+			if (!this.loadingPromise) {
+				const loadingPromise = parseAndLoad(this, this.document);
+				this.loadingPromise = loadingPromise;
+				this.mod.manager.queue.add(() => {
+					return loadingPromise;
+				});
+			}
+			await this.loadingPromise;
+			this.loadingPromise = undefined;
 		}
 		return this.ast;
 	}
@@ -210,7 +216,12 @@ export class GoalResource extends Resource {
 						parameters,
 						thisArg
 					);
-					extractActionSignature(rule.actions, rule.type, parameters, thisArg);
+					extractActionSignature(
+						rule.actions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
+						rule.type,
+						parameters,
+						thisArg
+					);
 				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
 					const signatures = child as SignatureSectionNode;
 					extractSignatureSectionSignatures(signatures.content, thisArg);

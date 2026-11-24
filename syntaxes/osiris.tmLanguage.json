@@ -75,7 +75,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.osiris",
-					"match": "\\b(IF|AND|THEN|PROC|QRY|NOT)\\b"
+					"match": "\\b(IF|AND|THEN|PROC|QRY|NOT|GoalCompleted)\\b"
 				}
 			]
 		},

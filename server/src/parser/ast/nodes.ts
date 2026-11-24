@@ -25,7 +25,8 @@ export enum ASTNodeKind {
 	HEADER_NODE,
 	ALIAS_TYPE_NODE,
 	ENUM_TYPE_NODE,
-	HEADER_GOAL_NODE
+	HEADER_GOAL_NODE,
+	GOAL_COMPLETED_NODE
 }
 
 // Base Nodes
@@ -213,13 +214,13 @@ export class RuleNode extends ASTNode {
 	type: "PROC" | "QRY" | "IF";
 	call: SignatureNode;
 	conditions: (SignatureNode | ComparisonNode)[];
-	actions: SignatureNode[];
+	actions: (SignatureNode | GoalCompletedNode)[];
 
 	constructor(
 		type: "PROC" | "QRY" | "IF",
 		call: SignatureNode,
 		conditions: (SignatureNode | ComparisonNode)[],
-		actions: SignatureNode[],
+		actions: (SignatureNode | GoalCompletedNode)[],
 		range: Range,
 		selectionRange: Range
 	) {
@@ -229,6 +230,22 @@ export class RuleNode extends ASTNode {
 		this.conditions = conditions;
 		this.actions = actions;
 		this.range = range;
+	}
+
+	getRuleSignatures() {
+		return [this.call, ...this.getConditionSignatures(), ...this.getActionSignatures()];
+	}
+
+	getConditionSignatures() {
+		return this.filterSignatures(this.conditions);
+	}
+
+	getActionSignatures() {
+		return this.filterSignatures(this.actions);
+	}
+
+	private filterSignatures(nodes: (SignatureNode | ASTNode)[]) {
+		return nodes.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[];
 	}
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
@@ -278,6 +295,18 @@ export class TypeEnumMemberNode extends ASTNode {
 
 	*getNodeChildren(): Iterable<ASTNode | undefined> {
 		yield undefined;
+	}
+}
+
+export class GoalCompletedNode extends ASTNode {
+	kind = ASTNodeKind.GOAL_COMPLETED_NODE;
+
+	*getNodeChildren(): Iterable<ASTNode | undefined> {
+		yield undefined;
+	}
+
+	constructor(range: Range) {
+		super(range, range);
 	}
 }
 

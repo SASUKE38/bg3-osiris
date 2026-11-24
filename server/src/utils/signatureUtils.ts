@@ -91,11 +91,7 @@ export function findVariableUses(nodesAt: ASTNode[], searchNode: IdentifierNode)
 	}
 
 	if (!ruleNode) return res;
-	for (const signature of [
-		ruleNode.call,
-		...(ruleNode.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[]),
-		...ruleNode.actions
-	]) {
+	for (const signature of ruleNode.getRuleSignatures()) {
 		for (const parameter of signature.parameters) {
 			if (
 				parameter.content.kind === ASTNodeKind.IDENTIFIER_NODE &&

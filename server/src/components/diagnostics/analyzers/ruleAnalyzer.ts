@@ -40,13 +40,15 @@ export class RuleAnalyzer extends AnalyzerBase {
 					thisArg.verifySymbolsInStatement(child as RuleNode, signatures, res);
 					thisArg.verifyDeletionsOnlyFromDatabases([(child as RuleNode).call], signatures, res);
 					thisArg.verifyDeletionsOnlyFromDatabases(
-						(child as RuleNode).conditions.filter(
-							(value) => value.kind === ASTNodeKind.SIGNATURE_NODE
-						) as SignatureNode[],
+						(child as RuleNode).getConditionSignatures(),
 						signatures,
 						res
 					);
-					thisArg.verifyDeletionsOnlyFromDatabases((child as RuleNode).actions, signatures, res);
+					thisArg.verifyDeletionsOnlyFromDatabases(
+						(child as RuleNode).getActionSignatures(),
+						signatures,
+						res
+					);
 					thisArg.verifyValidSymbolInInitialCondition(child as RuleNode, signatures, res);
 					thisArg.verifyValidFunctionTypeInCondition((child as RuleNode).conditions, signatures, res);
 					thisArg.verifyRuleNamingStyle(child as RuleNode, res);
@@ -90,7 +92,7 @@ export class RuleAnalyzer extends AnalyzerBase {
 	// InvalidSymbolInStatement 15
 	private verifySymbolsInStatement(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
 		return RuleAnalyzer.procSectionVerifierHelper(
-			rule.actions,
+			rule.getActionSignatures(),
 			signatures,
 			invalidSymbolInStatementDiagnosticFactory,
 			false,
@@ -129,7 +131,13 @@ export class RuleAnalyzer extends AnalyzerBase {
 		for (const node of nodes) {
 			if (node.kind !== ASTNodeKind.SIGNATURE_NODE || !node.isDeletion) continue;
 			const signature = signatures.get(node);
-			if (signature && signature.type !== "Database" && signature.type !== "UserQuery" && signature.type !== "SysQuery" && signature.type !== "Query") {
+			if (
+				signature &&
+				signature.type !== "Database" &&
+				signature.type !== "UserQuery" &&
+				signature.type !== "SysQuery" &&
+				signature.type !== "Query"
+			) {
 				res.push(invalidDeletionFromNonDatabaseDiagnosticFactory({ range: node.selectionRange }));
 			}
 		}

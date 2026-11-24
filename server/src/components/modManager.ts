@@ -58,6 +58,8 @@ import { extractFromPak } from "../utils/edge";
 import { ASTNodeKind, GoalNode, StringNode } from "../parser/ast/nodes";
 import { GoalResource } from "../mods/resource/goalResource";
 import { FSWatcher, watch } from "chokidar";
+import PromiseQueue from "promise-queue";
+import waitUntil from "async-wait-until";
 
 /**
  * Server component that manages mod loading and tracking.
@@ -65,6 +67,13 @@ import { FSWatcher, watch } from "chokidar";
 export class ModManager extends ComponentBase {
 	mod?: Mod;
 	watcher?: FSWatcher;
+	queue = new PromiseQueue(Infinity, Infinity, {
+		onEmpty: () => {
+			this.refreshDefinedSignatures();
+		}
+	});
+	definedSignatures = new SignatureCollection();
+	isRefreshingSignatures = false;
 
 	fileToSignatureMap = new Map<string, Set<string>>();
 	signatureToFileMap = new Map<string, Set<string>>();
@@ -488,6 +497,12 @@ export class ModManager extends ComponentBase {
 	}
 
 	async getAllDefinedSignatures(): Promise<SignatureCollection> {
+		await waitUntil(() => !this.isRefreshingSignatures);
+		return this.definedSignatures;
+	}
+
+	async refreshDefinedSignatures() {
+		this.isRefreshingSignatures = true;
 		const res = new SignatureCollection();
 		if (!this.mod) return res;
 
@@ -498,7 +513,8 @@ export class ModManager extends ComponentBase {
 		res.merge(this.mod.inheritedSignatures);
 		res.merge(this.mod.inheritedDatabases);
 
-		return res;
+		this.definedSignatures = res;
+		this.isRefreshingSignatures = false;
 	}
 
 	async updateSignatures(path: string, referencedSignatures: Set<string>) {
@@ -543,10 +559,12 @@ export class ModManager extends ComponentBase {
 	private async createMod(path: string, meta?: ModMetaModuleInfo): Promise<Mod> {
 		const mod = new Mod(path, this, meta);
 		this.server.connection.sendNotification(notificationModInitializing, { title: path.split(sep).pop() });
-		mod.initialize().then(() => {
-			for (const resource of mod.getAllGoals()) {
-				this.server.diagnosticManager.handleDiagnostics(resource.getTextDocument());
-			}
+		mod.initialize().then(async () => {
+			await Promise.all(
+				mod
+					.getAllGoals()
+					.map((value) => this.server.diagnosticManager.handleDiagnostics(value.getTextDocument()))
+			);
 			this.server.connection.sendNotification(notificationModReady);
 		});
 		return mod;
