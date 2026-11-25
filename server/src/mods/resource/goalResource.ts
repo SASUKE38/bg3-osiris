@@ -5,13 +5,13 @@ import {
 	ASTNodeKind,
 	ComparisonNode,
 	EnumTypeNode,
+	GoalNode,
 	IdentifierNode,
 	NumberNode,
 	NumberNodeKind,
 	ParameterNode,
 	RuleNode,
 	SignatureNode,
-	SignatureSectionNode,
 	StringNode
 } from "../../parser/ast/nodes";
 import { GoalLexer } from "../../parser/lexer/goalLexer";
@@ -200,184 +200,187 @@ export class GoalResource extends Resource {
 
 	async loadSignatures() {
 		const root = this.ast;
-		const inheritedSignatures = this.mod.inheritedSignatures;
 		if (!root) return;
-
-		function getSignatures(node: ASTNode, thisArg: GoalResource) {
-			for (const child of node.getNodeChildren()) {
-				if (!child) continue;
-				if (child.kind === ASTNodeKind.RULE_NODE) {
-					const rule = child as RuleNode;
-					const parameters = new Map<string, string>();
-					extractCallSignature(rule.call, rule.type, parameters, thisArg);
-					extractConditionSignatures(
-						rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
-						rule.type,
-						parameters,
-						thisArg
-					);
-					extractActionSignature(
-						rule.actions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
-						rule.type,
-						parameters,
-						thisArg
-					);
-				} else if (child.kind === ASTNodeKind.SIGNATURE_SECTION_NODE) {
-					const signatures = child as SignatureSectionNode;
-					extractSignatureSectionSignatures(signatures.content, thisArg);
-				} else {
-					getSignatures(child, thisArg);
-				}
-			}
-		}
-
-		function mergeSignatures(signature: Signature, thisArg: GoalResource) {
-			if (!thisArg.signatures.has(signature)) thisArg.signatures.set(signature);
-			else {
-				thisArg.signatures.mergeSignature(signature);
-			}
-		}
-
-		function inferType(parameterNode: ParameterNode, parameters?: Map<string, string>) {
-			if (
-				parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
-				parameters?.has((parameterNode.content as IdentifierNode).value)
-			) {
-				return parameters.get((parameterNode.content as IdentifierNode).value)!;
-			}
-			switch (parameterNode.content.kind) {
-				case ASTNodeKind.IDENTIFIER_NODE:
-					if (!(parameterNode.content as IdentifierNode).value.startsWith("_")) return "GUIDSTRING";
-					else return "";
-					break;
-				case ASTNodeKind.STRING_NODE:
-					return "STRING";
-					break;
-				case ASTNodeKind.NUMBER_NODE:
-					if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer) return "INTEGER";
-					else if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real) return "REAL";
-					else return "INTEGER64";
-					break;
-				default:
-					return "";
-					break;
-			}
-		}
-
-		function extractSignature(
-			signatureNode: SignatureNode,
-			section: "call" | "condition" | "action",
-			ruleType: "PROC" | "QRY" | "IF" | "",
-			thisArg: GoalResource,
-			parameters?: Map<string, string>
-		): Signature {
-			return new Signature(
-				signatureNode.name,
-				getSignatureType(section, ruleType, signatureNode),
-				signatureNode.parameters.map((value) => (value.type ? value.type.value : inferType(value, parameters))),
-				section === "call" && (ruleType === "PROC" || ruleType === "QRY")
-					? [Location.create(thisArg.document.uri, signatureNode.selectionRange)]
-					: []
-			);
-		}
-
-		function registerParameters(parameters: Map<string, string>, signatureNode: SignatureNode) {
-			for (const parameter of signatureNode.parameters) {
-				if (
-					parameter.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
-					(parameter.content as IdentifierNode).value.startsWith("_") &&
-					(parameter.content as IdentifierNode).value !== "_" &&
-					parameter.type
-				) {
-					parameters.set((parameter.content as IdentifierNode).value, parameter.type.value);
-				}
-			}
-		}
-
-		function extractCallSignature(
-			signatureNode: SignatureNode,
-			ruleType: "PROC" | "QRY" | "IF",
-			parameters: Map<string, string>,
-			thisArg: GoalResource
-		) {
-			const signature = extractSignature(signatureNode, "call", ruleType, thisArg);
-			registerParameters(parameters, signatureNode);
-
-			if (ruleType === "IF" && signature.type === "Database") thisArg.readDatabases.add(signature.name);
-			mergeSignatures(signature, thisArg);
-			thisArg.referencedSignatures.add(signature.name);
-		}
-
-		function extractConditionSignatures(
-			signatureNodes: SignatureNode[],
-			ruleType: "PROC" | "QRY" | "IF",
-			parameters: Map<string, string>,
-			thisArg: GoalResource
-		) {
-			for (const signatureNode of signatureNodes) {
-				registerParameters(parameters, signatureNode);
-				const signature = extractSignature(signatureNode, "condition", ruleType, thisArg, parameters);
-
-				if (signature.type === "Database") {
-					thisArg.readDatabases.add(signature.name);
-					mergeSignatures(signature, thisArg);
-				}
-				thisArg.referencedSignatures.add(signature.name);
-			}
-		}
-
-		function extractActionSignature(
-			signatureNodes: SignatureNode[],
-			ruleType: "PROC" | "QRY" | "IF",
-			parameters: Map<string, string>,
-			thisArg: GoalResource
-		) {
-			for (const signatureNode of signatureNodes) {
-				registerParameters(parameters, signatureNode);
-				const signature = extractSignature(signatureNode, "action", ruleType, thisArg, parameters);
-
-				if (signature.type === "Database") {
-					thisArg.writtenDatabases.add(signature.name);
-					mergeSignatures(signature, thisArg);
-				}
-				thisArg.referencedSignatures.add(signature.name);
-			}
-		}
-
-		function extractSignatureSectionSignatures(signatureNodes: SignatureNode[], thisArg: GoalResource) {
-			for (const signatureNode of signatureNodes) {
-				const signature = extractSignature(signatureNode, "call", "", thisArg);
-				if (signature.type !== "Database") return;
-				thisArg.writtenDatabases.add(signature.name);
-				mergeSignatures(signature, thisArg);
-				thisArg.referencedSignatures.add(signature.name);
-			}
-		}
-
-		function getSignatureType(
-			section: "call" | "condition" | "action",
-			ruleType: "PROC" | "QRY" | "IF" | "",
-			signature: SignatureNode
-		): SignatureType {
-			if (inheritedSignatures.has(signature)) {
-				const inheritedSignature = inheritedSignatures.get(signature);
-				if (inheritedSignature?.isBuiltin()) return inheritedSignature.type;
-			}
-			if (section === "call") {
-				if (ruleType === "PROC") return "Proc";
-				else if (ruleType === "QRY") return "UserQuery";
-				else if (ruleType === "IF" || ruleType === "") return "Database";
-			} else {
-				if (signature.name.startsWith("DB_")) return "Database";
-			}
-			return "Proc";
-		}
 
 		this.readDatabases.clear();
 		this.writtenDatabases.clear();
 		this.signatures.clear();
 		this.referencedSignatures.clear();
-		getSignatures(root, this);
+		this.getSignatures(root);
+	}
+
+	getSignatures(node: ASTNode) {
+		for (const child of node.getNodeChildren()) {
+			if (!child) continue;
+			if (child.kind === ASTNodeKind.RULE_NODE) {
+				const rule = child as RuleNode;
+				const parameters = new Map<string, string>();
+				this.extractCallSignature(rule.call, rule.type, parameters);
+				this.extractConditionSignatures(
+					rule.conditions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
+					rule.type,
+					parameters
+				);
+				this.extractActionSignature(
+					rule.actions.filter((value) => value.kind === ASTNodeKind.SIGNATURE_NODE) as SignatureNode[],
+					rule.type,
+					parameters
+				);
+			} else {
+				this.getSignatures(child);
+			}
+		}
+	}
+
+	private mergeSignatures(signature: Signature) {
+		if (!this.signatures.has(signature)) this.signatures.set(signature);
+		else {
+			this.signatures.mergeSignature(signature);
+		}
+	}
+
+	private inferType(parameterNode: ParameterNode, parameters?: Map<string, string>) {
+		if (
+			parameterNode.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
+			parameters?.has((parameterNode.content as IdentifierNode).value)
+		) {
+			return parameters.get((parameterNode.content as IdentifierNode).value)!;
+		}
+		switch (parameterNode.content.kind) {
+			case ASTNodeKind.IDENTIFIER_NODE:
+				if (!(parameterNode.content as IdentifierNode).value.startsWith("_")) return "GUIDSTRING";
+				else return "";
+				break;
+			case ASTNodeKind.STRING_NODE:
+				return "STRING";
+				break;
+			case ASTNodeKind.NUMBER_NODE:
+				if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Integer) return "INTEGER";
+				else if ((parameterNode.content as NumberNode).numberKind === NumberNodeKind.Real) return "REAL";
+				else return "INTEGER64";
+				break;
+			default:
+				return "";
+				break;
+		}
+	}
+
+	private extractSignature(
+		signatureNode: SignatureNode,
+		section: "call" | "condition" | "action",
+		ruleType: "PROC" | "QRY" | "IF" | "",
+		parameters?: Map<string, string>
+	): Signature {
+		return new Signature(
+			signatureNode.name,
+			this.getSignatureType(section, ruleType, signatureNode),
+			signatureNode.parameters.map((value) =>
+				value.type ? value.type.value : this.inferType(value, parameters)
+			),
+			section === "call" && (ruleType === "PROC" || ruleType === "QRY")
+				? [Location.create(this.document.uri, signatureNode.selectionRange)]
+				: []
+		);
+	}
+
+	private registerParameters(parameters: Map<string, string>, signatureNode: SignatureNode) {
+		for (const parameter of signatureNode.parameters) {
+			if (
+				parameter.content.kind === ASTNodeKind.IDENTIFIER_NODE &&
+				(parameter.content as IdentifierNode).value.startsWith("_") &&
+				(parameter.content as IdentifierNode).value !== "_" &&
+				parameter.type
+			) {
+				parameters.set((parameter.content as IdentifierNode).value, parameter.type.value);
+			}
+		}
+	}
+
+	private extractCallSignature(
+		signatureNode: SignatureNode,
+		ruleType: "PROC" | "QRY" | "IF",
+		parameters: Map<string, string>
+	) {
+		const signature = this.extractSignature(signatureNode, "call", ruleType);
+		this.registerParameters(parameters, signatureNode);
+
+		if (ruleType === "IF" && signature.type === "Database") this.readDatabases.add(signature.name);
+		this.mergeSignatures(signature);
+		this.referencedSignatures.add(signature.name);
+	}
+
+	private extractConditionSignatures(
+		signatureNodes: SignatureNode[],
+		ruleType: "PROC" | "QRY" | "IF",
+		parameters: Map<string, string>
+	) {
+		for (const signatureNode of signatureNodes) {
+			this.registerParameters(parameters, signatureNode);
+			const signature = this.extractSignature(signatureNode, "condition", ruleType, parameters);
+
+			if (signature.type === "Database") {
+				this.readDatabases.add(signature.name);
+				this.mergeSignatures(signature);
+			}
+			this.referencedSignatures.add(signature.name);
+		}
+	}
+
+	private extractActionSignature(
+		signatureNodes: SignatureNode[],
+		ruleType: "PROC" | "QRY" | "IF",
+		parameters: Map<string, string>
+	) {
+		for (const signatureNode of signatureNodes) {
+			this.registerParameters(parameters, signatureNode);
+			const signature = this.extractSignature(signatureNode, "action", ruleType, parameters);
+
+			if (signature.type === "Database") {
+				this.writtenDatabases.add(signature.name);
+				this.mergeSignatures(signature);
+			}
+			this.referencedSignatures.add(signature.name);
+		}
+	}
+
+	private getSignatureType(
+		section: "call" | "condition" | "action",
+		ruleType: "PROC" | "QRY" | "IF" | "",
+		signature: SignatureNode
+	): SignatureType {
+		if (this.mod.inheritedSignatures.has(signature)) {
+			const inheritedSignature = this.mod.inheritedSignatures.get(signature);
+			if (inheritedSignature?.isBuiltin()) return inheritedSignature.type;
+		}
+		if (section === "call") {
+			if (ruleType === "PROC") return "Proc";
+			else if (ruleType === "QRY") return "UserQuery";
+			else if (ruleType === "IF" || ruleType === "") return "Database";
+		} else {
+			if (signature.name.startsWith("DB_")) return "Database";
+		}
+		return "Proc";
+	}
+
+	async mergeSignatureSectionSignatures(signatures: SignatureCollection) {
+		const res = new SignatureCollection();
+		const root = await this.getRootNode();
+		if (!root || root.kind !== ASTNodeKind.GOAL_NODE) return res;
+		for (const node of [...(root as GoalNode).init.content, ...(root as GoalNode).exit.content]) {
+			// const signature = this.extractSignature(node, "call", "");
+			const signature = new Signature(
+				node.name,
+				signatures.has(node) ? signatures.get(node)!.type : "Database",
+				node.parameters.map((value) => (value.type ? value.type.value : this.inferType(value))),
+				[]
+			);
+			if (signature.type !== "Database") return res;
+			this.writtenDatabases.add(signature.name);
+			this.mergeSignatures(signature);
+			this.referencedSignatures.add(signature.name);
+			res.mergeSignature(signature);
+		}
+		return res;
 	}
 
 	async loadConstants() {

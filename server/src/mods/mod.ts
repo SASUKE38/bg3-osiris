@@ -1,5 +1,5 @@
 import { ModMetaModuleInfo, ModMetaModuleShortDesc } from "./modMeta";
-import { existsSync, readdirSync, rmSync } from "fs";
+import { existsSync, readdirSync, rmSync, statSync } from "fs";
 import { StoryTree } from "./storyTree";
 import { GoalResource } from "./resource/goalResource";
 import { join } from "path";
@@ -73,12 +73,12 @@ export class Mod {
 	async initialize() {
 		await this.initializeDependencies();
 
-		if (existsSync(join(this.path, this.goalSubdirectory))) {
-			for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
-				if (this.path) {
-					await this.createGoalResource(file, join(this.path, this.goalSubdirectory, file));
-				}
-			}
+		if (!existsSync(join(this.path, this.goalSubdirectory))) return;
+
+		for (const file of await readdir(join(this.path, this.goalSubdirectory))) {
+			const path = join(this.path, this.goalSubdirectory, file);
+			if (!file.endsWith(".txt") || statSync(path).size > 5242880) continue;
+			await this.createGoalResource(file, path);
 		}
 
 		this.storyTree.createTree(this.goals, this.dependencies);

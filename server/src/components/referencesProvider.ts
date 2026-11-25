@@ -37,7 +37,7 @@ export class ReferencesProvider extends ComponentBase {
 	 */
 	private handleReferences = async (params: ReferenceParams): Promise<Location[] | null> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
-		if (!resource || !await validateRenameOrReferences(params, resource)) return null;
+		if (!resource || !(await validateRenameOrReferences(params, resource))) return null;
 
 		const nodesAt = await resource.getNodesAt(params.position);
 		const searchNode = nodesAt[nodesAt.length - 1];
@@ -63,7 +63,7 @@ export class ReferencesProvider extends ComponentBase {
 	 */
 	private handleDocumentHighlight = async (params: DocumentHighlightParams): Promise<DocumentHighlight[] | null> => {
 		const resource = this.server.modManager.findGoalResource(decodePath(params.textDocument.uri));
-		if (!resource || !await validateRenameOrReferences(params, resource)) return null;
+		if (!resource || !(await validateRenameOrReferences(params, resource))) return null;
 
 		const nodesAt = await resource.getNodesAt(params.position);
 		const searchNode = nodesAt[nodesAt.length - 1];
@@ -85,11 +85,7 @@ export class ReferencesProvider extends ComponentBase {
 	 * @param searchNode The node to search for.
 	 * @returns An {@link Array} of {@link Location} instances where the search node is found.
 	 */
-	private findVariableReferences(
-		document: string,
-		nodesAt: ASTNode[],
-		searchNode: IdentifierNode
-	): Location[] {
+	private findVariableReferences(document: string, nodesAt: ASTNode[], searchNode: IdentifierNode): Location[] {
 		const res: Location[] = [];
 
 		for (const range of findVariableUses(nodesAt, searchNode)) {
@@ -126,11 +122,11 @@ export class ReferencesProvider extends ComponentBase {
 		const res: Location[] = [];
 
 		for (const resource of this.server.modManager.getAllResources()) {
-			const path = encodePath(resource.path)
+			const path = encodePath(resource.path);
 			const root = await resource.getRootNode();
 			if (!root) continue;
 			for (const range of findNestedUses(root, searchNode)) {
-				res.push({uri: path, range })
+				res.push({ uri: path, range });
 			}
 		}
 
@@ -144,13 +140,16 @@ export class ReferencesProvider extends ComponentBase {
 	 * @param searchNode The node to search for.
 	 * @returns An {@link Array} of {@link DocumentHighlight} instances of where the search node was found.
 	 */
-	private async findSignatureOrConstantHighlights(resource: Resource, searchNode: SignatureNode | IdentifierNode): Promise<DocumentHighlight[]> {
+	private async findSignatureOrConstantHighlights(
+		resource: Resource,
+		searchNode: SignatureNode | IdentifierNode
+	): Promise<DocumentHighlight[]> {
 		const res: DocumentHighlight[] = [];
 		const root = await resource.getRootNode();
 		if (!root) return res;
 
 		for (const range of findNestedUses(root, searchNode)) {
-			res.push({ range })
+			res.push({ range });
 		}
 
 		return res;
@@ -158,7 +157,7 @@ export class ReferencesProvider extends ComponentBase {
 
 	/**
 	 * Finds all instances of a given constant in the mod.
-	 * 
+	 *
 	 * @param searchNode The node to search for.
 	 * @returns An {@link Array} of {@link Location} instances where the search node is found.
 	 */
@@ -170,7 +169,7 @@ export class ReferencesProvider extends ComponentBase {
 			const constants = await resource.getData("constants");
 			for (const constant of constants) {
 				if (constant[0] !== searchNode.value) continue;
-				constant[1].forEach((value) => res.push({uri: path, range: value}));
+				constant[1].forEach((value) => res.push({ uri: path, range: value }));
 			}
 		}
 

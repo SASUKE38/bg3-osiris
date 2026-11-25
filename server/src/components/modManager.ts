@@ -482,6 +482,7 @@ export class ModManager extends ComponentBase {
 	}
 
 	private async getDatabases(field: "readDatabases" | "writtenDatabases"): Promise<Set<string>> {
+		await waitUntil(() => !this.isRefreshingSignatures);
 		const res = new Set<string>();
 		if (!this.mod) return res;
 
@@ -512,6 +513,10 @@ export class ModManager extends ComponentBase {
 
 		res.merge(this.mod.inheritedSignatures);
 		res.merge(this.mod.inheritedDatabases);
+
+		for (const resource of this.mod.getAllGoals()) {
+			res.merge(await resource.mergeSignatureSectionSignatures(res));
+		}
 
 		this.definedSignatures = res;
 		this.isRefreshingSignatures = false;

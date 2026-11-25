@@ -18,8 +18,12 @@ suite("Diagnostics Provider", () => {
 	const diagnostic31DocUri = getDocUri("DiagnosticTest_Casts.txt");
 	const diagnosticSource = "Osiris";
 
-	// TODO: Allow procs and calls in INIT and EXIT -- if a signature is recognized as a proc or call, don't make it a db
-	// TODO: Fix signature collection being so slow -- only change it when a resource is changed?
+	// TODO: Allow integers in place of enums
+	// TODO: Allow integers in place of reals
+	// TODO: Fix placeholders in out slots of built-in queries
+	// TODO: Allow signatures to be case insensitive
+	// TODO: Fix documentation label for CrimeGetTension
+	// TODO: Don't report naming violations for procs with the same name as a builtin?
 
 	test("Diagnostics for script with multiple diagnostics should get array for all of them", async () => {
 		await testDiagnostics(endDocUri, [
@@ -149,13 +153,6 @@ suite("Diagnostics Provider", () => {
 				severity: vscode.DiagnosticSeverity.Error,
 				source: diagnosticSource,
 				code: "E18"
-			},
-			{
-				message: "NOT can only be used with databases",
-				range: toRange(16, 4, 16, 17),
-				severity: vscode.DiagnosticSeverity.Error,
-				source: diagnosticSource,
-				code: "E16"
 			},
 			{
 				message: "NOT can only be used with databases",
