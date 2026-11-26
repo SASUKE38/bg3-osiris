@@ -32,11 +32,12 @@ export class SignatureAnalyzer extends AnalyzerBase {
 		writtenDatabases: Set<string>,
 		res: Diagnostic[]
 	) {
-		if (!readDatabases.has(child.name) && writtenDatabases.has(child.name)) {
+		const name = child.name.toLowerCase()
+		if (!readDatabases.has(name) && writtenDatabases.has(name)) {
 			res.push(
 				unusedDatabaseWarningDiagnosticFactory({ range: child.selectionRange, name: child.name, isRead: false })
 			);
-		} else if (readDatabases.has(child.name) && !writtenDatabases.has(child.name)) {
+		} else if (readDatabases.has(name) && !writtenDatabases.has(name)) {
 			res.push(
 				unusedDatabaseWarningDiagnosticFactory({ range: child.selectionRange, name: child.name, isRead: true })
 			);

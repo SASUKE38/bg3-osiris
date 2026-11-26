@@ -23,6 +23,26 @@ import {
 } from "../message";
 import { getParameterBinding } from "../../../utils/signatureUtils";
 
+class BoundParameterMapping {
+	private readonly map: Map<string, string>;
+
+	constructor(iterable?: Iterable<readonly [string, string]> | null | undefined) {
+		this.map = new Map(iterable);
+	}
+
+	get(key: string) {
+		return this.map.get(key.toLowerCase())
+	}
+
+	has(key: string) {
+		return this.map.has(key.toLowerCase())
+	}
+
+	set(key: string, type: string) {
+		this.map.set(key.toLowerCase(), type)
+	}
+}
+
 export class ParameterAnalyzer extends AnalyzerBase {
 	async analyze(): Promise<Diagnostic[]> {
 		const res: Diagnostic[] = [];
@@ -53,7 +73,8 @@ export class ParameterAnalyzer extends AnalyzerBase {
 	//#region ParamNotBound
 	// ParamNotBound 24
 	private verifyParameterBinding(rule: RuleNode, signatures: SignatureCollection, res: Diagnostic[]) {
-		const parameters = new Map<string, string>([["_", "UNKNOWN"]]);
+		const parameters = new BoundParameterMapping([["_", "UNKNOWN"]]);
+		parameters.set("_", "UNKNOWN");
 		const functions = [rule.call, ...rule.conditions, ...rule.actions];
 		const actionStartIndex = rule.conditions.length + 1;
 		for (let i = 0; i < functions.length; i++) {
@@ -79,7 +100,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 		node: SignatureNode,
 		rule: RuleNode,
 		signatures: SignatureCollection,
-		parameters: Map<string, string>,
+		parameters: BoundParameterMapping,
 		i: number,
 		actionStartIndex: number,
 		res: Diagnostic[]
@@ -145,7 +166,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 
 	private verifyParameterBindingInComparison(
 		node: ComparisonNode,
-		boundParameters: Map<string, string>,
+		boundParameters: BoundParameterMapping,
 		res: Diagnostic[]
 	) {
 		for (const operand of node.getNodeChildren()) {
@@ -179,7 +200,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 	private verifyVariableTypes(
 		node: SignatureNode,
 		signatures: SignatureCollection,
-		parameters: Map<string, string>,
+		parameters: BoundParameterMapping,
 		res: Diagnostic[]
 	) {
 		const signature = signatures.get(node);

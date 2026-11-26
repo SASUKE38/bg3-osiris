@@ -81,10 +81,11 @@ export class HoverProvider extends ComponentBase {
 		}
 
 		if (!type) type = "UNKNOWN";
+		const label = bindingData ? (bindingData.parameterNode.content as IdentifierNode).value : (hoveredNode as IdentifierNode).value;
 		return {
 			contents: {
 				kind: MarkupKind.Markdown,
-				value: ["```osiris", `(${type}) ${(hoveredNode as IdentifierNode).value}`, "```"].join("\n")
+				value: ["```osiris", `(${type}) ${label}`, "```"].join("\n")
 			}
 		};
 	}

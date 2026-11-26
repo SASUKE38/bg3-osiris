@@ -16,7 +16,7 @@ export function getParameterBinding(ruleNode: RuleNode, searchNode: IdentifierNo
 			const parameter = signatureNodes[i].parameters[j];
 			if (
 				parameter.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
-				(parameter.content as IdentifierNode).value !== searchNode.value
+				(parameter.content as IdentifierNode).value.toLowerCase() !== searchNode.value.toLowerCase()
 			)
 				continue;
 			const isOut = signature.isOutParameter(j);

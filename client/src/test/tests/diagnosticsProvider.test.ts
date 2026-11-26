@@ -19,11 +19,11 @@ suite("Diagnostics Provider", () => {
 	const diagnosticSource = "Osiris";
 
 	// TODO: Fix placeholders in out slots of built-in queries
-	// TODO: Allow signatures to be case insensitive
 	// TODO: Fix documentation label for CrimeGetTension
 	// TODO: Don't report naming violations for procs with the same name as a builtin?
 	// TODO: Allow numbers after casts
-	// TODO: Fix phantom nonbound variables
+	// TODO: Fix non-database signatures being examined for reads and writes
+	// TODO: Verify behavior of E32 with constants
 
 
 	test("Diagnostics for script with multiple diagnostics should get array for all of them", async () => {

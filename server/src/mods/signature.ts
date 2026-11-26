@@ -105,7 +105,7 @@ export class SignatureCollection {
 	private readonly map = new Map<string, Signature>();
 
 	private getKey(signature: Signature | SignatureNode): string {
-		return `${signature.name}/${signature.parameters.length}`;
+		return `${signature.name.toLowerCase()}/${signature.parameters.length}`;
 	}
 
 	get(signature: Signature | SignatureNode): Signature | undefined {
@@ -116,7 +116,7 @@ export class SignatureCollection {
 		const res: Signature[] = [];
 		Array.from(this.map.keys())
 			.filter((value) => {
-				return value.substring(0, value.lastIndexOf("/")) === signature.name;
+				return value.substring(0, value.lastIndexOf("/")) === signature.name.toLowerCase();
 			})
 			.forEach((value) => {
 				const candidate = this.map.get(value);
@@ -129,7 +129,7 @@ export class SignatureCollection {
 		const res = new Set<string>();
 		for (const entry of this.map.entries()) {
 			if (types.find((value) => value === entry[1].type && !entry[0].startsWith("/")))
-				res.add(entry[0].substring(0, entry[0].length - 2));
+				res.add(entry[1].name);
 		}
 		return res;
 	}

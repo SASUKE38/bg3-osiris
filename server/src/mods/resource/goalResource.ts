@@ -304,7 +304,7 @@ export class GoalResource extends Resource {
 		const signature = this.extractSignature(signatureNode, "call", ruleType);
 		this.registerParameters(parameters, signatureNode);
 
-		if (ruleType === "IF" && signature.type === "Database") this.readDatabases.add(signature.name);
+		if (ruleType === "IF" && signature.type === "Database") this.readDatabases.add(signature.name.toLowerCase());
 		this.mergeSignatures(signature);
 		this.referencedSignatures.add(signature.name);
 	}
@@ -319,7 +319,7 @@ export class GoalResource extends Resource {
 			const signature = this.extractSignature(signatureNode, "condition", ruleType, parameters);
 
 			if (signature.type === "Database") {
-				this.readDatabases.add(signature.name);
+				this.readDatabases.add(signature.name.toLowerCase());
 				this.mergeSignatures(signature);
 			}
 			this.referencedSignatures.add(signature.name);
@@ -336,7 +336,7 @@ export class GoalResource extends Resource {
 			const signature = this.extractSignature(signatureNode, "action", ruleType, parameters);
 
 			if (signature.type === "Database") {
-				this.writtenDatabases.add(signature.name);
+				this.writtenDatabases.add(signature.name.toLowerCase());
 				this.mergeSignatures(signature);
 			}
 			this.referencedSignatures.add(signature.name);
@@ -375,7 +375,7 @@ export class GoalResource extends Resource {
 				[]
 			);
 			if (signature.type !== "Database") return res;
-			this.writtenDatabases.add(signature.name);
+			this.writtenDatabases.add(signature.name.toLowerCase());
 			this.mergeSignatures(signature);
 			this.referencedSignatures.add(signature.name);
 			res.mergeSignature(signature);
