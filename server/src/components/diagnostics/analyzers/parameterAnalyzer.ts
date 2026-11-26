@@ -321,6 +321,7 @@ export class ParameterAnalyzer extends AnalyzerBase {
 				if (
 					parameterNode.content.kind !== ASTNodeKind.IDENTIFIER_NODE ||
 					!parameterNode.type ||
+					(parameterNode.content as IdentifierNode).value === "_" ||
 					!(parameterNode.content as IdentifierNode).value.startsWith("_")
 				)
 					continue;

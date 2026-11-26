@@ -307,7 +307,17 @@ export class Mod {
 	}
 
 	areAliasTypes(typeA: InheritedType, typeB: InheritedType) {
-		return this.getIntrinsicType(typeA) === this.getIntrinsicType(typeB);
+		const intrinsicTypeA = this.getIntrinsicType(typeA);
+		const intrinsicTypeB = this.getIntrinsicType(typeB);
+		return (
+			(intrinsicTypeA === "REAL" && intrinsicTypeB === "INTEGER") ||
+			(intrinsicTypeB === "REAL" && intrinsicTypeA === "INTEGER") ||
+			(intrinsicTypeA === "INTEGER64" && intrinsicTypeB === "INTEGER") ||
+			(intrinsicTypeB === "INTEGER64" && intrinsicTypeA === "INTEGER") ||
+			(this.inheritedEnums.has(intrinsicTypeA) && intrinsicTypeB === "INTEGER") || 
+			(this.inheritedEnums.has(intrinsicTypeB) && intrinsicTypeA === "INTEGER") || 
+			intrinsicTypeA === intrinsicTypeB
+		);
 	}
 
 	getIntrinsicCompatibilityType(type: InheritedType) {

@@ -18,12 +18,13 @@ suite("Diagnostics Provider", () => {
 	const diagnostic31DocUri = getDocUri("DiagnosticTest_Casts.txt");
 	const diagnosticSource = "Osiris";
 
-	// TODO: Allow integers in place of enums
-	// TODO: Allow integers in place of reals
 	// TODO: Fix placeholders in out slots of built-in queries
 	// TODO: Allow signatures to be case insensitive
 	// TODO: Fix documentation label for CrimeGetTension
 	// TODO: Don't report naming violations for procs with the same name as a builtin?
+	// TODO: Allow numbers after casts
+	// TODO: Fix phantom nonbound variables
+
 
 	test("Diagnostics for script with multiple diagnostics should get array for all of them", async () => {
 		await testDiagnostics(endDocUri, [
